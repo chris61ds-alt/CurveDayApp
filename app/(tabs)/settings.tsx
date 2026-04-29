@@ -5,7 +5,9 @@ import {
 } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { useIntakeStore } from '../../src/store/intakeStore';
+import { useOnboardingStore } from '../../src/store/onboardingStore';
 import { cancelAllReminders, requestNotificationPermissions } from '../../src/services/notifications';
+import { router } from 'expo-router';
 
 // ── Section wrapper ───────────────────────────────────────────
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -72,6 +74,7 @@ function Divider() {
 // ── Main Screen ───────────────────────────────────────────────
 export default function SettingsScreen() {
   const { intakes, removeIntake } = useIntakeStore();
+  const { prefs, resetOnboarding } = useOnboardingStore();
   const [notifEnabled,  setNotifEnabled]  = useState(false);
   const [peakAlerts,    setPeakAlerts]    = useState(true);
   const [dailyDigest,   setDailyDigest]   = useState(false);
@@ -228,6 +231,32 @@ export default function SettingsScreen() {
             icon="✉️" label="Feedback senden"
             sub="chris61ds@gmail.com"
             onPress={handleFeedback}
+          />
+        </Section>
+
+        {/* Onboarding */}
+        <Section title="🎯 Profil">
+          <RowInfo
+            icon="📋" label="Tracking-Bereiche"
+            value={`${prefs.trackingGoals.length} gewählt`}
+          />
+          <Divider />
+          <RowAction
+            icon="🔁" label="Onboarding wiederholen"
+            sub="Bereiche & Disclaimer neu durchlaufen"
+            onPress={() => {
+              Alert.alert(
+                'Onboarding zurücksetzen?',
+                'Du wirst durch den Einrichtungsassistenten geführt.',
+                [
+                  { text: 'Abbrechen', style: 'cancel' },
+                  { text: 'Zurücksetzen', onPress: async () => {
+                    await resetOnboarding();
+                    router.replace('/onboarding');
+                  }},
+                ]
+              );
+            }}
           />
         </Section>
 
