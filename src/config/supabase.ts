@@ -9,8 +9,8 @@
  * 5. Authentication → Providers → Google → aktivieren + Client ID/Secret eintragen
  */
 
-export const SUPABASE_URL  = 'https://DEIN-PROJEKT.supabase.co';
-export const SUPABASE_ANON = 'DEIN-ANON-KEY';
+export const SUPABASE_URL  = 'https://firrdhtfkhbiyqkvbegd.supabase.co';
+export const SUPABASE_ANON = 'sb_publishable_B_0uwPppAjZvuar2oWeGEA_UXAWUgSu';
 
 export const isSupabaseConfigured =
   !SUPABASE_URL.includes('DEIN-PROJEKT') &&
