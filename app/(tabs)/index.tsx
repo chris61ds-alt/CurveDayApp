@@ -172,7 +172,7 @@ export default function TageskurveScreen() {
                       onPress={() => setSelectedId(intake.substanceId)}
                       activeOpacity={0.75}
                     >
-                      <SubIcon icon={sub.icon} color={sub.color} size={22} />
+                      <SubIcon substance={sub} size={22} />
                       <View>
                         <Text style={[{ fontSize: 12, color: C.textDim }, sel && { color: sub.color }]}>
                           {fmtHour(intake.timeH)}
@@ -219,7 +219,7 @@ export default function TageskurveScreen() {
                       sel && { borderColor: `${sub.color}40`, backgroundColor: `${sub.color}08` }]}
                     activeOpacity={0.8}
                   >
-                    <SubIcon icon={sub.icon} color={sub.color} size={36} />
+                    <SubIcon substance={sub} size={36} />
                     <Text style={{ fontSize: 13, fontWeight: '700', color: C.text, marginTop: 6 }} numberOfLines={1}>
                       {sub.name}
                     </Text>
@@ -246,7 +246,7 @@ export default function TageskurveScreen() {
                 Details
               </Text>
               <View style={[s.detailHeader]}>
-                <SubIcon icon={selectedSub.icon} color={selectedSub.color} size={44} />
+                <SubIcon substance={selectedSub} size={44} />
                 <View style={{ marginLeft: 14, flex: 1 }}>
                   <Text style={{ fontSize: 17, fontWeight: '700', color: C.text }}>{selectedSub.name}</Text>
                   <Text style={{ fontSize: 12, color: C.textDim }}>{selectedIntake.doseLabel} · {fmtHour(selectedIntake.timeH)} Uhr</Text>
@@ -301,7 +301,7 @@ export default function TageskurveScreen() {
                   <View style={s.ixHeader}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
                       {[subA, subB].filter(Boolean).map((sub: any) => (
-                        <SubIcon key={sub.id} icon={sub.icon} color={sub.color} size={22} />
+                        <SubIcon key={sub.id} substance={sub} size={22} />
                       ))}
                       <Text style={{ fontSize: 13, fontWeight: '700', color: C.text, flex: 1 }} numberOfLines={1}>
                         {subA?.name} + {subB?.name}
