@@ -40,7 +40,8 @@
           "icon": "./assets/icon.png",
           "color": "#38bdf8"
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "extra": {
       "router": {},

@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView, ScrollView,
-  TouchableOpacity, Switch, Alert, StatusBar, Linking,
+  TouchableOpacity, Switch, Alert, StatusBar, Linking, Image,
 } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { useIntakeStore } from '../../src/store/intakeStore';
 import { useOnboardingStore } from '../../src/store/onboardingStore';
+import { useAuthStore } from '../../src/store/authStore';
 import { cancelAllReminders, requestNotificationPermissions } from '../../src/services/notifications';
+import { isSupabaseConfigured } from '../../src/config/supabase';
 import { router } from 'expo-router';
 
 // ── Section wrapper ───────────────────────────────────────────
@@ -73,8 +75,9 @@ function Divider() {
 
 // ── Main Screen ───────────────────────────────────────────────
 export default function SettingsScreen() {
-  const { intakes, removeIntake } = useIntakeStore();
+  const { intakes, removeIntake, syncFromCloud, uploadToCloud } = useIntakeStore();
   const { prefs, resetOnboarding } = useOnboardingStore();
+  const { user, loading, syncing, hydrate: hydrateAuth, login, logout, setSyncing } = useAuthStore();
   const [notifEnabled,  setNotifEnabled]  = useState(false);
   const [peakAlerts,    setPeakAlerts]    = useState(true);
   const [dailyDigest,   setDailyDigest]   = useState(false);
@@ -86,8 +89,39 @@ export default function SettingsScreen() {
       setNotifEnabled(status === 'granted');
       const scheduled = await Notifications.getAllScheduledNotificationsAsync();
       setScheduledCount(scheduled.length);
+      await hydrateAuth();
     })();
   }, []);
+
+  async function handleLogin() {
+    const error = await login();
+    if (error && error !== 'Abgebrochen') {
+      Alert.alert('Login fehlgeschlagen', error);
+    } else if (!error) {
+      // Nach Login: Cloud-Daten laden + lokale hochladen
+      setSyncing(true);
+      await syncFromCloud();
+      await uploadToCloud();
+      setSyncing(false);
+      Alert.alert('✅ Eingeloggt', 'Deine Daten wurden synchronisiert.');
+    }
+  }
+
+  async function handleLogout() {
+    Alert.alert('Abmelden', 'Möchtest du dich wirklich abmelden? Deine lokalen Daten bleiben erhalten.', [
+      { text: 'Abbrechen', style: 'cancel' },
+      { text: 'Abmelden', style: 'destructive', onPress: () => logout() },
+    ]);
+  }
+
+  async function handleManualSync() {
+    if (!user) return;
+    setSyncing(true);
+    await syncFromCloud();
+    await uploadToCloud();
+    setSyncing(false);
+    Alert.alert('✅ Sync abgeschlossen', 'Daten wurden mit der Cloud synchronisiert.');
+  }
 
   async function handleNotifToggle(val: boolean) {
     if (val) {
@@ -171,6 +205,63 @@ export default function SettingsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={s.scroll}>
+
+        {/* Account & Sync */}
+        <Section title="👤 Account & Cloud Sync">
+          {!isSupabaseConfigured ? (
+            <View style={s.row}>
+              <Text style={s.rowIcon}>⚙️</Text>
+              <View style={s.rowBody}>
+                <Text style={[s.rowLabel, { color: '#f59e0b' }]}>Supabase nicht konfiguriert</Text>
+                <Text style={s.rowSub}>Öffne src/config/supabase.ts und trage URL + Key ein</Text>
+              </View>
+            </View>
+          ) : user ? (
+            <>
+              {/* Profil */}
+              <View style={[s.row, s.profileRow]}>
+                {user.avatarUrl ? (
+                  <Image source={{ uri: user.avatarUrl }} style={s.avatar} />
+                ) : (
+                  <View style={s.avatarFallback}>
+                    <Text style={s.avatarText}>{user.name.charAt(0).toUpperCase()}</Text>
+                  </View>
+                )}
+                <View style={s.rowBody}>
+                  <Text style={s.rowLabel}>{user.name}</Text>
+                  <Text style={s.rowSub}>{user.email}</Text>
+                </View>
+                <View style={[s.syncBadge, { backgroundColor: syncing ? '#f59e0b20' : '#4ade8020' }]}>
+                  <Text style={[s.syncBadgeText, { color: syncing ? '#f59e0b' : '#4ade80' }]}>
+                    {syncing ? 'Synct…' : 'Sync ✓'}
+                  </Text>
+                </View>
+              </View>
+              <Divider />
+              <RowAction
+                icon="🔄" label="Jetzt synchronisieren"
+                sub="Daten zwischen Gerät und Cloud abgleichen"
+                onPress={handleManualSync}
+              />
+              <Divider />
+              <RowAction
+                icon="🚪" label="Abmelden"
+                sub="Lokale Daten bleiben erhalten"
+                onPress={handleLogout} danger
+              />
+            </>
+          ) : (
+            <TouchableOpacity style={s.googleBtn} onPress={handleLogin} disabled={loading} activeOpacity={0.85}>
+              <Text style={s.googleIcon}>G</Text>
+              <Text style={s.googleText}>{loading ? 'Verbinde…' : 'Mit Google anmelden'}</Text>
+            </TouchableOpacity>
+          )}
+          {!user && isSupabaseConfigured && (
+            <Text style={s.syncHint}>
+              Melde dich an um deine Einnahmen geräteübergreifend zu synchronisieren.
+            </Text>
+          )}
+        </Section>
 
         {/* Benachrichtigungen */}
         <Section title="🔔 Benachrichtigungen">
@@ -305,6 +396,22 @@ const s = StyleSheet.create({
   rowValue: { fontSize: 14, color: '#38bdf8', fontWeight: '600' },
 
   divider: { height: 1, backgroundColor: '#132033', marginLeft: 48 },
+
+  profileRow:  { alignItems: 'flex-start', paddingVertical: 14 },
+  avatar:        { width: 44, height: 44, borderRadius: 22 },
+  avatarFallback:{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#38bdf830', alignItems: 'center', justifyContent: 'center' },
+  avatarText:    { fontSize: 20, fontWeight: '700', color: '#38bdf8' },
+  syncBadge:     { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
+  syncBadgeText: { fontSize: 11, fontWeight: '700' },
+  googleBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#fff', borderRadius: 12,
+    paddingVertical: 13, paddingHorizontal: 20, gap: 10,
+    margin: 4,
+  },
+  googleIcon: { fontSize: 16, fontWeight: '900', color: '#4285F4' },
+  googleText: { fontSize: 15, fontWeight: '600', color: '#333' },
+  syncHint:   { fontSize: 12, color: '#3a5570', textAlign: 'center', paddingHorizontal: 12, paddingBottom: 12, paddingTop: 4 },
 
   disclaimer: {
     backgroundColor: '#0d1a2a', borderRadius: 12,
