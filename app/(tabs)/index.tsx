@@ -152,6 +152,7 @@ export default function TageskurveScreen() {
         style={[{ flex: 1, opacity: fadeAnim }, intakes.length === 0 && { display: 'none' }]}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}
+        scrollEventThrottle={16}
       >
 
         {/* ── CHART ───────────────────────────── */}
@@ -184,7 +185,7 @@ export default function TageskurveScreen() {
             selectedId={selectedId}
             nowHour={now}
             peakMarks={peakMarks}
-            height={210}
+            height={280}
           />
 
           {/* Einnahme-Zeitpunkte unter Chart */}
