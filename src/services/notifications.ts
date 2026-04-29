@@ -1,20 +1,28 @@
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 
-// Handler: zeige Notifications auch wenn App offen ist
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+// Web: Notifications nicht unterstützt — alle Funktionen sind No-Ops
+const isWeb = Platform.OS === 'web';
+
+let Notifications: any = null;
+let Device: any = null;
+
+if (!isWeb) {
+  Notifications = require('expo-notifications');
+  Device = require('expo-device');
+
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
 
 export async function requestNotificationPermissions(): Promise<boolean> {
-  if (!Device.isDevice) return false; // Kein Emulator-Support für Push
+  if (isWeb || !Device?.isDevice) return false;
 
   const { status: existing } = await Notifications.getPermissionsAsync();
   if (existing === 'granted') return true;
@@ -40,6 +48,7 @@ export async function scheduleDailyReminder(
   hour: number,
   minute: number,
 ): Promise<string> {
+  if (isWeb) return '';
   const id = await Notifications.scheduleNotificationAsync({
     content: {
       title: '💊 Einnahme-Erinnerung',
@@ -59,8 +68,9 @@ export async function scheduleDailyReminder(
 export async function schedulePeakAlert(
   substanceId: string,
   name: string,
-  peakInMs: number,   // ms ab jetzt bis zum Peak
+  peakInMs: number,
 ): Promise<string> {
+  if (isWeb) return '';
   const id = await Notifications.scheduleNotificationAsync({
     content: {
       title: '📈 Peak in 15 Minuten',
@@ -76,5 +86,6 @@ export async function schedulePeakAlert(
 }
 
 export async function cancelAllReminders(): Promise<void> {
+  if (isWeb) return;
   await Notifications.cancelAllScheduledNotificationsAsync();
 }
