@@ -81,9 +81,24 @@ export default function IntakesScreen() {
 
       {intakes.length === 0 ? (
         <View style={s.empty}>
-          <Text style={s.emptyIcon}>💊</Text>
-          <Text style={s.emptyTitle}>Keine Einnahmen</Text>
-          <Text style={s.emptySub}>Tippe auf „+ Neu" um eine Einnahme hinzuzufügen</Text>
+          <Text style={s.emptyIcon}>📋</Text>
+          <Text style={s.emptyTitle}>Noch keine Einnahmen</Text>
+          <Text style={s.emptySub}>Hier siehst du alle deine heutigen{'\n'}Einnahmen auf einen Blick.</Text>
+          <TouchableOpacity style={s.emptyBtn} onPress={() => setModalVisible(true)}>
+            <Text style={s.emptyBtnText}>+ Erste Einnahme hinzufügen</Text>
+          </TouchableOpacity>
+          <View style={s.emptyFeatures}>
+            {[
+              { icon: '⏰', text: 'Zeiten & Dosierungen tracken' },
+              { icon: '🔔', text: 'Erinnerungen setzen' },
+              { icon: '📊', text: 'Wirkkurven visualisieren' },
+            ].map((f, i) => (
+              <View key={i} style={s.emptyFeatureRow}>
+                <Text style={s.emptyFeatureIcon}>{f.icon}</Text>
+                <Text style={s.emptyFeatureText}>{f.text}</Text>
+              </View>
+            ))}
+          </View>
         </View>
       ) : (
         <FlatList
@@ -165,7 +180,20 @@ const s = StyleSheet.create({
   deleteIcon: { fontSize: 14, color: '#4a5a70' },
 
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  emptyIcon:  { fontSize: 48, marginBottom: 16 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#fff', marginBottom: 8 },
-  emptySub:   { fontSize: 13, color: '#4a5a70', textAlign: 'center', lineHeight: 20 },
+  emptyIcon:  { fontSize: 52, marginBottom: 20 },
+  emptyTitle: { fontSize: 20, fontWeight: '800', color: '#fff', marginBottom: 8 },
+  emptySub:   { fontSize: 14, color: '#4a5a70', textAlign: 'center', lineHeight: 21, marginBottom: 28 },
+  emptyBtn: {
+    backgroundColor: '#38bdf8', borderRadius: 16,
+    paddingVertical: 14, paddingHorizontal: 24,
+    alignSelf: 'stretch', alignItems: 'center', marginBottom: 32,
+  },
+  emptyBtnText: { fontSize: 15, fontWeight: '700', color: '#000' },
+  emptyFeatures: { alignSelf: 'stretch', gap: 12 },
+  emptyFeatureRow: { flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: '#0d1a2a', borderRadius: 12, padding: 12,
+    borderWidth: 1, borderColor: '#132033',
+  },
+  emptyFeatureIcon: { fontSize: 20 },
+  emptyFeatureText: { fontSize: 14, color: '#7a9ab5' },
 });

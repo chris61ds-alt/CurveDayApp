@@ -117,7 +117,42 @@ export default function TageskurveScreen() {
         </View>
       </View>
 
-      <Animated.ScrollView style={{ flex: 1, opacity: fadeAnim }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+      {/* ── EMPTY STATE (keine Einnahmen) ──── */}
+      {intakes.length === 0 && (
+        <Animated.View style={[s.emptyState, { opacity: fadeAnim }]}>
+          <CurveChart
+            data={buildChartData([])}
+            entries={[]}
+            selectedId=""
+            nowHour={now}
+            height={160}
+          />
+          <View style={s.emptyContent}>
+            <Text style={s.emptyEmoji}>💊</Text>
+            <Text style={[TY.h1, { textAlign: 'center', marginBottom: 8 }]}>Dein erster Tag</Text>
+            <Text style={[TY.body, { textAlign: 'center', marginBottom: 28 }]}>
+              Füge deine erste Einnahme hinzu um deine persönliche Wirkkurve zu sehen.
+            </Text>
+            <View style={s.emptyHints}>
+              {['Medikamente & Wirkzeiten', 'Wechselwirkungen erkennen', 'Erinnerungen & Peaks'].map((h, i) => (
+                <View key={i} style={s.emptyHintRow}>
+                  <View style={s.emptyHintDot} />
+                  <Text style={TY.body}>{h}</Text>
+                </View>
+              ))}
+            </View>
+            <TouchableOpacity style={s.emptyBtn} onPress={() => setModalVisible(true)}>
+              <Text style={s.emptyBtnText}>+ Erste Einnahme hinzufügen</Text>
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      )}
+
+      <Animated.ScrollView
+        style={[{ flex: 1, opacity: fadeAnim }, intakes.length === 0 && { display: 'none' }]}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
+      >
 
         {/* ── CHART ───────────────────────────── */}
         <View style={s.card}>
@@ -436,6 +471,22 @@ const s = StyleSheet.create({
   // Insights
   insightRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 10 },
   insightDot: { width: 6, height: 6, borderRadius: 3, marginTop: 7 },
+
+  // Empty State
+  emptyState: { flex: 1 },
+  emptyContent: {
+    flex: 1, alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 32, paddingTop: 8,
+  },
+  emptyEmoji: { fontSize: 52, marginBottom: 16 },
+  emptyHints: { alignSelf: 'stretch', marginBottom: 32, gap: 10 },
+  emptyHintRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  emptyHintDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: T.accent },
+  emptyBtn: {
+    backgroundColor: T.accent, borderRadius: 16,
+    paddingVertical: 15, paddingHorizontal: 28, alignSelf: 'stretch', alignItems: 'center',
+  },
+  emptyBtnText: { fontSize: 15, fontWeight: '700', color: '#000' },
 
   // FAB
   fab: {

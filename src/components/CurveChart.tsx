@@ -26,6 +26,20 @@ interface Props {
   height?: number;
 }
 
+// Ghost-Kurve für leeren Zustand (zwei sanfte Wellen)
+function ghostPath(plotW: number, plotH: number, padLeft: number, padTop: number): string {
+  const pts = Array.from({ length: 49 }, (_, i) => {
+    const t = i / 48;
+    const v = 35 * Math.sin(t * Math.PI * 1.8) * Math.max(0, 1 - t * 0.6)
+            + 20 * Math.sin(t * Math.PI * 3.5 + 1) * Math.max(0, 1 - t * 0.5);
+    const y = padTop + plotH - Math.max(0, v / 100) * plotH;
+    const x = padLeft + (i / 48) * plotW;
+    return `${x},${y}`;
+  });
+  const baseline = padTop + plotH;
+  return `M${padLeft},${baseline} L${pts.join(' L')} L${padLeft + plotW},${baseline} Z`;
+}
+
 export function CurveChart({ data, entries, selectedId, nowHour, peakMarks = [], height = 210 }: Props) {
   const { width } = useWindowDimensions();
   const svgW  = width - 32;
@@ -101,6 +115,33 @@ export function CurveChart({ data, entries, selectedId, nowHour, peakMarks = [],
             {xLabels[i]}
           </SvgText>
         ))}
+
+        {/* Ghost-Kurve wenn keine Daten */}
+        {entries.length === 0 && (
+          <>
+            <Path d={ghostPath(plotW, plotH, PAD.left, PAD.top)} fill="#38bdf808" />
+            <Path
+              d={(() => {
+                const pts = Array.from({ length: 49 }, (_, i) => {
+                  const t = i / 48;
+                  const v = 35 * Math.sin(t * Math.PI * 1.8) * Math.max(0, 1 - t * 0.6)
+                          + 20 * Math.sin(t * Math.PI * 3.5 + 1) * Math.max(0, 1 - t * 0.5);
+                  const y = PAD.top + plotH - Math.max(0, v / 100) * plotH;
+                  const x = PAD.left + (i / 48) * plotW;
+                  return `${x},${y}`;
+                });
+                return `M${pts.join(' L')}`;
+              })()}
+              fill="none" stroke="#38bdf820" strokeWidth={1.5} strokeDasharray="6,4"
+            />
+            <SvgText
+              x={PAD.left + plotW / 2} y={PAD.top + plotH / 2}
+              fontSize={11} fill="#3a5570" textAnchor="middle"
+            >
+              Noch keine Einnahmen
+            </SvgText>
+          </>
+        )}
 
         {/* Flächen */}
         {sorted.map(e => (
