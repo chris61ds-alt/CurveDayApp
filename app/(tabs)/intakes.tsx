@@ -7,8 +7,8 @@ import { useIntakeStore } from '../../src/store/intakeStore';
 import { useNow } from '../../src/utils/useNow';
 import { isActive, getRemainingTime, fmtHour } from '../../src/utils/pkHelpers';
 import { getSubstance } from '../../src/data/substanceDB';
-import SubIcon from '../../src/components/SubIcon';
-import AddIntakeModal from '../../src/components/AddIntakeModal';
+import { SubIcon } from '../../src/components/SubIcon';
+import { AddIntakeModal } from '../../src/components/AddIntakeModal';
 
 export default function IntakesScreen() {
   const { intakes, removeIntake, setSelectedId } = useIntakeStore();

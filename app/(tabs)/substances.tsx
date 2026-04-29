@@ -5,7 +5,7 @@ import {
   StatusBar,
 } from 'react-native';
 import { SUBSTANCES, CATEGORIES } from '../../src/data/substanceDB';
-import SubIcon from '../../src/components/SubIcon';
+import { SubIcon } from '../../src/components/SubIcon';
 import { EFFECT_LABELS } from '../../src/utils/pkHelpers';
 
 // ── Detail Modal ──────────────────────────────────────────────
