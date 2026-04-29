@@ -138,7 +138,7 @@ export default function TageskurveScreen() {
                 const sel = selectedId === intake.substanceId;
                 return (
                   <TouchableOpacity
-                    key={intake.substanceId}
+                    key={intake.id}
                     style={[s.legendChip, { backgroundColor: C.surfaceHigh, borderColor: C.border },
                       sel && { backgroundColor: `${sub.color}20`, borderColor: `${sub.color}50` }]}
                     onPress={() => setSelectedId(intake.substanceId)}
@@ -166,7 +166,7 @@ export default function TageskurveScreen() {
                   const sel = selectedId === intake.substanceId;
                   return (
                     <TouchableOpacity
-                      key={intake.substanceId}
+                      key={intake.id}
                       style={[s.intakePill, { backgroundColor: C.surfaceHigh, borderColor: C.border },
                         sel && { borderColor: `${sub.color}60`, backgroundColor: `${sub.color}12` }]}
                       onPress={() => setSelectedId(intake.substanceId)}
@@ -213,7 +213,7 @@ export default function TageskurveScreen() {
                 const effect = getCurrentEffect(intake.substanceId, chartData, now);
                 return (
                   <TouchableOpacity
-                    key={intake.substanceId}
+                    key={intake.id}
                     onPress={() => setSelectedId(intake.substanceId)}
                     style={[s.activeCard, { backgroundColor: C.surfaceHigh, borderColor: C.border },
                       sel && { borderColor: `${sub.color}40`, backgroundColor: `${sub.color}08` }]}
