@@ -1633,21 +1633,28 @@ export function getActiveInteractions(substanceIds) {
 
 /** PK-Kurve generieren (für Recharts) */
 export function generateCurve(substance, intakeHour = 8) {
-  const { onsetHours, tmaxHours, durationHours } = substance.pk;
+  const { onsetHours, tmaxHours, durationHours, halflifeHours } = substance.pk;
   const { maxEffectScore } = substance;
   if (!tmaxHours || !durationHours || substance.pk.curveType === "chronic") return [];
 
   return Array.from({ length: 49 }, (_, i) => {
     const h = i / 2;
     const t = h - intakeHour - (onsetHours || 0);
-    const peakT = tmaxHours - (onsetHours || 0);
-    const endT = durationHours - (onsetHours || 0);
+    const peakT  = tmaxHours    - (onsetHours || 0);
+    const endT   = durationHours - (onsetHours || 0);
     let v = 0;
 
     if (t >= 0 && t <= endT) {
-      v = t <= peakT
-        ? maxEffectScore * Math.pow(t / peakT, 2) * (3 - 2 * (t / peakT))
-        : maxEffectScore * Math.exp(-2.8 * (t - peakT) / (endT - peakT));
+      if (t <= peakT) {
+        // Glatter kubischer Anstieg (Smoothstep)
+        v = maxEffectScore * Math.pow(t / peakT, 2) * (3 - 2 * (t / peakT));
+      } else {
+        // Pharmakokinetischer Abfall mit echter Halbwertszeit
+        // ke = ln(2) / t½  →  kurze HWZ fällt steil, lange HWZ flach
+        const t12 = halflifeHours || (durationHours / 3);
+        const ke  = Math.log(2) / t12;
+        v = maxEffectScore * Math.exp(-ke * (t - peakT));
+      }
     }
 
     return {
