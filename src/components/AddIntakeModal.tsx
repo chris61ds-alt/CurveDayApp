@@ -201,6 +201,20 @@ export function AddIntakeModal({ visible, onClose }: Props) {
                 )}
               </View>
 
+              {/* BtM / Rx Warnung */}
+              {(selected.controlled || selected.prescription) && (
+                <View style={selected.controlled ? s.btmWarning : s.rxWarning}>
+                  <Text style={s.rxWarningTitle}>
+                    {selected.controlled ? '🔒 Betäubungsmittel (BtM)' : '📋 Verschreibungspflichtig (Rx)'}
+                  </Text>
+                  <Text style={s.rxWarningText}>
+                    {selected.controlled
+                      ? 'Diese Substanz unterliegt dem Betäubungsmittelgesetz (BtMG). Besitz und Einnahme ohne gültige ärztliche Verschreibung sind strafbar. CurveDay gibt keine Empfehlung zur Einnahme.'
+                      : 'Dieses Medikament ist verschreibungspflichtig (Rx). Bitte nur nach Rücksprache mit einem Arzt oder Apotheker einnehmen.'}
+                  </Text>
+                </View>
+              )}
+
               {/* Kritische Warnung */}
               {criticalWarnings.length > 0 && (
                 <View style={s.criticalBox}>
@@ -386,6 +400,11 @@ const s = StyleSheet.create({
   checkbox:      { width: 22, height: 22, borderRadius: 7, borderWidth: 2, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
   reminderTitle: { fontSize: 13, fontWeight: '600', color: C.text },
   reminderSub:   { fontSize: 11, color: C.textDim, marginTop: 1 },
+
+  btmWarning:    { backgroundColor: '#ef444412', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#ef444435' },
+  rxWarning:     { backgroundColor: '#f59e0b10', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#f59e0b30' },
+  rxWarningTitle:{ fontSize: 12, fontWeight: '700', color: '#fcd34d', marginBottom: 5 },
+  rxWarningText: { fontSize: 11, color: '#fde68a', lineHeight: 17 },
 
   warningsBox:   { backgroundColor: '#f59e0b10', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#f59e0b25' },
   warningsTitle: { fontSize: 11, fontWeight: '700', color: '#fcd34d', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },

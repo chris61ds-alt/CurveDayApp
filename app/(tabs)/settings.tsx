@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, Switch, Alert, Linking, Image,
+  Modal, TextInput, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
 import { useIntakeStore } from '../../src/store/intakeStore';
-import { useOnboardingStore } from '../../src/store/onboardingStore';
+import { useOnboardingStore, UserProfile } from '../../src/store/onboardingStore';
 import { useAuthStore } from '../../src/store/authStore';
 import { useThemeStore } from '../../src/store/themeStore';
 import { cancelAllReminders, requestNotificationPermissions } from '../../src/services/notifications';
@@ -79,12 +80,137 @@ function Divider() {
   return <View style={[s.divider, { backgroundColor: C.border2 }]} />;
 }
 
+// ── Profile Edit Modal ────────────────────────────────────────
+function ProfileEditModal({ visible, profile, onSave, onClose }: {
+  visible: boolean;
+  profile: UserProfile;
+  onSave: (p: UserProfile) => void;
+  onClose: () => void;
+}) {
+  const { colors: C } = useThemeStore();
+  const [weight, setWeight] = useState(profile.weight?.toString() ?? '');
+  const [height, setHeight] = useState(profile.height?.toString() ?? '');
+  const [age,    setAge]    = useState(profile.age?.toString() ?? '');
+  const [sex,    setSex]    = useState<UserProfile['sex']>(profile.sex);
+
+  useEffect(() => {
+    setWeight(profile.weight?.toString() ?? '');
+    setHeight(profile.height?.toString() ?? '');
+    setAge(profile.age?.toString()    ?? '');
+    setSex(profile.sex);
+  }, [profile, visible]);
+
+  function save() {
+    onSave({
+      weight: weight ? parseFloat(weight) : undefined,
+      height: height ? parseFloat(height) : undefined,
+      age:    age    ? parseInt(age, 10)  : undefined,
+      sex,
+    });
+    onClose();
+  }
+
+  const SEX_OPTIONS: { key: UserProfile['sex']; label: string }[] = [
+    { key: 'male',   label: '♂ Männlich' },
+    { key: 'female', label: '♀ Weiblich' },
+    { key: 'other',  label: '⚥ Divers'  },
+  ];
+
+  const inputStyle = [pe.input, { backgroundColor: C.bg2, borderColor: C.border2, color: C.text }];
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <SafeAreaView style={[pe.safe, { backgroundColor: C.bg }]}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <View style={[pe.header, { borderBottomColor: C.border2 }]}>
+            <TouchableOpacity onPress={onClose}>
+              <Text style={[pe.cancel, { color: C.textMuted }]}>Abbrechen</Text>
+            </TouchableOpacity>
+            <Text style={[pe.title, { color: C.text }]}>Mein Profil</Text>
+            <TouchableOpacity onPress={save}>
+              <Text style={[pe.save, { color: C.accent }]}>Speichern</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView contentContainerStyle={{ padding: 20, gap: 20 }}>
+            <Text style={[pe.hint, { color: C.textMuted, backgroundColor: C.bg2, borderColor: C.border2 }]}>
+              ℹ️ Körperdaten verbessern die Berechnungsgenauigkeit (z. B. Standardwerte basieren auf 70 kg). Alle Angaben sind optional.
+            </Text>
+
+            <View style={pe.fieldGroup}>
+              <Text style={[pe.label, { color: C.textMuted }]}>Gewicht (kg)</Text>
+              <TextInput
+                style={inputStyle} value={weight} onChangeText={setWeight}
+                placeholder="z. B. 70" placeholderTextColor={C.textDim}
+                keyboardType="decimal-pad"
+              />
+            </View>
+            <View style={pe.fieldGroup}>
+              <Text style={[pe.label, { color: C.textMuted }]}>Körpergröße (cm)</Text>
+              <TextInput
+                style={inputStyle} value={height} onChangeText={setHeight}
+                placeholder="z. B. 175" placeholderTextColor={C.textDim}
+                keyboardType="number-pad"
+              />
+            </View>
+            <View style={pe.fieldGroup}>
+              <Text style={[pe.label, { color: C.textMuted }]}>Alter (Jahre)</Text>
+              <TextInput
+                style={inputStyle} value={age} onChangeText={setAge}
+                placeholder="z. B. 30" placeholderTextColor={C.textDim}
+                keyboardType="number-pad"
+              />
+            </View>
+
+            <View style={pe.fieldGroup}>
+              <Text style={[pe.label, { color: C.textMuted }]}>Biologisches Geschlecht</Text>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                {SEX_OPTIONS.map(o => (
+                  <TouchableOpacity
+                    key={o.key}
+                    style={[pe.sexChip,
+                      { backgroundColor: C.bg2, borderColor: C.border2 },
+                      sex === o.key && { backgroundColor: `${C.accent}20`, borderColor: C.accent },
+                    ]}
+                    onPress={() => setSex(o.key)}
+                  >
+                    <Text style={[pe.sexChipText,
+                      { color: C.textMuted },
+                      sex === o.key && { color: C.accent, fontWeight: '700' },
+                    ]}>
+                      {o.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
+const pe = StyleSheet.create({
+  safe:        { flex: 1 },
+  header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1 },
+  cancel:      { fontSize: 15 },
+  title:       { fontSize: 16, fontWeight: '700' },
+  save:        { fontSize: 15, fontWeight: '700' },
+  hint:        { fontSize: 12, lineHeight: 18, padding: 12, borderRadius: 10, borderWidth: 1 },
+  fieldGroup:  { gap: 6 },
+  label:       { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+  input:       { borderRadius: 10, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 11, fontSize: 15 },
+  sexChip:     { flex: 1, borderRadius: 10, borderWidth: 1, paddingVertical: 10, alignItems: 'center' },
+  sexChipText: { fontSize: 13 },
+});
+
 // ── Main Screen ───────────────────────────────────────────────
 export default function SettingsScreen() {
   const { intakes, removeIntake, syncFromCloud, uploadToCloud } = useIntakeStore();
-  const { prefs, resetOnboarding } = useOnboardingStore();
+  const { prefs, resetOnboarding, updateProfile } = useOnboardingStore();
   const { user, loading, syncing, hydrate: hydrateAuth, login, logout, setSyncing } = useAuthStore();
   const { colors: C, isDark, toggle: toggleTheme } = useThemeStore();
+  const [profileModalVisible, setProfileModalVisible] = useState(false);
   const [notifEnabled,   setNotifEnabled]   = useState(false);
   const [peakAlerts,     setPeakAlerts]     = useState(true);
   const [dailyDigest,    setDailyDigest]    = useState(false);
@@ -315,8 +441,28 @@ export default function SettingsScreen() {
             onPress={() => Linking.openURL('mailto:chris61ds@gmail.com?subject=CurveDay%20Feedback')} />
         </Section>
 
-        {/* ── Profil ───────────────────────────── */}
-        <Section title="🎯 Profil">
+        {/* ── Körperprofil ─────────────────────── */}
+        <Section title="👤 Mein Körperprofil">
+          <RowInfo icon="⚖️" label="Gewicht"      value={prefs.profile?.weight ? `${prefs.profile.weight} kg` : 'nicht angegeben'} />
+          <Divider />
+          <RowInfo icon="📏" label="Körpergröße"  value={prefs.profile?.height ? `${prefs.profile.height} cm` : 'nicht angegeben'} />
+          <Divider />
+          <RowInfo icon="🎂" label="Alter"         value={prefs.profile?.age    ? `${prefs.profile.age} Jahre`  : 'nicht angegeben'} />
+          <Divider />
+          <RowInfo icon="⚥"  label="Geschlecht"   value={
+            prefs.profile?.sex === 'male'   ? '♂ Männlich' :
+            prefs.profile?.sex === 'female' ? '♀ Weiblich' :
+            prefs.profile?.sex === 'other'  ? '⚥ Divers'   : 'nicht angegeben'
+          } />
+          <Divider />
+          <RowAction icon="✏️" label="Profil bearbeiten"
+            sub="Angaben für genauere Berechnungen"
+            onPress={() => setProfileModalVisible(true)}
+          />
+        </Section>
+
+        {/* ── Tracking ─────────────────────────── */}
+        <Section title="🎯 Tracking">
           <RowInfo icon="📋" label="Tracking-Bereiche" value={`${prefs.trackingGoals.length} gewählt`} />
           <Divider />
           <RowAction icon="🔁" label="Onboarding wiederholen"
@@ -343,6 +489,13 @@ export default function SettingsScreen() {
         </View>
 
       </ScrollView>
+
+      <ProfileEditModal
+        visible={profileModalVisible}
+        profile={prefs.profile ?? {}}
+        onSave={updateProfile}
+        onClose={() => setProfileModalVisible(false)}
+      />
     </SafeAreaView>
   );
 }

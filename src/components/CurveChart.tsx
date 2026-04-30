@@ -7,6 +7,7 @@ const PAD = { left: 32, right: 12, top: 20, bottom: 26 };
 
 interface ChartEntry { substanceId: string; color: string; }
 interface PeakMark  { substanceId: string; peakIndex: number; color: string; label: string; }
+export interface MealMark { timeH: number; size: 'klein' | 'mittel' | 'groß'; }
 
 interface Props {
   data: ChartRow[];
@@ -14,6 +15,7 @@ interface Props {
   selectedId: string;
   nowHour: number;
   peakMarks?: PeakMark[];
+  mealMarks?: MealMark[];
   height?: number;
   // Theme
   gridColor?:   string;
@@ -21,6 +23,9 @@ interface Props {
   accentColor?: string;
   isDark?:      boolean;
 }
+
+const MEAL_COLOR = '#f97316';
+const MEAL_OPACITY: Record<string, number> = { klein: 0.3, mittel: 0.55, groß: 0.85 };
 
 function smoothLinePath(pts: { x: number; y: number }[]): string {
   if (pts.length === 0) return '';
@@ -61,7 +66,7 @@ function touchDist(touches: any[]): number {
 
 export function CurveChart({
   data, entries, selectedId, nowHour,
-  peakMarks = [], height = 280,
+  peakMarks = [], mealMarks = [], height = 280,
   gridColor   = '#182840',
   labelColor  = '#3a5570',
   accentColor = '#38bdf8',
@@ -260,6 +265,32 @@ export function CurveChart({
                   {pm.label}
                 </SvgText>
               )}
+            </G>
+          );
+        })}
+
+        {/* Meal markers */}
+        {mealMarks.map((m, idx) => {
+          const mIdx = m.timeH * 2;
+          if (mIdx < zS || mIdx > zE) return null;
+          const mx  = xOf(mIdx);
+          const op  = MEAL_OPACITY[m.size] ?? 0.5;
+          const labelY = baseline - 4;
+          return (
+            <G key={`meal-${idx}`}>
+              <Line
+                x1={mx} y1={PAD.top + 4}
+                x2={mx} y2={baseline}
+                stroke={MEAL_COLOR} strokeWidth={1.5}
+                opacity={op} strokeDasharray="3,3"
+              />
+              <SvgText
+                x={mx} y={labelY - 6}
+                fontSize={9} fill={MEAL_COLOR}
+                textAnchor="middle" opacity={op}
+              >
+                🍽
+              </SvgText>
             </G>
           );
         })}

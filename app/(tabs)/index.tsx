@@ -1,11 +1,12 @@
 import React, { useMemo, useEffect, useRef, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  Animated, Platform,
+  Animated, Platform, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useIntakeStore } from '../../src/store/intakeStore';
 import { useThemeStore } from '../../src/store/themeStore';
+import { useMealStore, MealSize } from '../../src/store/mealStore';
 import { getSubstance, getActiveInteractions } from '../../src/data/substanceDB';
 import {
   buildChartData, getRemainingTime, isActive, getCurrentEffect,
@@ -65,11 +66,26 @@ function computeCurrentState(
 export default function TageskurveScreen() {
   const { intakes, selectedId, setSelectedId, hydrate, hydrated } = useIntakeStore();
   const { colors: C } = useThemeStore();
+  const { meals, hydrate: hydrateMeals, addMeal } = useMealStore();
   const now = useNow();
   const [modalVisible, setModalVisible] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => { hydrate(); }, []);
+  useEffect(() => { hydrate(); hydrateMeals(); }, []);
+
+  function handleAddMeal() {
+    const nowH = now;
+    Alert.alert(
+      '🍽 Mahlzeit erfassen',
+      `Uhrzeit: ${fmtHour(nowH)} Uhr\nWähle die Größe der Mahlzeit:`,
+      [
+        { text: 'Klein · Snack / Obst',      onPress: () => addMeal({ timeH: nowH, size: 'klein'  }) },
+        { text: 'Mittel · normale Mahlzeit', onPress: () => addMeal({ timeH: nowH, size: 'mittel' }) },
+        { text: 'Groß · reichhaltige Mahlzeit', onPress: () => addMeal({ timeH: nowH, size: 'groß' }) },
+        { text: 'Abbrechen', style: 'cancel' },
+      ],
+    );
+  }
 
   useEffect(() => {
     if (hydrated) {
@@ -103,6 +119,11 @@ export default function TageskurveScreen() {
       return { substanceId: i.substanceId, peakIndex, color: sub.color, label: fmtHour(peakH) };
     }).filter(Boolean) as any[],
     [intakes],
+  );
+
+  const mealMarks = useMemo(
+    () => meals.map(m => ({ timeH: m.timeH, size: m.size })),
+    [meals],
   );
 
   if (!hydrated) {
@@ -178,7 +199,7 @@ export default function TageskurveScreen() {
         <View style={[s.card, { backgroundColor: C.surface, borderColor: C.border }]}>
           <CurveChart
             data={chartData} entries={chartEntries} selectedId={selectedId}
-            nowHour={now} peakMarks={peakMarks} height={280}
+            nowHour={now} peakMarks={peakMarks} mealMarks={mealMarks} height={280}
             gridColor={C.gridLine} labelColor={C.textMuted}
             accentColor={C.accent} isDark={C.isDark}
           />
@@ -385,7 +406,14 @@ export default function TageskurveScreen() {
 
       </Animated.ScrollView>
 
-      {/* ── FAB ─────────────────────────────── */}
+      {/* ── FABs ────────────────────────────── */}
+      <TouchableOpacity
+        style={[s.fabMeal, { backgroundColor: C.surfaceHigh, borderColor: C.border, shadowColor: '#f97316' }]}
+        onPress={handleAddMeal}
+        activeOpacity={0.85}
+      >
+        <Text style={s.fabMealIcon}>🍽</Text>
+      </TouchableOpacity>
       <TouchableOpacity
         style={[s.fab, { backgroundColor: C.accent, shadowColor: C.accent }]}
         onPress={() => setModalVisible(true)}
@@ -453,4 +481,14 @@ const s = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.5, shadowRadius: 12, elevation: 8,
   },
   fabIcon: { fontSize: 28, color: '#000', fontWeight: '300', marginTop: -2 },
+
+  fabMeal: {
+    position: 'absolute', right: 88,
+    bottom: Platform.OS === 'ios' ? 28 : 20,
+    width: 48, height: 48, borderRadius: 24,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1,
+    shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5,
+  },
+  fabMealIcon: { fontSize: 22 },
 });

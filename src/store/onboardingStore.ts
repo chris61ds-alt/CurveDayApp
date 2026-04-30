@@ -1,13 +1,21 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const KEY_DONE       = '@curveday/onboarded';
-const KEY_PREFS      = '@curveday/trackingPrefs';
-const KEY_DISCLAIMER = '@curveday/disclaimerAccepted';
+const KEY_DONE    = '@curveday/onboarded';
+const KEY_PREFS   = '@curveday/trackingPrefs';
+const KEY_PROFILE = '@curveday/userProfile';
+
+export interface UserProfile {
+  weight?: number;   // kg
+  height?: number;   // cm
+  age?: number;
+  sex?: 'male' | 'female' | 'other';
+}
 
 export interface OnboardingPrefs {
-  trackingGoals: string[];   // z.B. ['medication', 'stimulant', 'supplement']
-  disclaimerAcceptedAt: string | null;  // ISO timestamp
+  trackingGoals: string[];
+  disclaimerAcceptedAt: string | null;
+  profile?: UserProfile;
 }
 
 interface OnboardingStore {
@@ -16,25 +24,27 @@ interface OnboardingStore {
   prefs: OnboardingPrefs;
   hydrate: () => Promise<void>;
   completeOnboarding: (prefs: OnboardingPrefs) => Promise<void>;
+  updateProfile: (profile: UserProfile) => Promise<void>;
   resetOnboarding: () => Promise<void>;
 }
 
-export const useOnboardingStore = create<OnboardingStore>((set) => ({
+export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
   done: false,
   hydrated: false,
-  prefs: { trackingGoals: [], disclaimerAcceptedAt: null },
+  prefs: { trackingGoals: [], disclaimerAcceptedAt: null, profile: {} },
 
   hydrate: async () => {
     try {
-      const [doneRaw, prefsRaw] = await Promise.all([
+      const [doneRaw, prefsRaw, profileRaw] = await Promise.all([
         AsyncStorage.getItem(KEY_DONE),
         AsyncStorage.getItem(KEY_PREFS),
+        AsyncStorage.getItem(KEY_PROFILE),
       ]);
-      set({
-        done: doneRaw === 'true',
-        prefs: prefsRaw ? JSON.parse(prefsRaw) : { trackingGoals: [], disclaimerAcceptedAt: null },
-        hydrated: true,
-      });
+      const basePrefs: OnboardingPrefs = prefsRaw
+        ? JSON.parse(prefsRaw)
+        : { trackingGoals: [], disclaimerAcceptedAt: null };
+      if (profileRaw) basePrefs.profile = JSON.parse(profileRaw);
+      set({ done: doneRaw === 'true', prefs: basePrefs, hydrated: true });
     } catch {
       set({ hydrated: true });
     }
@@ -42,19 +52,28 @@ export const useOnboardingStore = create<OnboardingStore>((set) => ({
 
   completeOnboarding: async (prefs) => {
     await Promise.all([
-      AsyncStorage.setItem(KEY_DONE, 'true'),
-      AsyncStorage.setItem(KEY_PREFS, JSON.stringify(prefs)),
-      AsyncStorage.setItem(KEY_DISCLAIMER, prefs.disclaimerAcceptedAt ?? ''),
+      AsyncStorage.setItem(KEY_DONE,    'true'),
+      AsyncStorage.setItem(KEY_PREFS,   JSON.stringify(prefs)),
+      AsyncStorage.setItem(KEY_PROFILE, JSON.stringify(prefs.profile ?? {})),
     ]);
     set({ done: true, prefs });
+  },
+
+  updateProfile: async (profile) => {
+    const prefs = { ...get().prefs, profile };
+    await Promise.all([
+      AsyncStorage.setItem(KEY_PREFS,   JSON.stringify(prefs)),
+      AsyncStorage.setItem(KEY_PROFILE, JSON.stringify(profile)),
+    ]);
+    set({ prefs });
   },
 
   resetOnboarding: async () => {
     await Promise.all([
       AsyncStorage.removeItem(KEY_DONE),
       AsyncStorage.removeItem(KEY_PREFS),
-      AsyncStorage.removeItem(KEY_DISCLAIMER),
+      AsyncStorage.removeItem(KEY_PROFILE),
     ]);
-    set({ done: false, prefs: { trackingGoals: [], disclaimerAcceptedAt: null } });
+    set({ done: false, prefs: { trackingGoals: [], disclaimerAcceptedAt: null, profile: {} } });
   },
 }));
