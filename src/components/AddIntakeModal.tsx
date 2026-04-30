@@ -121,7 +121,12 @@ export function AddIntakeModal({ visible, onClose }: Props) {
     if (!selected) return;
     const doseLabel = dose.trim() || `${selected.defaultDose} ${selected.doseUnit}`;
 
-    await addIntake({ substanceId: selected.id, timeH, doseLabel });
+    // ISO-Timestamp für die gewählte Uhrzeit (heute)
+    const takenAtDate = new Date();
+    takenAtDate.setHours(hour, minute, 0, 0);
+    const takenAt = takenAtDate.toISOString();
+
+    await addIntake({ substanceId: selected.id, timeH, doseLabel, takenAt });
 
     if (withReminder) {
       await scheduleDailyReminder(selected.id, selected.name, hour, minute).catch(() => {});

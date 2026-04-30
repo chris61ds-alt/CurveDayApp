@@ -2,15 +2,30 @@ import { getSubstance, generateCurve, getActiveInteractions } from '../data/subs
 
 export interface Intake {
   substanceId: string;
-  timeH: number;      // z.B. 8.5 = 08:30
+  timeH: number;      // Uhrzeit als Dezimalstunde, z.B. 8.5 = 08:30
   doseLabel: string;  // z.B. "400 mg"
   id: string;
+  takenAt?: string;   // ISO-Timestamp, z.B. "2026-04-30T23:00:00.000Z"
+                      // Ermöglicht Carry-over von gestern. Falls fehlt: timeH = heute.
 }
 
 export interface ChartRow {
   time: string;
   total: number;
   [substanceId: string]: number | string;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Hilfsfunktion: Stunden relativ zu heute 00:00 Uhr (lokal)
+// Gestern 23:00 → -1.0  |  Heute 08:30 → 8.5  |  Morgen 02:00 → 26.0
+// ─────────────────────────────────────────────────────────────
+export function getIntakeHourToday(intake: Intake): number {
+  if (!intake.takenAt) return intake.timeH; // Rückwärtskompatibilität
+
+  const taken        = new Date(intake.takenAt);
+  const todayMidnight = new Date();
+  todayMidnight.setHours(0, 0, 0, 0);
+  return (taken.getTime() - todayMidnight.getTime()) / 3_600_000;
 }
 
 export function fmtHour(h: number): string {
@@ -25,10 +40,25 @@ export function getPeakLabel(timeH: number, substanceId: string): string {
   return `${fmtHour(peak)} – ${fmtHour(peak + 1)}`;
 }
 
+// ─────────────────────────────────────────────────────────────
+// Chart-Daten für die letzten ~36h aufbauen.
+// Intakes von gestern (takenAt vorhanden) werden mit negativem
+// intakeHour eingebaut → Carry-over korrekt sichtbar.
+// ─────────────────────────────────────────────────────────────
 export function buildChartData(intakes: Intake[]): ChartRow[] {
   const curves = intakes.map(intake => {
-    const sub = getSubstance(intake.substanceId);
-    return { id: intake.substanceId, curve: sub ? generateCurve(sub, intake.timeH) : [] };
+    const sub         = getSubstance(intake.substanceId);
+    if (!sub) return { id: intake.substanceId, curve: [] };
+
+    const intakeHour  = getIntakeHourToday(intake);
+    const endHour     = intakeHour + (sub.pk.durationHours ?? 0);
+
+    // Intake überspringen wenn vor >36h oder mehr als 24h in der Zukunft
+    if (endHour < -2 || intakeHour > 25) {
+      return { id: intake.substanceId, curve: [] };
+    }
+
+    return { id: intake.substanceId, curve: generateCurve(sub, intakeHour) };
   });
 
   return Array.from({ length: 49 }, (_, i) => {
@@ -49,7 +79,8 @@ export function buildChartData(intakes: Intake[]): ChartRow[] {
 export function getRemainingTime(intake: Intake, nowH: number): string {
   const sub = getSubstance(intake.substanceId);
   if (!sub) return '–';
-  const rem = intake.timeH + sub.pk.durationHours - nowH;
+  const intakeHour = getIntakeHourToday(intake);
+  const rem = intakeHour + sub.pk.durationHours - nowH;
   if (rem <= 0) return 'abgelaufen';
   const h = Math.floor(rem);
   const m = Math.round((rem - h) * 60);
@@ -59,7 +90,8 @@ export function getRemainingTime(intake: Intake, nowH: number): string {
 export function isActive(intake: Intake, nowH: number): boolean {
   const sub = getSubstance(intake.substanceId);
   if (!sub) return false;
-  return nowH >= intake.timeH && nowH <= intake.timeH + sub.pk.durationHours;
+  const intakeHour = getIntakeHourToday(intake);
+  return nowH >= intakeHour && nowH <= intakeHour + sub.pk.durationHours;
 }
 
 export function getCurrentEffect(substanceId: string, chartData: ChartRow[], nowH: number): number {

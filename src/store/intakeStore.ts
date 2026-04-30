@@ -37,7 +37,11 @@ export const useIntakeStore = create<IntakeStore>((set, get) => ({
   setSelectedId: (id) => set({ selectedId: id }),
 
   addIntake: async (intake) => {
-    const newIntake: Intake = { ...intake, id: Date.now().toString() };
+    const newIntake: Intake = {
+      ...intake,
+      id: Date.now().toString(),
+      takenAt: intake.takenAt ?? new Date().toISOString(), // ISO-Timestamp für Carry-over
+    };
     const updated = [...get().intakes, newIntake];
     set({ intakes: updated, selectedId: intake.substanceId });
     await persist(updated);
