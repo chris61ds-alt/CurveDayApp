@@ -217,7 +217,8 @@ export function CurveChart({
     <View {...panResponder.panHandlers}>
       <Svg width={svgW} height={height}>
         <Defs>
-          {sorted.map(e => (
+          {/* Deduplicate by substanceId — multiple intakes of same substance share one gradient */}
+          {sorted.filter((e, i, arr) => arr.findIndex(x => x.substanceId === e.substanceId) === i).map(e => (
             <LinearGradient key={e.substanceId} id={`g${e.substanceId}`} x1="0" y1="0" x2="0" y2="1">
               <Stop offset="0%"   stopColor={e.color} stopOpacity={e.substanceId === selectedId ? 0.5 : 0.15} />
               <Stop offset="100%" stopColor={e.color} stopOpacity={0} />

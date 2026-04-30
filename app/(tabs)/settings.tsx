@@ -5,7 +5,6 @@ import {
   Modal, TextInput, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as Notifications from 'expo-notifications';
 import { useIntakeStore } from '../../src/store/intakeStore';
 import { useOnboardingStore, UserProfile } from '../../src/store/onboardingStore';
 import { useAuthStore } from '../../src/store/authStore';
@@ -351,10 +350,13 @@ export default function SettingsScreen() {
 
   useEffect(() => {
     (async () => {
-      const { status } = await Notifications.getPermissionsAsync();
-      setNotifEnabled(status === 'granted');
-      const scheduled = await Notifications.getAllScheduledNotificationsAsync();
-      setScheduledCount(scheduled.length);
+      try {
+        const N = await import('expo-notifications');
+        const { status } = await N.getPermissionsAsync();
+        setNotifEnabled(status === 'granted');
+        const scheduled = await N.getAllScheduledNotificationsAsync();
+        setScheduledCount(scheduled.length);
+      } catch {}
       await hydrateAuth();
     })();
   }, []);
