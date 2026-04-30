@@ -11,8 +11,8 @@ interface ThemeState {
 }
 
 export const useThemeStore = create<ThemeState>((set, get) => ({
-  isDark:   true,
-  colors:   DARK,
+  isDark:   false,
+  colors:   LIGHT,
   hydrated: false,
 
   toggle: () => {

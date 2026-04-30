@@ -16,6 +16,52 @@ import { CurveChart } from '../../src/components/CurveChart';
 import { SubIcon } from '../../src/components/SubIcon';
 import { AddIntakeModal } from '../../src/components/AddIntakeModal';
 
+// ── Zustandsbeschreibung ──────────────────────────────────────
+const STATE_MAP: Record<string, { label: string; emoji: string; color: string }> = {
+  pain:            { label: 'Schmerzlinderung',   emoji: '🛡️', color: '#c084fc' },
+  sleep:           { label: 'Schläfrig',           emoji: '😴', color: '#818cf8' },
+  relaxation:      { label: 'Entspannt',           emoji: '😌', color: '#818cf8' },
+  anxietyReduction:{ label: 'Beruhigt',            emoji: '🧘', color: '#34d399' },
+  concentration:   { label: 'Konzentriert',        emoji: '🎯', color: '#38bdf8' },
+  impulseControl:  { label: 'Fokussiert',          emoji: '🎯', color: '#38bdf8' },
+  energy:          { label: 'Energiegeladen',      emoji: '⚡', color: '#f59e0b' },
+  mood:            { label: 'Gute Stimmung',       emoji: '😊', color: '#fb923c' },
+  alertness:       { label: 'Wach & Aufmerksam',   emoji: '✨', color: '#38bdf8' },
+  disinhibition:   { label: 'Gelöst & Offen',      emoji: '☺️', color: '#94a3b8' },
+  muscleRelax:     { label: 'Muskelentspannt',     emoji: '💆', color: '#4ade80' },
+  cardiovascular:  { label: 'Herzunterstützung',   emoji: '❤️', color: '#f87171' },
+  stressReduction: { label: 'Stressreduziert',     emoji: '🌿', color: '#4ade80' },
+  antihistamine:   { label: 'Antiallergisch',      emoji: '🌸', color: '#34d399' },
+  acidSuppression: { label: 'Magenberuhigt',       emoji: '✨', color: '#a3e635' },
+  bloodPressure:   { label: 'Blutdruck stabil',    emoji: '💗', color: '#f87171' },
+  fatigueReduction:{ label: 'Erschöpfung reduziert', emoji: '💪', color: '#f59e0b' },
+  cognition:       { label: 'Kognition verbessert', emoji: '🧠', color: '#38bdf8' },
+};
+
+function computeCurrentState(
+  activeIntakes: any[],
+  chartData: any[],
+  now: number,
+): { label: string; emoji: string; color: string; strength: string } | null {
+  const totals: Record<string, number> = {};
+  for (const intake of activeIntakes) {
+    const sub = getSubstance(intake.substanceId);
+    if (!sub) continue;
+    const eff = getCurrentEffect(intake.substanceId, chartData, now) / 100;
+    for (const [key, val] of Object.entries(sub.effects as Record<string, number>)) {
+      if (typeof val === 'number' && val > 0) {
+        totals[key] = (totals[key] ?? 0) + val * eff;
+      }
+    }
+  }
+  const top = Object.entries(totals).sort(([, a], [, b]) => b - a)[0];
+  if (!top) return null;
+  const mapped = STATE_MAP[top[0]];
+  if (!mapped) return null;
+  const strength = top[1] > 60 ? 'stark' : top[1] > 25 ? 'moderat' : 'leicht';
+  return { ...mapped, strength };
+}
+
 export default function TageskurveScreen() {
   const { intakes, selectedId, setSelectedId, hydrate, hydrated } = useIntakeStore();
   const { colors: C } = useThemeStore();
@@ -130,35 +176,16 @@ export default function TageskurveScreen() {
 
         {/* ── CHART ──────────────────────────── */}
         <View style={[s.card, { backgroundColor: C.surface, borderColor: C.border }]}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
-            <View style={s.legendRow}>
-              {intakes.map(intake => {
-                const sub = getSubstance(intake.substanceId);
-                if (!sub) return null;
-                const sel = selectedId === intake.substanceId;
-                return (
-                  <TouchableOpacity
-                    key={intake.id}
-                    style={[s.legendChip, { backgroundColor: C.surfaceHigh, borderColor: C.border },
-                      sel && { backgroundColor: `${sub.color}20`, borderColor: `${sub.color}50` }]}
-                    onPress={() => setSelectedId(intake.substanceId)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={[s.legendDot, { backgroundColor: sub.color }]} />
-                    <Text style={[{ fontSize: 12, color: C.textDim }, sel && { color: sub.color, fontWeight: '700' }]}>
-                      {sub.name}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </ScrollView>
+          <CurveChart
+            data={chartData} entries={chartEntries} selectedId={selectedId}
+            nowHour={now} peakMarks={peakMarks} height={280}
+            gridColor={C.gridLine} labelColor={C.textMuted}
+            accentColor={C.accent} isDark={C.isDark}
+          />
 
-          <CurveChart data={chartData} entries={chartEntries} selectedId={selectedId}
-            nowHour={now} peakMarks={peakMarks} height={280} />
-
+          {/* Intake pills — tap to select, swipe to scroll */}
           {intakes.length > 0 && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 10 }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 12 }}>
               <View style={s.pillRow}>
                 {intakes.map(intake => {
                   const sub = getSubstance(intake.substanceId);
@@ -172,12 +199,12 @@ export default function TageskurveScreen() {
                       onPress={() => setSelectedId(intake.substanceId)}
                       activeOpacity={0.75}
                     >
-                      <SubIcon substance={sub} size={22} />
+                      <View style={[s.legendDot, { backgroundColor: sub.color }]} />
                       <View>
-                        <Text style={[{ fontSize: 12, color: C.textDim }, sel && { color: sub.color }]}>
-                          {fmtHour(intake.timeH)}
+                        <Text style={[{ fontSize: 12, fontWeight: '600', color: C.textSub }, sel && { color: sub.color }]}>
+                          {sub.name}
                         </Text>
-                        <Text style={{ fontSize: 10, color: C.textDim }}>{intake.doseLabel}</Text>
+                        <Text style={{ fontSize: 10, color: C.textDim }}>{fmtHour(intake.timeH)} · {intake.doseLabel}</Text>
                       </View>
                     </TouchableOpacity>
                   );
@@ -199,6 +226,21 @@ export default function TageskurveScreen() {
               </Text>
             </View>
           </View>
+
+          {/* Current state description */}
+          {activeIntakes.length > 0 && (() => {
+            const state = computeCurrentState(activeIntakes, chartData, now);
+            if (!state) return null;
+            return (
+              <View style={[s.stateRow, { backgroundColor: `${state.color}12`, borderColor: `${state.color}30` }]}>
+                <Text style={{ fontSize: 20 }}>{state.emoji}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: state.color }}>{state.label}</Text>
+                  <Text style={{ fontSize: 11, color: C.textDim }}>Aktueller Wirkzustand · {state.strength}</Text>
+                </View>
+              </View>
+            );
+          })()}
 
           {activeIntakes.length === 0 ? (
             <View style={s.emptyInline}>
@@ -371,13 +413,14 @@ const s = StyleSheet.create({
 
   legendRow:  { flexDirection: 'row', alignItems: 'center', gap: 8 },
   legendChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
-  legendDot:  { width: 8, height: 8, borderRadius: 4 },
+  legendDot:  { width: 9, height: 9, borderRadius: 4.5, marginTop: 1 },
 
   pillRow:    { flexDirection: 'row', gap: 8 },
   intakePill: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 7, borderWidth: 1 },
 
   activeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   activeCard: { flex: 1, minWidth: 100, borderRadius: 14, padding: 12, alignItems: 'center', borderWidth: 1 },
+  stateRow:   { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 12, padding: 12, marginBottom: 12, borderWidth: 1 },
   emptyInline:{ paddingVertical: 16, alignItems: 'center' },
 
   detailHeader: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 12, marginBottom: 14 },

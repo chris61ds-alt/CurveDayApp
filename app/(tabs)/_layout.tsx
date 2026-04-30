@@ -1,19 +1,21 @@
 import { Tabs } from 'expo-router';
-import { Text, View, Platform } from 'react-native';
-import { IconChart, IconPill, IconFlask, IconSliders } from '../../src/components/icons/TabIcons';
+import { View, Text, Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useThemeStore } from '../../src/store/themeStore';
 
-function TabIcon({
-  Icon, label, focused,
-}: {
-  Icon: React.ComponentType<{ focused: boolean; size?: number }>;
-  label: string;
-  focused: boolean;
+type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
+
+function TabIcon({ name, nameOutline, label, focused }: {
+  name: IoniconName; nameOutline: IoniconName; label: string; focused: boolean;
 }) {
   const { colors: C } = useThemeStore();
   return (
     <View style={{ alignItems: 'center', gap: 3, paddingTop: 4 }}>
-      <Icon focused={focused} size={26} />
+      <Ionicons
+        name={focused ? name : nameOutline}
+        size={23}
+        color={focused ? C.accent : C.textDim}
+      />
       <Text style={{
         fontSize: 10,
         color: focused ? C.accent : C.textDim,
@@ -48,7 +50,7 @@ export default function TabLayout() {
         name="index"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon Icon={IconChart} label="Tageskurve" focused={focused} />
+            <TabIcon name="analytics" nameOutline="analytics-outline" label="Tageskurve" focused={focused} />
           ),
         }}
       />
@@ -56,7 +58,7 @@ export default function TabLayout() {
         name="intakes"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon Icon={IconPill} label="Einnahmen" focused={focused} />
+            <TabIcon name="medkit" nameOutline="medkit-outline" label="Einnahmen" focused={focused} />
           ),
         }}
       />
@@ -64,7 +66,7 @@ export default function TabLayout() {
         name="substances"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon Icon={IconFlask} label="Substanzen" focused={focused} />
+            <TabIcon name="flask" nameOutline="flask-outline" label="Substanzen" focused={focused} />
           ),
         }}
       />
@@ -72,15 +74,11 @@ export default function TabLayout() {
         name="settings"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon Icon={IconSliders} label="Einstellungen" focused={focused} />
+            <TabIcon name="settings" nameOutline="settings-outline" label="Einstellungen" focused={focused} />
           ),
         }}
       />
-      {/* Protokolle ausgeblendet — kommt in v2 */}
-      <Tabs.Screen
-        name="protocols"
-        options={{ href: null }}
-      />
+      <Tabs.Screen name="protocols" options={{ href: null }} />
     </Tabs>
   );
 }

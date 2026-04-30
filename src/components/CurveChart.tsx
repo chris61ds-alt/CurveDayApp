@@ -15,9 +15,13 @@ interface Props {
   nowHour: number;
   peakMarks?: PeakMark[];
   height?: number;
+  // Theme
+  gridColor?:   string;
+  labelColor?:  string;
+  accentColor?: string;
+  isDark?:      boolean;
 }
 
-// ── Glatte Kurve via quadratische Bezier (Midpoint-Methode) ───
 function smoothLinePath(pts: { x: number; y: number }[]): string {
   if (pts.length === 0) return '';
   if (pts.length === 1) return `M${pts[0].x},${pts[0].y}`;
@@ -27,30 +31,27 @@ function smoothLinePath(pts: { x: number; y: number }[]): string {
     const my = (pts[i].y + pts[i + 1].y) / 2;
     d += ` Q${pts[i].x},${pts[i].y} ${mx},${my}`;
   }
-  const last = pts[pts.length - 1];
-  d += ` L${last.x},${last.y}`;
+  d += ` L${pts[pts.length - 1].x},${pts[pts.length - 1].y}`;
   return d;
 }
 
 function smoothAreaPath(pts: { x: number; y: number }[], baseline: number): string {
   if (pts.length === 0) return '';
-  const line = smoothLinePath(pts);
-  const last = pts[pts.length - 1];
+  const line  = smoothLinePath(pts);
+  const last  = pts[pts.length - 1];
   const first = pts[0];
   return `${line} L${last.x},${baseline} L${first.x},${baseline} Z`;
 }
 
-// ── Ghost-Kurve für leeren Zustand ────────────────────────────
 function buildGhostPts(plotW: number, plotH: number, padLeft: number, padTop: number) {
   return Array.from({ length: 49 }, (_, i) => {
     const t = i / 48;
     const v = 38 * Math.sin(t * Math.PI * 1.8) * Math.max(0, 1 - t * 0.55)
             + 22 * Math.sin(t * Math.PI * 3.4 + 1) * Math.max(0, 1 - t * 0.5);
-    return { x: padLeft + (i / 48) * plotW, y: padTop + plotH - Math.max(0, v / 100) * plotH };
+    return { x: padLeft + t * plotW, y: padTop + plotH - Math.max(0, v / 100) * plotH };
   });
 }
 
-// ── Pinch-Distanz zwischen zwei Touches ──────────────────────
 function touchDist(touches: any[]): number {
   if (touches.length < 2) return 0;
   const dx = touches[0].pageX - touches[1].pageX;
@@ -58,16 +59,87 @@ function touchDist(touches: any[]): number {
   return Math.sqrt(dx * dx + dy * dy);
 }
 
-// ── Hauptkomponente ───────────────────────────────────────────
-export function CurveChart({ data, entries, selectedId, nowHour, peakMarks = [], height = 280 }: Props) {
+export function CurveChart({
+  data, entries, selectedId, nowHour,
+  peakMarks = [], height = 280,
+  gridColor   = '#182840',
+  labelColor  = '#3a5570',
+  accentColor = '#38bdf8',
+  isDark      = true,
+}: Props) {
   const { width } = useWindowDimensions();
   const svgW  = width - 28;
   const plotW = svgW - PAD.left - PAD.right;
   const plotH = height - PAD.top - PAD.bottom;
 
-  // Zoom-State: Zeitfenster in Indizes (0–48 = 00:00–24:00)
-  const [zoomRange, setZoomRange] = useState<[number, number]>([0, 48]);
+  // ── Zoom/Pan state ───────────────────────────────────────────
+  const [zoomRange, setZoomRangeState] = useState<[number, number]>([0, 48]);
+  const zoomRef  = useRef<[number, number]>([0, 48]);
+  const plotWRef = useRef(plotW);
+  plotWRef.current = plotW;
+
+  function setZoomRange(r: [number, number]) {
+    zoomRef.current = r;
+    setZoomRangeState(r);
+  }
+
   const pinchRef = useRef<{ dist: number; range: [number, number] } | null>(null);
+  const panRef   = useRef<{ x: number; range: [number, number] } | null>(null);
+
+  // ── PanResponder: 1 finger = pan, 2 fingers = pinch-zoom ────
+  const panResponder = useRef(PanResponder.create({
+    onStartShouldSetPanResponder: (_, gs) => gs.numberActiveTouches >= 1,
+    onMoveShouldSetPanResponder:  (_, gs) => gs.numberActiveTouches >= 1,
+
+    onPanResponderGrant: (evt) => {
+      const t = evt.nativeEvent.touches;
+      if (t.length >= 2) {
+        pinchRef.current = { dist: touchDist(Array.from(t)), range: [...zoomRef.current] as [number, number] };
+        panRef.current   = null;
+      } else {
+        panRef.current   = { x: t[0].pageX, range: [...zoomRef.current] as [number, number] };
+        pinchRef.current = null;
+      }
+    },
+
+    onPanResponderMove: (evt) => {
+      const t = evt.nativeEvent.touches;
+
+      if (t.length >= 2) {
+        // Switch to pinch if second finger just appeared
+        if (!pinchRef.current) {
+          pinchRef.current = { dist: touchDist(Array.from(t)), range: [...zoomRef.current] as [number, number] };
+          panRef.current   = null;
+        }
+        // Pinch zoom
+        const newDist   = touchDist(Array.from(t));
+        const scale     = pinchRef.current.dist / Math.max(1, newDist);
+        const [is, ie]  = pinchRef.current.range;
+        const center    = (is + ie) / 2;
+        const halfSpan  = Math.max(6, Math.min(24, ((ie - is) * scale) / 2));
+        const newS = Math.max(0,  Math.round(center - halfSpan));
+        const newE = Math.min(48, Math.round(center + halfSpan));
+        setZoomRange([newS, newE]);
+
+      } else if (t.length === 1 && panRef.current) {
+        // Pan / swipe to scroll through time
+        const [rs, re] = panRef.current.range;
+        const span = re - rs;
+        if (span >= 47) return; // No pan when fully zoomed out
+
+        const dx       = t[0].pageX - panRef.current.x;
+        const idxDelta = -(dx / plotWRef.current) * span;
+        const rawS     = rs + idxDelta;
+        const clampedS = Math.max(0, Math.min(48 - span, rawS));
+        setZoomRange([Math.round(clampedS), Math.round(clampedS + span)]);
+      }
+    },
+
+    onPanResponderRelease: () => {
+      pinchRef.current = null;
+      panRef.current   = null;
+    },
+  })).current;
 
   const [zS, zE] = zoomRange;
   const visibleSpan = zE - zS;
@@ -75,7 +147,6 @@ export function CurveChart({ data, entries, selectedId, nowHour, peakMarks = [],
   const xOf = (i: number) => PAD.left + ((i - zS) / visibleSpan) * plotW;
   const yOf = (v: number) => PAD.top + plotH - Math.max(0, Math.min(1, v / 100)) * plotH;
 
-  // Nur sichtbare Datenpunkte rendern
   function visiblePts(id: string): { x: number; y: number }[] {
     return data
       .map((d, i) => ({ i, v: typeof d[id] === 'number' ? (d[id] as number) : 0 }))
@@ -83,41 +154,14 @@ export function CurveChart({ data, entries, selectedId, nowHour, peakMarks = [],
       .map(({ i, v }) => ({ x: xOf(i), y: yOf(v) }));
   }
 
-  // ── Pinch-to-Zoom via PanResponder ──────────────────────────
-  const panResponder = useRef(PanResponder.create({
-    onStartShouldSetPanResponder: (_, gs) => gs.numberActiveTouches === 2,
-    onMoveShouldSetPanResponder:  (_, gs) => gs.numberActiveTouches === 2,
-    onPanResponderGrant: (evt) => {
-      const t = evt.nativeEvent.touches;
-      if (t.length === 2) {
-        pinchRef.current = { dist: touchDist(Array.from(t)), range: [...zoomRange] as [number, number] };
-      }
-    },
-    onPanResponderMove: (evt) => {
-      const t = evt.nativeEvent.touches;
-      if (t.length !== 2 || !pinchRef.current) return;
-      const newDist  = touchDist(Array.from(t));
-      const scale    = pinchRef.current.dist / Math.max(1, newDist);
-      const [is, ie] = pinchRef.current.range;
-      const center   = (is + ie) / 2;
-      const halfSpan = Math.max(6, Math.min(24, ((ie - is) * scale) / 2));
-      const newS = Math.max(0,  Math.round(center - halfSpan));
-      const newE = Math.min(48, Math.round(center + halfSpan));
-      setZoomRange([newS, newE]);
-    },
-    onPanResponderRelease: () => { pinchRef.current = null; },
-  })).current;
-
   const sorted = useMemo(
     () => [...entries].sort((a) => (a.substanceId === selectedId ? 1 : -1)),
     [entries, selectedId],
   );
 
-  // X-Achse: Ticks basierend auf Zoom-Level
   const rawTicks = visibleSpan <= 12
     ? [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48].filter(t => t >= zS && t <= zE)
     : [0, 12, 24, 36, 48].filter(t => t >= zS && t <= zE);
-  const xTicks = rawTicks;
 
   const nowIdx  = Math.min(nowHour * 2, 48);
   const nowX    = nowIdx >= zS && nowIdx <= zE ? xOf(nowIdx) : null;
@@ -125,6 +169,8 @@ export function CurveChart({ data, entries, selectedId, nowHour, peakMarks = [],
   const baseline = yOf(0);
 
   const yTicks = [25, 50, 75, 100];
+  const totalStroke = isDark ? '#ffffff20' : '#00000015';
+  const isZoomed = zS > 0 || zE < 48;
 
   return (
     <View {...panResponder.panHandlers}>
@@ -132,55 +178,57 @@ export function CurveChart({ data, entries, selectedId, nowHour, peakMarks = [],
         <Defs>
           {sorted.map(e => (
             <LinearGradient key={e.substanceId} id={`g${e.substanceId}`} x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0%"   stopColor={e.color} stopOpacity={e.substanceId === selectedId ? 0.55 : 0.18} />
+              <Stop offset="0%"   stopColor={e.color} stopOpacity={e.substanceId === selectedId ? 0.5 : 0.15} />
               <Stop offset="100%" stopColor={e.color} stopOpacity={0} />
             </LinearGradient>
           ))}
         </Defs>
 
-        {/* Horizontale Grid-Linien */}
+        {/* Grid lines */}
         {yTicks.map(v => (
           <G key={v}>
-            <Line x1={PAD.left} y1={yOf(v)} x2={svgW - PAD.right} y2={yOf(v)} stroke="#182840" strokeWidth={1} />
-            <SvgText x={PAD.left - 5} y={yOf(v) + 3.5} fontSize={9} fill="#3a5570" textAnchor="end">{v}%</SvgText>
+            <Line x1={PAD.left} y1={yOf(v)} x2={svgW - PAD.right} y2={yOf(v)} stroke={gridColor} strokeWidth={1} />
+            <SvgText x={PAD.left - 5} y={yOf(v) + 3.5} fontSize={9} fill={labelColor} textAnchor="end">{v}%</SvgText>
           </G>
         ))}
 
-        {/* X-Achse */}
-        {xTicks.map(idx => {
+        {/* X-axis */}
+        {rawTicks.map(idx => {
           const h = idx / 2;
           const label = `${String(Math.floor(h)).padStart(2, '0')}:${h % 1 ? '30' : '00'}`;
           return (
-            <SvgText key={idx} x={xOf(idx)} y={height - 6} fontSize={9} fill="#3a5570" textAnchor="middle">{label}</SvgText>
+            <SvgText key={idx} x={xOf(idx)} y={height - 6} fontSize={9} fill={labelColor} textAnchor="middle">
+              {label}
+            </SvgText>
           );
         })}
 
-        {/* Ghost-Kurve wenn keine Daten */}
+        {/* Ghost curve (empty state) */}
         {entries.length === 0 && (() => {
           const gPts = buildGhostPts(plotW, plotH, PAD.left, PAD.top);
           return (
             <>
-              <Path d={smoothAreaPath(gPts, baseline)} fill="#38bdf806" />
-              <Path d={smoothLinePath(gPts)} fill="none" stroke="#38bdf818" strokeWidth={1.5} strokeDasharray="6,4" />
-              <SvgText x={PAD.left + plotW / 2} y={PAD.top + plotH / 2} fontSize={12} fill="#3a5570" textAnchor="middle">
+              <Path d={smoothAreaPath(gPts, baseline)} fill={isDark ? '#38bdf806' : '#0ea5e908'} />
+              <Path d={smoothLinePath(gPts)} fill="none" stroke={isDark ? '#38bdf818' : '#0ea5e825'} strokeWidth={1.5} strokeDasharray="6,4" />
+              <SvgText x={PAD.left + plotW / 2} y={PAD.top + plotH / 2} fontSize={12} fill={labelColor} textAnchor="middle">
                 Noch keine Einnahmen
               </SvgText>
             </>
           );
         })()}
 
-        {/* Flächen (glatt) */}
+        {/* Area fills */}
         {sorted.map(e => {
           const pts = visiblePts(e.substanceId);
           return <Path key={`a${e.substanceId}`} d={smoothAreaPath(pts, baseline)} fill={`url(#g${e.substanceId})`} />;
         })}
 
-        {/* Gesamtwirkung (gestrichelt) */}
-        <Path d={smoothLinePath(visiblePts('total'))} fill="none" stroke="#ffffff20" strokeWidth={1.5} strokeDasharray="5,3" />
+        {/* Total effect line (dashed) */}
+        <Path d={smoothLinePath(visiblePts('total'))} fill="none" stroke={totalStroke} strokeWidth={1.5} strokeDasharray="5,3" />
 
-        {/* Substanz-Linien (glatt) */}
+        {/* Substance lines */}
         {sorted.map(e => {
-          const pts = visiblePts(e.substanceId);
+          const pts   = visiblePts(e.substanceId);
           const isSel = e.substanceId === selectedId;
           return (
             <Path
@@ -194,14 +242,14 @@ export function CurveChart({ data, entries, selectedId, nowHour, peakMarks = [],
           );
         })}
 
-        {/* Peak-Marker */}
+        {/* Peak markers */}
         {peakMarks.map((pm) => {
           if (pm.peakIndex < zS || pm.peakIndex > zE) return null;
           const v = typeof data[pm.peakIndex]?.[pm.substanceId] === 'number'
             ? data[pm.peakIndex][pm.substanceId] as number : 0;
           if (v < 5) return null;
-          const px = xOf(pm.peakIndex);
-          const py = yOf(v);
+          const px    = xOf(pm.peakIndex);
+          const py    = yOf(v);
           const isSel = pm.substanceId === selectedId;
           return (
             <G key={`peak-${pm.substanceId}`}>
@@ -216,20 +264,22 @@ export function CurveChart({ data, entries, selectedId, nowHour, peakMarks = [],
           );
         })}
 
-        {/* NOW-Linie */}
+        {/* NOW line */}
         {nowX !== null && (
           <>
-            <Line x1={nowX} y1={PAD.top} x2={nowX} y2={height - PAD.bottom} stroke="#38bdf8" strokeWidth={1.5} strokeDasharray="4,3" opacity={0.75} />
-            <SvgText x={nowX} y={PAD.top - 6} fontSize={9} fill="#38bdf8" textAnchor="middle" fontWeight="700">JETZT</SvgText>
-            <SvgText x={nowX + 4} y={PAD.top + 13} fontSize={8} fill="#38bdf8" opacity={0.7}>{nowLabel}</SvgText>
+            <Line x1={nowX} y1={PAD.top} x2={nowX} y2={height - PAD.bottom} stroke={accentColor} strokeWidth={1.5} strokeDasharray="4,3" opacity={0.75} />
+            <SvgText x={nowX} y={PAD.top - 6} fontSize={9} fill={accentColor} textAnchor="middle" fontWeight="700">JETZT</SvgText>
+            <SvgText x={nowX + 4} y={PAD.top + 13} fontSize={8} fill={accentColor} opacity={0.7}>{nowLabel}</SvgText>
           </>
         )}
 
-        {/* Zoom-Indikator (wenn nicht voller Bereich) */}
-        {(zS > 0 || zE < 48) && (
-          <SvgText x={svgW - PAD.right} y={PAD.top - 6} fontSize={9} fill="#38bdf860" textAnchor="end">
-            {`${String(Math.floor(zS/2)).padStart(2,'0')}:${zS%2?'30':'00'}–${String(Math.floor(zE/2)).padStart(2,'0')}:${zE%2?'30':'00'}`}
-          </SvgText>
+        {/* Zoom/pan indicator */}
+        {isZoomed && (
+          <>
+            <SvgText x={PAD.left + plotW / 2} y={PAD.top - 6} fontSize={9} fill={accentColor} textAnchor="middle" opacity={0.7}>
+              {`◀  ${String(Math.floor(zS/2)).padStart(2,'0')}:${zS%2?'30':'00'} – ${String(Math.floor(zE/2)).padStart(2,'0')}:${zE%2?'30':'00'}  ▶`}
+            </SvgText>
+          </>
         )}
 
       </Svg>
