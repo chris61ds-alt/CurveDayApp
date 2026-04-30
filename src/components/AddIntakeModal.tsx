@@ -48,6 +48,49 @@ export function AddIntakeModal({ visible, onClose }: Props) {
     return ixs.filter((ix: any) => ix.severity === 'critical' && (ix.a === selected.id || ix.b === selected.id));
   }, [selected, intakes]);
 
+  // ── Dosisplausibilität ─────────────────────────────────────
+  // Extrahiere Zahlenwert aus Eingabe wie "400 mg", "400mg", "1,5 g"
+  function parseDoseValue(str: string): number | null {
+    const match = str.replace(',', '.').match(/[\d.]+/);
+    return match ? parseFloat(match[0]) : null;
+  }
+
+  const doseWarning = useMemo<{ level: 'info' | 'warn' | 'danger'; text: string } | null>(() => {
+    if (!selected || !dose.trim()) return null;
+    const val = parseDoseValue(dose);
+    if (val === null || val <= 0) return { level: 'warn', text: 'Ungültige Dosisangabe.' };
+
+    const common: number[] = selected.commonDoses ?? [];
+    const maxCommon   = common.length ? Math.max(...common) : null;
+    const minCommon   = common.length ? Math.min(...common) : null;
+    const unit        = selected.doseUnit as string;
+
+    // Gefährlich hohe Dosis: mehr als 2× die höchste Standarddosis
+    if (maxCommon && val > maxCommon * 2) {
+      return { level: 'danger', text: `Sehr hohe Einzeldosis! Übliche Max: ${maxCommon} ${unit}` };
+    }
+    // Erhöhte Dosis: mehr als die höchste Standarddosis
+    if (maxCommon && val > maxCommon) {
+      return { level: 'warn', text: `Überschreitet übliche Einzeldosis von ${maxCommon} ${unit}` };
+    }
+    // Sehr niedrige Dosis (< halbe Minimaldosis) – möglicher Tippfehler
+    if (minCommon && val < minCommon / 2) {
+      return { level: 'info', text: `Unterdosis? Kleinste gängige Dosis: ${minCommon} ${unit}` };
+    }
+    return null;
+  }, [dose, selected]);
+
+  // Häufigkeit heute: Wie viele Einnahmen dieser Substanz gibt es heute schon?
+  const todayCount = useMemo(() => {
+    if (!selected) return 0;
+    const nowH = new Date().getHours() + new Date().getMinutes() / 60;
+    const dayStart = nowH; // heutige Einnahmen liegen zwischen 0..nowH + bereits geplante (gröber: alle)
+    return intakes.filter(i => i.substanceId === selected.id).length;
+  }, [selected, intakes]);
+
+  const maxPerDay: number | null = selected?.timing?.maxPerDay ?? null;
+  const dailyCountWarning = maxPerDay !== null && todayCount >= maxPerDay;
+
   const timeH = hour + minute / 60;
 
   function selectSubstance(sub: any) {
@@ -248,13 +291,36 @@ export function AddIntakeModal({ visible, onClose }: Props) {
                   ))}
                 </View>
                 <TextInput
-                  style={s.doseInput}
+                  style={[s.doseInput,
+                    doseWarning?.level === 'danger' && { borderColor: '#ef444450' },
+                    doseWarning?.level === 'warn'   && { borderColor: '#f59e0b50' },
+                  ]}
                   value={dose}
                   onChangeText={setDose}
                   placeholder={`z.B. ${selected.defaultDose} ${selected.doseUnit}`}
                   placeholderTextColor="#4a5a70"
                   keyboardType="default"
                 />
+
+                {/* Dosiswarnung */}
+                {doseWarning && (
+                  <View style={[
+                    s.doseWarnBox,
+                    doseWarning.level === 'danger' && { backgroundColor: '#ef444412', borderColor: '#ef444440' },
+                    doseWarning.level === 'warn'   && { backgroundColor: '#f59e0b10', borderColor: '#f59e0b35' },
+                    doseWarning.level === 'info'   && { backgroundColor: '#38bdf80a', borderColor: '#38bdf825' },
+                  ]}>
+                    <Text style={[
+                      s.doseWarnText,
+                      doseWarning.level === 'danger' && { color: '#f87171' },
+                      doseWarning.level === 'warn'   && { color: '#fcd34d' },
+                      doseWarning.level === 'info'   && { color: '#7dd3fc' },
+                    ]}>
+                      {doseWarning.level === 'danger' ? '⛔ ' : doseWarning.level === 'warn' ? '⚠️ ' : 'ℹ️ '}
+                      {doseWarning.text}
+                    </Text>
+                  </View>
+                )}
               </View>
 
               {/* Uhrzeit */}
@@ -319,6 +385,16 @@ export function AddIntakeModal({ visible, onClose }: Props) {
                   {selected.warnings.map((w: string, i: number) => (
                     <Text key={i} style={s.warningItem}>• {w}</Text>
                   ))}
+                </View>
+              )}
+
+              {/* Tagesfrequenz-Warnung */}
+              {dailyCountWarning && (
+                <View style={s.dailyWarnBox}>
+                  <Text style={s.dailyWarnText}>
+                    ⚠️ Bereits {todayCount}/{maxPerDay} Einnahmen heute erfasst
+                    {maxPerDay === 1 ? ' — nur 1× täglich empfohlen.' : ` — max. ${maxPerDay}× täglich empfohlen.`}
+                  </Text>
                 </View>
               )}
 
@@ -405,6 +481,12 @@ const s = StyleSheet.create({
   rxWarning:     { backgroundColor: '#f59e0b10', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#f59e0b30' },
   rxWarningTitle:{ fontSize: 12, fontWeight: '700', color: '#fcd34d', marginBottom: 5 },
   rxWarningText: { fontSize: 11, color: '#fde68a', lineHeight: 17 },
+
+  doseWarnBox:   { marginTop: 8, borderRadius: 8, padding: 9, borderWidth: 1 },
+  doseWarnText:  { fontSize: 11, lineHeight: 16 },
+
+  dailyWarnBox:  { backgroundColor: '#f59e0b10', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#f59e0b35', marginBottom: 4 },
+  dailyWarnText: { fontSize: 12, color: '#fcd34d', lineHeight: 17 },
 
   warningsBox:   { backgroundColor: '#f59e0b10', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#f59e0b25' },
   warningsTitle: { fontSize: 11, fontWeight: '700', color: '#fcd34d', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
