@@ -7,19 +7,27 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useOnboardingStore, UserProfile } from '../src/store/onboardingStore';
 import { requestNotificationPermissions } from '../src/services/notifications';
-import { Region, REGION_OPTIONS } from '../src/utils/regionUtils';
+import {
+  Region, REGION_OPTIONS,
+  weightUnitLabel, heightUnitLabel,
+  parseWeightToKg, parseHeightToCm,
+} from '../src/utils/regionUtils';
+import { de, en } from '../src/i18n';
+import type { Strings } from '../src/i18n/strings';
 
 const { width: W } = Dimensions.get('window');
 
-// ── Tracking Goals ────────────────────────────────────────────
-const GOALS = [
-  { id: 'medication', icon: '💊', label: 'Medikamente',        desc: 'Verschreibungspflichtige Medikamente, Schmerzmittel', color: '#c084fc' },
-  { id: 'adhd',       icon: '🧠', label: 'ADHS & Fokus',       desc: 'Methylphenidat, Amphetamine, Atomoxetin, Nootropika', color: '#38bdf8' },
-  { id: 'sleep',      icon: '🌙', label: 'Schlaf & Beruhigung', desc: 'Melatonin, Baldrian, Benzodiazepine, Antihistaminika', color: '#818cf8' },
-  { id: 'stimulant',  icon: '⚡', label: 'Stimulanzien',        desc: 'Koffein, L-Theanin, Pre-Workout, Guaraná',           color: '#f59e0b' },
-  { id: 'supplement', icon: '🌱', label: 'Nahrungsergänzung',   desc: 'Vitamine, Mineralstoffe, Omega-3, Probiotika',       color: '#4ade80' },
-  { id: 'recreational',icon:'🍺', label: 'Genussmittel',        desc: 'Alkohol, Cannabis, Nikotin – bewusstes Tracking',    color: '#94a3b8' },
-];
+// ── Tracking Goals (i18n-aware) ───────────────────────────────
+function getGoals(t: Strings) {
+  return [
+    { id: 'medication',   icon: '💊', label: t.goalMedicationLabel, desc: t.goalMedicationDesc,  color: '#c084fc' },
+    { id: 'adhd',         icon: '🧠', label: t.goalAdhdLabel,       desc: t.goalAdhdDesc,        color: '#38bdf8' },
+    { id: 'sleep',        icon: '🌙', label: t.goalSleepLabel,      desc: t.goalSleepDesc,       color: '#818cf8' },
+    { id: 'stimulant',    icon: '⚡', label: t.goalStimulantLabel,  desc: t.goalStimulantDesc,   color: '#f59e0b' },
+    { id: 'supplement',   icon: '🌱', label: t.goalSupplementLabel, desc: t.goalSupplementDesc,  color: '#4ade80' },
+    { id: 'recreational', icon: '🍺', label: t.goalRecLabel,        desc: t.goalRecDesc,         color: '#94a3b8' },
+  ];
+}
 
 // ── Step indicators ───────────────────────────────────────────
 function Steps({ current, total }: { current: number; total: number }) {
@@ -33,36 +41,30 @@ function Steps({ current, total }: { current: number; total: number }) {
 }
 
 // ── Step 0: Welcome ───────────────────────────────────────────
-function StepWelcome({ onNext }: { onNext: () => void }) {
+function StepWelcome({ onNext, t }: { onNext: () => void; t: Strings }) {
   return (
     <View style={s.stepWrap}>
       <View style={s.welcomeLogo}>
         <Text style={s.welcomeEmoji}>〜</Text>
       </View>
       <Text style={s.welcomeTitle}>CurveDay</Text>
-      <Text style={s.welcomeTagline}>Verstehe, wann dein Körper{'\n'}auf dem Peak ist.</Text>
-      <Text style={s.welcomeDesc}>
-        Visualisiere Wirkkurven von Medikamenten, Supplements und Substanzen —
-        präzise, übersichtlich, informativ.
-      </Text>
+      <Text style={s.welcomeTagline}>{t.onboardingWelcomeTagline}</Text>
+      <Text style={s.welcomeDesc}>{t.onboardingWelcomeDesc}</Text>
       <TouchableOpacity style={s.btnPrimary} onPress={onNext}>
-        <Text style={s.btnPrimaryText}>Loslegen →</Text>
+        <Text style={s.btnPrimaryText}>{t.onboardingStart}</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
 // ── Step 1: Region ────────────────────────────────────────────
-function StepRegion({ onNext }: { onNext: (region: Region) => void }) {
+function StepRegion({ onNext, t }: { onNext: (region: Region) => void; t: Strings }) {
   const [selected, setSelected] = useState<Region | null>(null);
 
   return (
     <View style={s.stepWrap}>
-      <Text style={s.stepTitle}>Wo befindest du dich?</Text>
-      <Text style={s.stepSub}>
-        Damit zeigen wir dir die richtigen Substanznamen,{'\n'}
-        Marktregulierungen und Maßeinheiten.
-      </Text>
+      <Text style={s.stepTitle}>{t.onboardingRegionTitle}</Text>
+      <Text style={s.stepSub}>{t.onboardingRegionSub}</Text>
 
       <View style={{ gap: 12, marginTop: 8, marginBottom: 24 }}>
         {REGION_OPTIONS.map(r => {
@@ -92,14 +94,14 @@ function StepRegion({ onNext }: { onNext: (region: Region) => void }) {
         onPress={() => selected && onNext(selected)}
         disabled={!selected}
       >
-        <Text style={s.btnPrimaryText}>Weiter →</Text>
+        <Text style={s.btnPrimaryText}>{t.next} →</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
 // ── Step 2: Disclaimer ────────────────────────────────────────
-function StepDisclaimer({ onNext }: { onNext: (timestamp: string) => void }) {
+function StepDisclaimer({ onNext, t }: { onNext: (timestamp: string) => void; t: Strings }) {
   const [scrolled, setScrolled] = useState(false);
   const [accepted, setAccepted] = useState(false);
 
@@ -112,8 +114,8 @@ function StepDisclaimer({ onNext }: { onNext: (timestamp: string) => void }) {
 
   return (
     <View style={s.stepWrap}>
-      <Text style={s.disclaimerHeadline}>⚖️ Wichtiger Hinweis</Text>
-      <Text style={s.disclaimerSub}>Bitte lies und akzeptiere diese Bedingungen</Text>
+      <Text style={s.disclaimerHeadline}>{t.onboardingDisclTitle}</Text>
+      <Text style={s.disclaimerSub}>{t.onboardingDisclSub}</Text>
 
       <ScrollView
         style={s.disclaimerScroll}
@@ -159,7 +161,7 @@ function StepDisclaimer({ onNext }: { onNext: (timestamp: string) => void }) {
           Informationsquelle nutzt.
         </Text>
         {!scrolled && (
-          <Text style={s.scrollHint}>↓ Scrolle bis zum Ende um fortzufahren</Text>
+          <Text style={s.scrollHint}>{t.onboardingDisclScroll}</Text>
         )}
       </ScrollView>
 
@@ -172,8 +174,7 @@ function StepDisclaimer({ onNext }: { onNext: (timestamp: string) => void }) {
           {accepted && <Text style={s.checkmark}>✓</Text>}
         </View>
         <Text style={[s.checkLabel, !scrolled && s.checkLabelDim]}>
-          Ich habe die Hinweise gelesen und verstanden. Ich nutze CurveDay als reine
-          Informationsquelle und nicht als medizinisches Hilfsmittel.
+          {t.onboardingDisclAccept}
         </Text>
       </TouchableOpacity>
 
@@ -182,15 +183,16 @@ function StepDisclaimer({ onNext }: { onNext: (timestamp: string) => void }) {
         onPress={() => (accepted && scrolled) && onNext(new Date().toISOString())}
         disabled={!accepted || !scrolled}
       >
-        <Text style={s.btnPrimaryText}>Akzeptieren & Weiter →</Text>
+        <Text style={s.btnPrimaryText}>{t.onboardingDisclAcceptBtn}</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
-// ── Step 2: Tracking Goals ────────────────────────────────────
-function StepGoals({ onNext }: { onNext: (goals: string[]) => void }) {
+// ── Step 3: Tracking Goals ────────────────────────────────────
+function StepGoals({ onNext, t }: { onNext: (goals: string[]) => void; t: Strings }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const GOALS = getGoals(t);
 
   function toggle(id: string) {
     setSelected(prev => {
@@ -202,8 +204,8 @@ function StepGoals({ onNext }: { onNext: (goals: string[]) => void }) {
 
   return (
     <View style={s.stepWrap}>
-      <Text style={s.stepTitle}>Was möchtest du tracken?</Text>
-      <Text style={s.stepSub}>Wähle einen oder mehrere Bereiche.{'\n'}Du kannst das später jederzeit ändern.</Text>
+      <Text style={s.stepTitle}>{t.onboardingGoalsTitle}</Text>
+      <Text style={s.stepSub}>{t.onboardingGoalsSub}</Text>
 
       <ScrollView style={s.goalsScroll} showsVerticalScrollIndicator={false}>
         {GOALS.map(g => {
@@ -235,93 +237,94 @@ function StepGoals({ onNext }: { onNext: (goals: string[]) => void }) {
         onPress={() => selected.size > 0 && onNext([...selected])}
         disabled={selected.size === 0}
       >
-        <Text style={s.btnPrimaryText}>Weiter ({selected.size} gewählt) →</Text>
+        <Text style={s.btnPrimaryText}>{t.onboardingGoalsBtn(selected.size)}</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
-// ── Step 3: Profile ───────────────────────────────────────────
-function StepProfile({ onNext }: { onNext: (profile: UserProfile) => void }) {
+// ── Step 4: Profile ───────────────────────────────────────────
+function StepProfile({ onNext, t, region }: {
+  onNext: (profile: UserProfile) => void;
+  t: Strings;
+  region: Region;
+}) {
   const [weight, setWeight] = useState('');
   const [height, setHeight] = useState('');
   const [age, setAge]       = useState('');
   const [sex, setSex]       = useState<string | null>(null);
 
+  const wUnit = weightUnitLabel(region);
+  const hUnit = heightUnitLabel(region);
+
   function handleNext(skip = false) {
     if (skip) return onNext({});
     const profile: UserProfile = {};
-    const w = parseFloat(weight);
-    const h = parseFloat(height);
-    const a = parseInt(age, 10);
-    if (!isNaN(w) && w > 0)   profile.weight = w;
-    if (!isNaN(h) && h > 0)   profile.height = h;
-    if (!isNaN(a) && a > 0)   profile.age    = a;
-    if (sex)                   profile.sex    = sex as any;
+    const wKg = parseWeightToKg(weight, region);
+    const hCm = parseHeightToCm(height, region);
+    const a   = parseInt(age, 10);
+    if (wKg > 0)                profile.weight = wKg;
+    if (hCm > 0)                profile.height = hCm;
+    if (!isNaN(a) && a > 0)    profile.age    = a;
+    if (sex)                    profile.sex    = sex as any;
     onNext(profile);
   }
 
   const SEX_OPTIONS = [
-    { id: 'male',   label: 'Männlich' },
-    { id: 'female', label: 'Weiblich' },
-    { id: 'other',  label: 'Divers' },
+    { id: 'male',   label: t.onboardingSexMale },
+    { id: 'female', label: t.onboardingSexFemale },
+    { id: 'other',  label: t.onboardingSexOther },
   ];
 
   return (
     <View style={s.stepWrap}>
-      <Text style={s.stepTitle}>Dein Profil</Text>
-      <Text style={s.stepSub}>
-        Für genauere PK-Berechnungen optional.{'\n'}
-        Alle Angaben bleiben lokal auf deinem Gerät.
-      </Text>
+      <Text style={s.stepTitle}>{t.onboardingProfileTitle}</Text>
+      <Text style={s.stepSub}>{t.onboardingProfileSub}</Text>
 
       <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1, marginBottom: 12 }}>
 
         {/* Info hint */}
         <View style={s.profileHint}>
-          <Text style={s.profileHintText}>
-            💡 Die Standardwerte in der Datenbank basieren auf einem 70 kg schweren Erwachsenen.
-            Dein Gewicht beeinflusst vor allem die Wirkstoffkonzentration im Blut.
-          </Text>
+          <Text style={s.profileHintText}>{t.onboardingProfileHint}</Text>
         </View>
 
         {/* Weight + Height */}
         <View style={s.profileRow}>
           <View style={[s.profileField, { flex: 1 }]}>
-            <Text style={s.profileLabel}>Gewicht</Text>
+            <Text style={s.profileLabel}>{t.onboardingWeight}</Text>
             <View style={s.profileInputWrap}>
               <TextInput
                 style={s.profileInput}
                 value={weight}
                 onChangeText={setWeight}
-                placeholder="70"
+                placeholder={region === 'US' ? '154' : '70'}
                 placeholderTextColor="#4a5a70"
                 keyboardType="decimal-pad"
                 maxLength={5}
               />
-              <Text style={s.profileUnit}>kg</Text>
+              <Text style={s.profileUnit}>{wUnit}</Text>
             </View>
           </View>
           <View style={[s.profileField, { flex: 1 }]}>
-            <Text style={s.profileLabel}>Größe</Text>
+            <Text style={s.profileLabel}>{t.onboardingHeight}</Text>
             <View style={s.profileInputWrap}>
               <TextInput
                 style={s.profileInput}
                 value={height}
                 onChangeText={setHeight}
-                placeholder="175"
+                placeholder={region === 'US' ? '69' : '175'}
                 placeholderTextColor="#4a5a70"
                 keyboardType="decimal-pad"
                 maxLength={5}
               />
-              <Text style={s.profileUnit}>cm</Text>
+              <Text style={s.profileUnit}>{hUnit}</Text>
             </View>
           </View>
         </View>
 
         {/* Age */}
         <View style={s.profileField}>
-          <Text style={s.profileLabel}>Alter</Text>
+          <Text style={s.profileLabel}>{t.onboardingAge}</Text>
           <View style={s.profileInputWrap}>
             <TextInput
               style={s.profileInput}
@@ -332,13 +335,13 @@ function StepProfile({ onNext }: { onNext: (profile: UserProfile) => void }) {
               keyboardType="number-pad"
               maxLength={3}
             />
-            <Text style={s.profileUnit}>Jahre</Text>
+            <Text style={s.profileUnit}>{t.settingsAgeUnit}</Text>
           </View>
         </View>
 
         {/* Sex */}
         <View style={s.profileField}>
-          <Text style={s.profileLabel}>Biologisches Geschlecht</Text>
+          <Text style={s.profileLabel}>{t.onboardingSex}</Text>
           <View style={s.sexRow}>
             {SEX_OPTIONS.map(o => (
               <TouchableOpacity
@@ -351,30 +354,34 @@ function StepProfile({ onNext }: { onNext: (profile: UserProfile) => void }) {
               </TouchableOpacity>
             ))}
           </View>
-          <Text style={s.profileFieldNote}>
-            Beeinflusst Metabolisierung bei einigen Substanzen (z. B. Alkohol, bestimmte Benzodiazepine).
-          </Text>
+          <Text style={s.profileFieldNote}>{t.onboardingSexNote}</Text>
         </View>
       </ScrollView>
 
       <TouchableOpacity style={s.btnSecondary} onPress={() => handleNext(true)}>
-        <Text style={s.btnSecondaryText}>Überspringen — später in Einstellungen</Text>
+        <Text style={s.btnSecondaryText}>{t.onboardingProfileSkipBtn}</Text>
       </TouchableOpacity>
       <TouchableOpacity style={s.btnPrimary} onPress={() => handleNext(false)}>
-        <Text style={s.btnPrimaryText}>Speichern & Weiter →</Text>
+        <Text style={s.btnPrimaryText}>{t.onboardingProfileSaveBtn}</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
-// ── Step 4: Ready ─────────────────────────────────────────────
-function StepReady({ goals, onFinish }: { goals: string[]; onFinish: () => void }) {
+// ── Step 5: Ready ─────────────────────────────────────────────
+function StepReady({ goals, onFinish, t }: {
+  goals: string[];
+  onFinish: () => void;
+  t: Strings;
+}) {
+  const GOALS = getGoals(t);
   const selectedGoals = GOALS.filter(g => goals.includes(g.id));
+
   return (
     <View style={s.stepWrap}>
       <Text style={s.readyEmoji}>🚀</Text>
-      <Text style={s.stepTitle}>Alles bereit!</Text>
-      <Text style={s.stepSub}>Du trackst diese Bereiche:</Text>
+      <Text style={s.stepTitle}>{t.onboardingReadyTitle}</Text>
+      <Text style={s.stepSub}>{t.onboardingReadySub}</Text>
 
       <View style={s.readyGoals}>
         {selectedGoals.map(g => (
@@ -385,14 +392,14 @@ function StepReady({ goals, onFinish }: { goals: string[]; onFinish: () => void 
       </View>
 
       <View style={s.readyHints}>
-        <Text style={s.readyHint}>✓  Wirkkurven aktualisieren sich in Echtzeit</Text>
-        <Text style={s.readyHint}>✓  Wechselwirkungen werden automatisch erkannt</Text>
-        <Text style={s.readyHint}>✓  Zustandsbeschreibung basierend auf aktiven Wirkstoffen</Text>
-        <Text style={s.readyHint}>✓  Daten bleiben lokal auf deinem Gerät</Text>
+        <Text style={s.readyHint}>{t.onboardingReadyHint1}</Text>
+        <Text style={s.readyHint}>{t.onboardingReadyHint2}</Text>
+        <Text style={s.readyHint}>{t.onboardingReadyHint3}</Text>
+        <Text style={s.readyHint}>{t.onboardingReadyHint4}</Text>
       </View>
 
       <TouchableOpacity style={s.btnPrimary} onPress={onFinish}>
-        <Text style={s.btnPrimaryText}>App starten →</Text>
+        <Text style={s.btnPrimaryText}>{t.onboardingReadyBtn}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -406,6 +413,9 @@ export default function OnboardingScreen() {
   const [discTs,  setDiscTs] = useState<string | null>(null);
   const [goals,   setGoals]  = useState<string[]>([]);
   const [profile, setProfile]= useState<UserProfile>({});
+
+  // Language switches as soon as user picks their region on step 1
+  const t: Strings = region === 'US' ? en : de;
 
   const TOTAL_STEPS = 5; // steps 1–5 shown in indicator
 
@@ -423,12 +433,12 @@ export default function OnboardingScreen() {
     <SafeAreaView style={s.safe}>
       {step > 0 && <Steps current={step - 1} total={TOTAL_STEPS} />}
 
-      {step === 0 && <StepWelcome    onNext={() => setStep(1)} />}
-      {step === 1 && <StepRegion     onNext={(r) => { setRegion(r); setStep(2); }} />}
-      {step === 2 && <StepDisclaimer onNext={(ts) => { setDiscTs(ts); setStep(3); }} />}
-      {step === 3 && <StepGoals      onNext={(g) => { setGoals(g); setStep(4); }} />}
-      {step === 4 && <StepProfile    onNext={(p) => { setProfile(p); setStep(5); }} />}
-      {step === 5 && <StepReady      goals={goals} onFinish={finish} />}
+      {step === 0 && <StepWelcome    onNext={() => setStep(1)} t={t} />}
+      {step === 1 && <StepRegion     onNext={(r) => { setRegion(r); setStep(2); }} t={t} />}
+      {step === 2 && <StepDisclaimer onNext={(ts) => { setDiscTs(ts); setStep(3); }} t={t} />}
+      {step === 3 && <StepGoals      onNext={(g) => { setGoals(g); setStep(4); }} t={t} />}
+      {step === 4 && <StepProfile    onNext={(p) => { setProfile(p); setStep(5); }} t={t} region={region} />}
+      {step === 5 && <StepReady      goals={goals} onFinish={finish} t={t} />}
     </SafeAreaView>
   );
 }

@@ -2,6 +2,7 @@ import { Tabs } from 'expo-router';
 import { View, Text, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeStore } from '../../src/store/themeStore';
+import { useT } from '../../src/i18n';
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -30,6 +31,7 @@ function TabIcon({ name, nameOutline, label, focused }: {
 
 export default function TabLayout() {
   const { colors: C } = useThemeStore();
+  const t = useT();
 
   return (
     <Tabs
@@ -50,7 +52,7 @@ export default function TabLayout() {
         name="index"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon name="analytics" nameOutline="analytics-outline" label="Tageskurve" focused={focused} />
+            <TabIcon name="analytics" nameOutline="analytics-outline" label={t.tabCurve} focused={focused} />
           ),
         }}
       />
@@ -58,7 +60,7 @@ export default function TabLayout() {
         name="intakes"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon name="medkit" nameOutline="medkit-outline" label="Einnahmen" focused={focused} />
+            <TabIcon name="medkit" nameOutline="medkit-outline" label={t.tabIntakes} focused={focused} />
           ),
         }}
       />
@@ -66,7 +68,7 @@ export default function TabLayout() {
         name="substances"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon name="flask" nameOutline="flask-outline" label="Substanzen" focused={focused} />
+            <TabIcon name="flask" nameOutline="flask-outline" label={t.tabSubstances} focused={focused} />
           ),
         }}
       />
@@ -74,7 +76,7 @@ export default function TabLayout() {
         name="settings"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon name="settings" nameOutline="settings-outline" label="Einstellungen" focused={focused} />
+            <TabIcon name="settings" nameOutline="settings-outline" label={t.tabSettings} focused={focused} />
           ),
         }}
       />

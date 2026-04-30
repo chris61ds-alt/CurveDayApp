@@ -13,6 +13,7 @@ import { useThemeStore } from '../../src/store/themeStore';
 import { cancelAllReminders, requestNotificationPermissions } from '../../src/services/notifications';
 import { isSupabaseConfigured } from '../../src/config/supabase';
 import { router } from 'expo-router';
+import { useT } from '../../src/i18n';
 import {
   Region, REGION_OPTIONS, getRegionLabel,
   formatWeight, formatHeight,
@@ -96,6 +97,7 @@ function SleepModal({ visible, sleepStart, sleepEnd, onSave, onClose }: {
   onClose: () => void;
 }) {
   const { colors: C } = useThemeStore();
+  const t = useT();
   const [start, setStart] = useState(sleepStart);
   const [end,   setEnd]   = useState(sleepEnd);
 
@@ -125,23 +127,22 @@ function SleepModal({ visible, sleepStart, sleepEnd, onSave, onClose }: {
       <SafeAreaView style={[pe.safe, { backgroundColor: C.bg }]}>
         <View style={[pe.header, { borderBottomColor: C.border2 }]}>
           <TouchableOpacity onPress={onClose}>
-            <Text style={[pe.cancel, { color: C.textMuted }]}>Abbrechen</Text>
+            <Text style={[pe.cancel, { color: C.textMuted }]}>{t.cancel}</Text>
           </TouchableOpacity>
-          <Text style={[pe.title, { color: C.text }]}>Schlaffenster</Text>
+          <Text style={[pe.title, { color: C.text }]}>{t.settingsSleepModalTitle}</Text>
           <TouchableOpacity onPress={() => onSave(start, end)}>
-            <Text style={[pe.save, { color: C.accent }]}>Speichern</Text>
+            <Text style={[pe.save, { color: C.accent }]}>{t.save}</Text>
           </TouchableOpacity>
         </View>
 
         <ScrollView contentContainerStyle={{ padding: 24, gap: 24 }}>
           <Text style={[sm.hint, { color: C.textMuted, backgroundColor: C.bg2, borderColor: C.border2 }]}>
-            💡 Das Schlaffenster wird im Chart als lila schattierter Bereich angezeigt.
-            Du siehst sofort welche Substanzen noch aktiv sind wenn du schlafen gehst.
+            {t.settingsSleepHint}
           </Text>
 
           {/* Schlafbeginn */}
           <View style={[sm.pickerCard, { backgroundColor: C.bg2, borderColor: C.border2 }]}>
-            <Text style={[sm.pickerLabel, { color: C.textMuted }]}>🌙  Schlafbeginn</Text>
+            <Text style={[sm.pickerLabel, { color: C.textMuted }]}>{`🌙  ${t.settingsBedtime}`}</Text>
             <View style={sm.pickerRow}>
               <TouchableOpacity style={[sm.adjBtn, { backgroundColor: C.bg, borderColor: C.border2 }]}
                 onPress={() => adjust('start', -1)}>
@@ -157,7 +158,7 @@ function SleepModal({ visible, sleepStart, sleepEnd, onSave, onClose }: {
 
           {/* Aufwachzeit */}
           <View style={[sm.pickerCard, { backgroundColor: C.bg2, borderColor: C.border2 }]}>
-            <Text style={[sm.pickerLabel, { color: C.textMuted }]}>☀️  Aufwachen</Text>
+            <Text style={[sm.pickerLabel, { color: C.textMuted }]}>{`☀️  ${t.settingsWakeUp}`}</Text>
             <View style={sm.pickerRow}>
               <TouchableOpacity style={[sm.adjBtn, { backgroundColor: C.bg, borderColor: C.border2 }]}
                 onPress={() => adjust('end', -1)}>
@@ -173,8 +174,7 @@ function SleepModal({ visible, sleepStart, sleepEnd, onSave, onClose }: {
 
           <View style={[sm.durationRow, { backgroundColor: `${'#818cf8'}12`, borderColor: `${'#818cf8'}30` }]}>
             <Text style={{ fontSize: 13, color: '#818cf8' }}>
-              😴 Schlafdauer: <Text style={{ fontWeight: '700' }}>{duration}</Text>
-              {`  (${fmt(start)} → ${fmt(end)})`}
+              {t.settingsSleepDuration(duration, fmt(start), fmt(end))}
             </Text>
           </View>
         </ScrollView>
@@ -203,6 +203,7 @@ function ProfileEditModal({ visible, profile, region, onSave, onClose }: {
   onClose: () => void;
 }) {
   const { colors: C } = useThemeStore();
+  const t = useT();
   const [weight, setWeight] = useState(() => weightToDisplayValue(profile.weight, region));
   const [height, setHeight] = useState(() => heightToDisplayValue(profile.height, region));
   const [age,    setAge]    = useState(profile.age?.toString() ?? '');
@@ -232,9 +233,9 @@ function ProfileEditModal({ visible, profile, region, onSave, onClose }: {
   const hUnit = heightUnitLabel(region);
 
   const SEX_OPTIONS: { key: UserProfile['sex']; label: string }[] = [
-    { key: 'male',   label: '♂ Männlich' },
-    { key: 'female', label: '♀ Weiblich' },
-    { key: 'other',  label: '⚥ Divers'  },
+    { key: 'male',   label: t.settingsSexMale },
+    { key: 'female', label: t.settingsSexFemale },
+    { key: 'other',  label: t.settingsSexOther  },
   ];
 
   const inputStyle = [pe.input, { backgroundColor: C.bg2, borderColor: C.border2, color: C.text }];
@@ -245,16 +246,16 @@ function ProfileEditModal({ visible, profile, region, onSave, onClose }: {
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={[pe.header, { borderBottomColor: C.border2 }]}>
             <TouchableOpacity onPress={onClose}>
-              <Text style={[pe.cancel, { color: C.textMuted }]}>Abbrechen</Text>
+              <Text style={[pe.cancel, { color: C.textMuted }]}>{t.cancel}</Text>
             </TouchableOpacity>
-            <Text style={[pe.title, { color: C.text }]}>Mein Profil</Text>
+            <Text style={[pe.title, { color: C.text }]}>{t.settingsProfileModalTitle}</Text>
             <TouchableOpacity onPress={save}>
-              <Text style={[pe.save, { color: C.accent }]}>Speichern</Text>
+              <Text style={[pe.save, { color: C.accent }]}>{t.save}</Text>
             </TouchableOpacity>
           </View>
           <ScrollView contentContainerStyle={{ padding: 20, gap: 20 }}>
             <Text style={[pe.hint, { color: C.textMuted, backgroundColor: C.bg2, borderColor: C.border2 }]}>
-              ℹ️ Body data improves calculation accuracy (defaults based on 70 kg). All fields are optional.
+              {t.settingsProfileHint}
             </Text>
 
             <View style={pe.fieldGroup}>
@@ -342,6 +343,7 @@ export default function SettingsScreen() {
   const [sleepModalVisible,   setSleepModalVisible]   = useState(false);
 
   const region: Region = (prefs.profile?.region ?? 'DE') as Region;
+  const t = useT();
   const [notifEnabled,   setNotifEnabled]   = useState(false);
   const [peakAlerts,     setPeakAlerts]     = useState(true);
   const [dailyDigest,    setDailyDigest]    = useState(false);
@@ -366,14 +368,14 @@ export default function SettingsScreen() {
       await syncFromCloud();
       await uploadToCloud();
       setSyncing(false);
-      Alert.alert('✅ Eingeloggt', 'Deine Daten wurden synchronisiert.');
+      Alert.alert(t.settingsLoginDone, t.settingsLoginDoneMsg);
     }
   }
 
   async function handleLogout() {
-    Alert.alert('Abmelden', 'Möchtest du dich wirklich abmelden? Deine lokalen Daten bleiben erhalten.', [
-      { text: 'Abbrechen', style: 'cancel' },
-      { text: 'Abmelden', style: 'destructive', onPress: () => logout() },
+    Alert.alert(t.settingsLogoutTitle, t.settingsLogoutMsg, [
+      { text: t.cancel, style: 'cancel' },
+      { text: t.settingsLogout, style: 'destructive', onPress: () => logout() },
     ]);
   }
 
@@ -383,7 +385,7 @@ export default function SettingsScreen() {
     await syncFromCloud();
     await uploadToCloud();
     setSyncing(false);
-    Alert.alert('✅ Sync abgeschlossen', 'Daten wurden mit der Cloud synchronisiert.');
+    Alert.alert(t.settingsSyncDoneTitle, t.settingsSyncDoneMsg);
   }
 
   async function handleNotifToggle(val: boolean) {
@@ -391,11 +393,11 @@ export default function SettingsScreen() {
       const granted = await requestNotificationPermissions();
       if (!granted) {
         Alert.alert(
-          'Berechtigung erforderlich',
-          'Öffne die Einstellungen und aktiviere Benachrichtigungen für CurveDay.',
+          t.settingsNotifPermTitle,
+          t.settingsNotifPermMsg,
           [
-            { text: 'Abbrechen', style: 'cancel' },
-            { text: 'Einstellungen öffnen', onPress: () => Linking.openSettings() },
+            { text: t.cancel, style: 'cancel' },
+            { text: t.settingsNotifPermOpen, onPress: () => Linking.openSettings() },
           ]
         );
         return;
@@ -403,12 +405,12 @@ export default function SettingsScreen() {
       setNotifEnabled(true);
     } else {
       Alert.alert(
-        'Benachrichtigungen deaktivieren',
-        'Alle geplanten Erinnerungen werden abgebrochen.',
+        t.settingsNotifDisableTitle,
+        t.settingsNotifDisableMsg,
         [
-          { text: 'Abbrechen', style: 'cancel' },
+          { text: t.cancel, style: 'cancel' },
           {
-            text: 'Deaktivieren', style: 'destructive',
+            text: t.settingsNotifDisableBtn, style: 'destructive',
             onPress: async () => {
               await cancelAllReminders();
               setNotifEnabled(false);
@@ -440,15 +442,15 @@ export default function SettingsScreen() {
 
   function handleResetData() {
     Alert.alert(
-      'Alle Einnahmen zurücksetzen?',
-      `${intakes.length} Einnahme(n) werden gelöscht.`,
+      t.settingsResetTitle,
+      t.settingsResetMsg(intakes.length),
       [
-        { text: 'Abbrechen', style: 'cancel' },
+        { text: t.cancel, style: 'cancel' },
         {
-          text: 'Zurücksetzen', style: 'destructive',
+          text: t.settingsResetBtn, style: 'destructive',
           onPress: async () => {
             for (const i of intakes) await removeIntake(i.id);
-            Alert.alert('Zurückgesetzt', 'Alle Einnahmen wurden gelöscht.');
+            Alert.alert(t.settingsResetDone, t.settingsResetDoneMsg);
           },
         },
       ]
@@ -459,30 +461,30 @@ export default function SettingsScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
 
       <View style={[s.header, { borderBottomColor: C.border2 }]}>
-        <Text style={[s.headerTitle, { color: C.text }]}>Einstellungen</Text>
+        <Text style={[s.headerTitle, { color: C.text }]}>{t.settingsTitle}</Text>
       </View>
 
       <ScrollView contentContainerStyle={s.scroll}>
 
         {/* ── Erscheinungsbild ─────────────────── */}
-        <Section title="🎨 Erscheinungsbild">
+        <Section title={t.settingsSectionAppearance}>
           <RowToggle
             icon={isDark ? '🌙' : '☀️'}
-            label={isDark ? 'Dunkler Modus' : 'Heller Modus'}
-            sub="Zwischen Hell und Dunkel wechseln"
+            label={isDark ? t.settingsDarkMode : t.settingsLightMode}
+            sub={t.settingsToggleTheme}
             value={isDark}
             onToggle={toggleTheme}
           />
         </Section>
 
         {/* ── Account & Sync ───────────────────── */}
-        <Section title="👤 Account & Cloud Sync">
+        <Section title={t.settingsSectionAccount}>
           {!isSupabaseConfigured ? (
             <View style={s.row}>
               <Text style={s.rowIcon}>⚙️</Text>
               <View style={s.rowBody}>
-                <Text style={[s.rowLabel, { color: C.warning }]}>Supabase nicht konfiguriert</Text>
-                <Text style={[s.rowSub, { color: C.textMuted }]}>Öffne src/config/supabase.ts und trage URL + Key ein</Text>
+                <Text style={[s.rowLabel, { color: C.warning }]}>{t.settingsSupabaseNotConfigured}</Text>
+                <Text style={[s.rowSub, { color: C.textMuted }]}>{t.settingsSupabaseNotConfiguredSub}</Text>
               </View>
             </View>
           ) : user ? (
@@ -501,43 +503,43 @@ export default function SettingsScreen() {
                 </View>
                 <View style={[s.syncBadge, { backgroundColor: syncing ? C.warningBg : C.successBg }]}>
                   <Text style={[s.syncBadgeText, { color: syncing ? C.warning : C.success }]}>
-                    {syncing ? 'Synct…' : 'Sync ✓'}
+                    {syncing ? t.settingsSyncing : t.settingsSynced}
                   </Text>
                 </View>
               </View>
               <Divider />
-              <RowAction icon="🔄" label="Jetzt synchronisieren"
-                sub="Daten zwischen Gerät und Cloud abgleichen" onPress={handleManualSync} />
+              <RowAction icon="🔄" label={t.settingsSyncNow}
+                sub={t.settingsSyncSub} onPress={handleManualSync} />
               <Divider />
-              <RowAction icon="🚪" label="Abmelden"
-                sub="Lokale Daten bleiben erhalten" onPress={handleLogout} danger />
+              <RowAction icon="🚪" label={t.settingsLogout}
+                sub={t.settingsLogoutSub} onPress={handleLogout} danger />
             </>
           ) : (
             <TouchableOpacity style={s.googleBtn} onPress={handleLogin} disabled={loading} activeOpacity={0.85}>
               <Text style={s.googleIcon}>G</Text>
-              <Text style={s.googleText}>{loading ? 'Verbinde…' : 'Mit Google anmelden'}</Text>
+              <Text style={s.googleText}>{loading ? t.settingsConnecting : t.settingsLoginGoogle}</Text>
             </TouchableOpacity>
           )}
           {!user && isSupabaseConfigured && (
             <Text style={[s.syncHint, { color: C.textDim }]}>
-              Melde dich an um deine Einnahmen geräteübergreifend zu synchronisieren.
+              {t.settingsSyncHint}
             </Text>
           )}
         </Section>
 
         {/* ── Benachrichtigungen ───────────────── */}
-        <Section title="🔔 Benachrichtigungen">
-          <RowToggle icon="💊" label="Einnahme-Erinnerungen"
-            sub="Tägliche Reminder für deine Substanzen"
+        <Section title={t.settingsSectionNotif}>
+          <RowToggle icon="💊" label={t.settingsNotifReminders}
+            sub={t.settingsNotifRemindersSub}
             value={notifEnabled} onToggle={handleNotifToggle} />
           <Divider />
-          <RowToggle icon="📈" label="Peak-Alerts"
-            sub="15 Min vor maximaler Wirkung"
+          <RowToggle icon="📈" label={t.settingsNotifPeak}
+            sub={t.settingsNotifPeakSub}
             value={peakAlerts && notifEnabled}
             onToggle={v => notifEnabled && setPeakAlerts(v)} />
           <Divider />
-          <RowToggle icon="🌅" label="Tages-Digest"
-            sub="Morgens Übersicht der heutigen Einnahmen"
+          <RowToggle icon="🌅" label={t.settingsNotifDigest}
+            sub={t.settingsNotifDigestSub}
             value={dailyDigest && notifEnabled}
             onToggle={v => notifEnabled && setDailyDigest(v)} />
           {scheduledCount > 0 && (
@@ -551,37 +553,37 @@ export default function SettingsScreen() {
         </Section>
 
         {/* ── Daten ────────────────────────────── */}
-        <Section title="💾 Daten">
-          <RowInfo icon="📋" label="Einnahmen gespeichert" value={`${intakes.length}`} />
+        <Section title={t.settingsSectionData}>
+          <RowInfo icon="📋" label={t.settingsIntakesCount} value={`${intakes.length}`} />
           <Divider />
-          <RowAction icon="🔄" label="Demo-Daten wiederherstellen"
-            sub="Aktuelle Einnahmen werden gelöscht"
+          <RowAction icon="🔄" label={t.settingsResetDemo}
+            sub={t.settingsResetDemoSub}
             onPress={handleResetData} danger />
         </Section>
 
         {/* ── App-Info ─────────────────────────── */}
-        <Section title="ℹ️ App">
-          <RowInfo icon="📦" label="Version"        value="1.0.0" />
+        <Section title={t.settingsSectionApp}>
+          <RowInfo icon="📦" label={t.settingsVersion}        value="1.0.0" />
           <Divider />
-          <RowInfo icon="⚗️" label="Substanzen"     value="50" />
+          <RowInfo icon="⚗️" label={t.settingsSubstancesCount}     value="50" />
           <Divider />
-          <RowInfo icon="🔬" label="Interaktionen"  value="36" />
+          <RowInfo icon="🔬" label={t.settingsInteractionsCount}  value="36" />
           <Divider />
-          <RowAction icon="✉️" label="Feedback senden"
+          <RowAction icon="✉️" label={t.settingsFeedback}
             sub="chris61ds@gmail.com"
             onPress={() => Linking.openURL('mailto:chris61ds@gmail.com?subject=CurveDay%20Feedback')} />
         </Section>
 
         {/* ── Region ───────────────────────────── */}
-        <Section title="🌍 Region & Sprache">
+        <Section title={t.settingsSectionRegion}>
           <RowInfo
             icon={REGION_OPTIONS.find(r => r.id === region)?.flag ?? '🌐'}
-            label="Region"
+            label={t.settingsRegionLabel}
             value={getRegionLabel(region)}
           />
           <Divider />
-          <RowAction icon="✏️" label="Region ändern"
-            sub="Substanznamen, Marktfilter & Einheiten"
+          <RowAction icon="✏️" label={t.settingsChangeRegion}
+            sub={t.settingsChangeRegionSub}
             onPress={() => setRegionModalVisible(true)}
           />
         </Section>
@@ -592,13 +594,13 @@ export default function SettingsScreen() {
           const se = prefs.profile?.sleepEnd   ?? 7;
           const fmt = (h: number) => `${String(Math.floor(h)).padStart(2,'0')}:${h % 1 ? '30' : '00'}`;
           return (
-            <Section title="😴 Schlaffenster">
-              <RowInfo icon="🌙" label="Schlafbeginn" value={`${fmt(ss)} Uhr`} />
+            <Section title={t.settingsSectionSleep}>
+              <RowInfo icon="🌙" label={t.settingsBedtime} value={`${fmt(ss)} Uhr`} />
               <Divider />
-              <RowInfo icon="☀️" label="Aufwachen"    value={`${fmt(se)} Uhr`} />
+              <RowInfo icon="☀️" label={t.settingsWakeUp}    value={`${fmt(se)} Uhr`} />
               <Divider />
-              <RowAction icon="✏️" label="Schlaffenster bearbeiten"
-                sub="Wird im Chart als lila Bereich angezeigt"
+              <RowAction icon="✏️" label={t.settingsEditSleep}
+                sub={t.settingsEditSleepSub}
                 onPress={() => setSleepModalVisible(true)}
               />
             </Section>
@@ -606,38 +608,38 @@ export default function SettingsScreen() {
         })()}
 
         {/* ── Körperprofil ─────────────────────── */}
-        <Section title="👤 Mein Körperprofil">
-          <RowInfo icon="⚖️" label="Gewicht"
+        <Section title={t.settingsSectionProfile}>
+          <RowInfo icon="⚖️" label={t.settingsWeight}
             value={prefs.profile?.weight ? formatWeight(prefs.profile.weight, region) : 'nicht angegeben'} />
           <Divider />
-          <RowInfo icon="📏" label="Körpergröße"
+          <RowInfo icon="📏" label={t.settingsHeight}
             value={prefs.profile?.height ? formatHeight(prefs.profile.height, region) : 'nicht angegeben'} />
           <Divider />
-          <RowInfo icon="🎂" label="Alter"
+          <RowInfo icon="🎂" label={t.settingsAge}
             value={prefs.profile?.age ? `${prefs.profile.age} Jahre` : 'nicht angegeben'} />
           <Divider />
-          <RowInfo icon="⚥"  label="Geschlecht"   value={
-            prefs.profile?.sex === 'male'   ? '♂ Männlich' :
-            prefs.profile?.sex === 'female' ? '♀ Weiblich' :
-            prefs.profile?.sex === 'other'  ? '⚥ Divers'   : 'nicht angegeben'
+          <RowInfo icon="⚥"  label={t.settingsSex}   value={
+            prefs.profile?.sex === 'male'   ? t.settingsSexMale :
+            prefs.profile?.sex === 'female' ? t.settingsSexFemale :
+            prefs.profile?.sex === 'other'  ? t.settingsSexOther   : 'nicht angegeben'
           } />
           <Divider />
-          <RowAction icon="✏️" label="Profil bearbeiten"
-            sub="Angaben für genauere Berechnungen"
+          <RowAction icon="✏️" label={t.settingsEditProfile}
+            sub={t.settingsEditProfileSub}
             onPress={() => setProfileModalVisible(true)}
           />
         </Section>
 
         {/* ── Tracking ─────────────────────────── */}
-        <Section title="🎯 Tracking">
-          <RowInfo icon="📋" label="Tracking-Bereiche" value={`${prefs.trackingGoals.length} gewählt`} />
+        <Section title={t.settingsSectionTracking}>
+          <RowInfo icon="📋" label={t.settingsTrackingGoals} value={`${prefs.trackingGoals.length} gewählt`} />
           <Divider />
-          <RowAction icon="🔁" label="Onboarding wiederholen"
-            sub="Bereiche & Disclaimer neu durchlaufen"
+          <RowAction icon="🔁" label={t.settingsRepeatOnboarding}
+            sub={t.settingsRepeatOnboardingSub}
             onPress={() => {
-              Alert.alert('Onboarding zurücksetzen?', 'Du wirst durch den Einrichtungsassistenten geführt.', [
-                { text: 'Abbrechen', style: 'cancel' },
-                { text: 'Zurücksetzen', onPress: async () => {
+              Alert.alert(t.settingsOnboardingResetTitle, t.settingsOnboardingResetMsg, [
+                { text: t.cancel, style: 'cancel' },
+                { text: t.settingsResetBtn, onPress: async () => {
                     await resetOnboarding();
                     router.replace('/onboarding');
                   }},
@@ -649,9 +651,7 @@ export default function SettingsScreen() {
         {/* Disclaimer */}
         <View style={[s.disclaimer, { backgroundColor: C.bg2, borderColor: C.border2 }]}>
           <Text style={[s.disclaimerText, { color: C.textMuted }]}>
-            ⚠️ CurveDay dient ausschließlich zu Informationszwecken. Die angezeigten
-            Daten ersetzen keinen medizinischen Rat. Konsultiere bei Fragen zu
-            Medikamenten immer einen Arzt oder Apotheker.
+            {t.settingsDisclaimer}
           </Text>
         </View>
 
@@ -682,9 +682,9 @@ export default function SettingsScreen() {
         <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
           <View style={[pe.header, { borderBottomColor: C.border2 }]}>
             <TouchableOpacity onPress={() => setRegionModalVisible(false)}>
-              <Text style={[pe.cancel, { color: C.textMuted }]}>Abbrechen</Text>
+              <Text style={[pe.cancel, { color: C.textMuted }]}>{t.cancel}</Text>
             </TouchableOpacity>
-            <Text style={[pe.title, { color: C.text }]}>Region wählen</Text>
+            <Text style={[pe.title, { color: C.text }]}>{t.settingsRegionModalTitle}</Text>
             <View style={{ width: 70 }} />
           </View>
           <ScrollView contentContainerStyle={{ padding: 20, gap: 12 }}>
@@ -714,8 +714,7 @@ export default function SettingsScreen() {
               );
             })}
             <Text style={[rm.hint, { color: C.textDim }]}>
-              Die Region beeinflusst Substanznamen (z. B. Acetaminophen statt Paracetamol),
-              verfügbare Medikamente und Maßeinheiten im Körperprofil.
+              {t.settingsRegionHint}
             </Text>
           </ScrollView>
         </SafeAreaView>

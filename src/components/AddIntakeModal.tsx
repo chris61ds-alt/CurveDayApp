@@ -12,6 +12,7 @@ import { fmtHour } from '../utils/pkHelpers';
 import { SubIcon } from './SubIcon';
 import { getSubstanceName } from '../utils/regionUtils';
 import type { Region } from '../utils/regionUtils';
+import { useT } from '../i18n';
 
 interface Props {
   visible: boolean;
@@ -24,6 +25,7 @@ export function AddIntakeModal({ visible, onClose }: Props) {
   const { intakes, addIntake } = useIntakeStore();
   const { prefs } = useOnboardingStore();
   const region: Region = (prefs.profile?.region ?? 'DE') as Region;
+  const t = useT();
 
   const [step, setStep]         = useState<Step>('search');
   const [query, setQuery]       = useState('');
@@ -73,24 +75,24 @@ export function AddIntakeModal({ visible, onClose }: Props) {
   const doseWarning = useMemo<{ level: 'info' | 'warn' | 'danger'; text: string } | null>(() => {
     if (!selected || !dose.trim()) return null;
     const val = parseDoseValue(dose);
-    if (val === null || val <= 0) return { level: 'warn', text: 'Ungültige Dosisangabe.' };
+    if (val === null || val <= 0) return { level: 'warn', text: t.addDoseInvalid };
 
     const common: number[] = selected.commonDoses ?? [];
     const maxCommon   = common.length ? Math.max(...common) : null;
     const minCommon   = common.length ? Math.min(...common) : null;
     const unit        = selected.doseUnit as string;
 
-    // Gefährlich hohe Dosis: mehr als 2× die höchste Standarddosis
+    // Dangerous high dose: more than 2× the highest standard dose
     if (maxCommon && val > maxCommon * 2) {
-      return { level: 'danger', text: `Sehr hohe Einzeldosis! Übliche Max: ${maxCommon} ${unit}` };
+      return { level: 'danger', text: t.addDoseTooHigh(maxCommon, unit) };
     }
-    // Erhöhte Dosis: mehr als die höchste Standarddosis
+    // Elevated dose: exceeds highest standard dose
     if (maxCommon && val > maxCommon) {
-      return { level: 'warn', text: `Überschreitet übliche Einzeldosis von ${maxCommon} ${unit}` };
+      return { level: 'warn', text: t.addDoseHigher(maxCommon, unit) };
     }
-    // Sehr niedrige Dosis (< halbe Minimaldosis) – möglicher Tippfehler
+    // Very low dose (< half the minimum dose) — possible typo
     if (minCommon && val < minCommon / 2) {
-      return { level: 'info', text: `Unterdosis? Kleinste gängige Dosis: ${minCommon} ${unit}` };
+      return { level: 'info', text: t.addDoseLow(minCommon, unit) };
     }
     return null;
   }, [dose, selected]);
@@ -117,14 +119,14 @@ export function AddIntakeModal({ visible, onClose }: Props) {
   async function confirm() {
     if (!selected) return;
 
-    // Kritische Wechselwirkung: erst bestätigen
+    // Critical interaction: confirm first
     if (criticalWarnings.length > 0) {
       Alert.alert(
-        '⚠️ Kritische Wechselwirkung!',
+        t.addCriticalTitle,
         criticalWarnings.map((ix: any) => ix.note).join('\n\n'),
         [
-          { text: 'Abbrechen', style: 'cancel' },
-          { text: 'Trotzdem hinzufügen', style: 'destructive', onPress: doAdd },
+          { text: t.cancel, style: 'cancel' },
+          { text: t.addCriticalConfirm, style: 'destructive', onPress: doAdd },
         ],
       );
     } else {
@@ -176,11 +178,11 @@ export function AddIntakeModal({ visible, onClose }: Props) {
           <View style={s.header}>
             {step === 'configure' && (
               <TouchableOpacity onPress={() => setStep('search')} style={s.backBtn}>
-                <Text style={s.backText}>‹ Zurück</Text>
+                <Text style={s.backText}>‹ {t.back}</Text>
               </TouchableOpacity>
             )}
             <Text style={s.headerTitle}>
-              {step === 'search' ? '+ Einnahme hinzufügen' : getSubstanceName(selected, region)}
+              {step === 'search' ? t.addTitle : getSubstanceName(selected, region)}
             </Text>
             <TouchableOpacity onPress={handleClose} style={s.closeBtn}>
               <Text style={s.closeText}>✕</Text>
@@ -194,7 +196,7 @@ export function AddIntakeModal({ visible, onClose }: Props) {
                 <Text style={s.searchIcon}>🔍</Text>
                 <TextInput
                   style={s.searchInput}
-                  placeholder="Substanz oder Markenname suchen…"
+                  placeholder={t.addSearchPlaceholder}
                   placeholderTextColor="#4a5a70"
                   value={query}
                   onChangeText={setQuery}
@@ -264,33 +266,31 @@ export function AddIntakeModal({ visible, onClose }: Props) {
                 )}
               </View>
 
-              {/* BtM / Rx Warnung */}
+              {/* BtM / Rx Warning */}
               {(selected.controlled || selected.prescription) && (
                 <View style={selected.controlled ? s.btmWarning : s.rxWarning}>
                   <Text style={s.rxWarningTitle}>
-                    {selected.controlled ? '🔒 Betäubungsmittel (BtM)' : '📋 Verschreibungspflichtig (Rx)'}
+                    {selected.controlled ? t.addBtmWarningTitle : t.addRxWarningTitle}
                   </Text>
                   <Text style={s.rxWarningText}>
-                    {selected.controlled
-                      ? 'Diese Substanz unterliegt dem Betäubungsmittelgesetz (BtMG). Besitz und Einnahme ohne gültige ärztliche Verschreibung sind strafbar. CurveDay gibt keine Empfehlung zur Einnahme.'
-                      : 'Dieses Medikament ist verschreibungspflichtig (Rx). Bitte nur nach Rücksprache mit einem Arzt oder Apotheker einnehmen.'}
+                    {selected.controlled ? t.addBtmWarningText : t.addRxWarningText}
                   </Text>
                 </View>
               )}
 
-              {/* Kritische Warnung */}
+              {/* Critical Warning */}
               {criticalWarnings.length > 0 && (
                 <View style={s.criticalBox}>
-                  <Text style={s.criticalTitle}>⚠️ Kritische Wechselwirkung!</Text>
+                  <Text style={s.criticalTitle}>{t.addCriticalTitle}</Text>
                   {criticalWarnings.map((ix: any, i: number) => (
                     <Text key={i} style={s.criticalText}>{ix.note}</Text>
                   ))}
                 </View>
               )}
 
-              {/* Dosis */}
+              {/* Dose */}
               <View style={s.configSection}>
-                <Text style={s.configLabel}>Dosis</Text>
+                <Text style={s.configLabel}>{t.addDose}</Text>
                 <View style={s.doseRow}>
                   {selected.commonDoses?.map((d: number) => (
                     <TouchableOpacity
@@ -343,9 +343,9 @@ export function AddIntakeModal({ visible, onClose }: Props) {
                 )}
               </View>
 
-              {/* Uhrzeit */}
+              {/* Time */}
               <View style={s.configSection}>
-                <Text style={s.configLabel}>Einnahme-Uhrzeit</Text>
+                <Text style={s.configLabel}>{t.addTime}</Text>
                 <View style={s.timeRow}>
                   <TouchableOpacity style={s.timeArrow} onPress={() => setHour(h => (h - 1 + 24) % 24)}>
                     <Text style={s.timeArrowText}>‹</Text>
@@ -370,17 +370,17 @@ export function AddIntakeModal({ visible, onClose }: Props) {
                 </View>
               </View>
 
-              {/* PK-Hinweis */}
+              {/* PK Hint */}
               <View style={s.pkHint}>
-                <Text style={s.pkHintLabel}>Peak ca.</Text>
+                <Text style={s.pkHintLabel}>{t.addPeakLabel}</Text>
                 <Text style={s.pkHintValue}>
-                  {fmtHour(timeH + (selected.pk?.tmaxHours ?? 1))} Uhr
+                  {fmtHour(timeH + (selected.pk?.tmaxHours ?? 1))}{t.timeUnit}
                 </Text>
-                <Text style={s.pkHintLabel}>· Wirkdauer</Text>
-                <Text style={s.pkHintValue}>{selected.pk?.durationHours ?? '?'} Std</Text>
+                <Text style={s.pkHintLabel}>{t.addDurationLabel}</Text>
+                <Text style={s.pkHintValue}>{selected.pk?.durationHours ?? '?'} {t.addHoursUnit}</Text>
               </View>
 
-              {/* Erinnerung */}
+              {/* Reminder */}
               <TouchableOpacity
                 style={[s.reminderRow, withReminder && { borderColor: '#38bdf850' }]}
                 onPress={() => setWithReminder(r => !r)}
@@ -390,37 +390,34 @@ export function AddIntakeModal({ visible, onClose }: Props) {
                   {withReminder && <Text style={{ fontSize: 10, color: '#fff' }}>✓</Text>}
                 </View>
                 <View style={{ flex: 1, marginLeft: 10 }}>
-                  <Text style={s.reminderTitle}>Tägliche Erinnerung</Text>
-                  <Text style={s.reminderSub}>
-                    Jeden Tag um {fmtHour(timeH)} Uhr erinnern
-                  </Text>
+                  <Text style={s.reminderTitle}>{t.addReminder}</Text>
+                  <Text style={s.reminderSub}>{t.addReminderSub}</Text>
                 </View>
                 <Text style={{ fontSize: 16 }}>🔔</Text>
               </TouchableOpacity>
 
-              {/* Warnungen */}
+              {/* Warnings */}
               {selected.warnings?.length > 0 && (
                 <View style={s.warningsBox}>
-                  <Text style={s.warningsTitle}>Hinweise</Text>
+                  <Text style={s.warningsTitle}>{t.addWarningsTitle}</Text>
                   {selected.warnings.map((w: string, i: number) => (
                     <Text key={i} style={s.warningItem}>• {w}</Text>
                   ))}
                 </View>
               )}
 
-              {/* Tagesfrequenz-Warnung */}
+              {/* Daily frequency warning */}
               {dailyCountWarning && (
                 <View style={s.dailyWarnBox}>
                   <Text style={s.dailyWarnText}>
-                    ⚠️ Bereits {todayCount}/{maxPerDay} Einnahmen heute erfasst
-                    {maxPerDay === 1 ? ' — nur 1× täglich empfohlen.' : ` — max. ${maxPerDay}× täglich empfohlen.`}
+                    {t.addDailyLimitText(maxPerDay!)}
                   </Text>
                 </View>
               )}
 
               {/* Confirm */}
               <TouchableOpacity style={[s.confirmBtn, { backgroundColor: selected.color }]} onPress={confirm} activeOpacity={0.85}>
-                <Text style={s.confirmText}>Einnahme hinzufügen</Text>
+                <Text style={s.confirmText}>{t.addConfirm}</Text>
               </TouchableOpacity>
 
               <View style={{ height: 20 }} />

@@ -8,6 +8,7 @@ import { useIntakeStore } from '../../src/store/intakeStore';
 import { useThemeStore } from '../../src/store/themeStore';
 import { useMealStore, MealSize } from '../../src/store/mealStore';
 import { useOnboardingStore } from '../../src/store/onboardingStore';
+import { useT } from '../../src/i18n';
 import { getSubstance, getActiveInteractions } from '../../src/data/substanceDB';
 import {
   buildChartData, getRemainingTime, isActive, getCurrentEffect,
@@ -69,6 +70,7 @@ export default function TageskurveScreen() {
   const { colors: C } = useThemeStore();
   const { meals, hydrate: hydrateMeals, addMeal } = useMealStore();
   const { prefs } = useOnboardingStore();
+  const t = useT();
   const now = useNow();
 
   // Sleep window from profile (default: 23:00 → 07:00)
@@ -86,13 +88,13 @@ export default function TageskurveScreen() {
   function handleAddMeal() {
     const nowH = now;
     Alert.alert(
-      '🍽 Mahlzeit erfassen',
-      `Uhrzeit: ${fmtHour(nowH)} Uhr\nWähle die Größe der Mahlzeit:`,
+      '🍽',
+      t.homeMealTitle(fmtHour(nowH)),
       [
-        { text: 'Klein · Snack / Obst',      onPress: () => addMeal({ timeH: nowH, size: 'klein'  }) },
-        { text: 'Mittel · normale Mahlzeit', onPress: () => addMeal({ timeH: nowH, size: 'mittel' }) },
-        { text: 'Groß · reichhaltige Mahlzeit', onPress: () => addMeal({ timeH: nowH, size: 'groß' }) },
-        { text: 'Abbrechen', style: 'cancel' },
+        { text: t.homeMealSmall,  onPress: () => addMeal({ timeH: nowH, size: 'klein'  }) },
+        { text: t.homeMealMedium, onPress: () => addMeal({ timeH: nowH, size: 'mittel' }) },
+        { text: t.homeMealLarge,  onPress: () => addMeal({ timeH: nowH, size: 'groß'   }) },
+        { text: t.homeMealCancel, style: 'cancel' },
       ],
     );
   }
@@ -183,7 +185,7 @@ export default function TageskurveScreen() {
         </View>
         <View style={s.dateRow}>
           <Text style={{ fontSize: 12, color: C.textDim }}>
-            {new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })}
+            {t.homeDate(new Date())}
           </Text>
         </View>
         <View style={[s.nowPill, { backgroundColor: `${C.accent}12`, borderColor: `${C.accent}25` }]}>
@@ -202,13 +204,13 @@ export default function TageskurveScreen() {
           <View style={s.emptyContent}>
             <Text style={s.emptyEmoji}>💊</Text>
             <Text style={{ fontSize: 22, fontWeight: '800', color: C.text, textAlign: 'center', marginBottom: 8, letterSpacing: -0.5 }}>
-              Dein erster Tag
+              {t.homeEmptyTitle}
             </Text>
             <Text style={{ fontSize: 14, color: C.textSub, textAlign: 'center', marginBottom: 28, lineHeight: 20 }}>
-              Füge deine erste Einnahme hinzu um deine persönliche Wirkkurve zu sehen.
+              {t.homeEmptyDesc}
             </Text>
             <View style={s.emptyHints}>
-              {['Medikamente & Wirkzeiten', 'Wechselwirkungen erkennen', 'Erinnerungen & Peaks'].map((h, i) => (
+              {[t.homeEmptyHint1, t.homeEmptyHint2, t.homeEmptyHint3].map((h, i) => (
                 <View key={i} style={s.emptyHintRow}>
                   <View style={[s.emptyHintDot, { backgroundColor: C.accent }]} />
                   <Text style={{ fontSize: 14, color: C.textSub, lineHeight: 20 }}>{h}</Text>
@@ -216,7 +218,7 @@ export default function TageskurveScreen() {
               ))}
             </View>
             <TouchableOpacity style={[s.emptyBtn, { backgroundColor: C.accent }]} onPress={() => setModalVisible(true)}>
-              <Text style={s.emptyBtnText}>+ Erste Einnahme hinzufügen</Text>
+              <Text style={s.emptyBtnText}>{t.homeEmptyBtn}</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -236,6 +238,11 @@ export default function TageskurveScreen() {
             nowHour={now} peakMarks={peakMarks} mealMarks={mealMarks}
             sleepWindow={sleepWindow}
             height={280}
+            labelNow={t.chartNow}
+            labelTomorrow={t.chartTomorrow}
+            labelSteadyState={t.chartSteadyState}
+            labelSleep={t.chartSleep}
+            labelNoIntakes={t.chartNoIntakes}
             gridColor={C.gridLine} labelColor={C.textMuted}
             accentColor={C.accent} isDark={C.isDark}
           />
@@ -244,7 +251,7 @@ export default function TageskurveScreen() {
           {bedtimeWarnings.length > 0 && (
             <View style={[s.sleepWarnBox, { backgroundColor: '#818cf808', borderColor: '#818cf830' }]}>
               <Text style={[s.sleepWarnTitle, { color: '#818cf8' }]}>
-                🌙 {`${fmtHour(sleepWindow.start)} Uhr – noch aktiv bei Schlafbeginn:`}
+                🌙 {t.homeBedtimeWarn(fmtHour(sleepWindow.start))}
               </Text>
               {bedtimeWarnings.map((w, i) => (
                 <Text key={i} style={[s.sleepWarnItem, { color: w.color }]}>

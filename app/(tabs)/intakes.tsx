@@ -6,16 +6,23 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useIntakeStore } from '../../src/store/intakeStore';
 import { useThemeStore } from '../../src/store/themeStore';
+import { useOnboardingStore } from '../../src/store/onboardingStore';
 import { useNow } from '../../src/utils/useNow';
 import { isActive, getRemainingTime, fmtHour } from '../../src/utils/pkHelpers';
 import { getSubstance } from '../../src/data/substanceDB';
+import { getSubstanceName } from '../../src/utils/regionUtils';
+import type { Region } from '../../src/utils/regionUtils';
 import { SubIcon } from '../../src/components/SubIcon';
 import { AddIntakeModal } from '../../src/components/AddIntakeModal';
+import { useT } from '../../src/i18n';
 
 export default function IntakesScreen() {
   const { intakes, removeIntake, setSelectedId } = useIntakeStore();
   const { colors: C } = useThemeStore();
+  const { prefs } = useOnboardingStore();
+  const region: Region = (prefs.profile?.region ?? 'DE') as Region;
   const now = useNow();
+  const t = useT();
   const [modalVisible, setModalVisible] = useState(false);
 
   const active   = intakes.filter(i => isActive(i, now));
@@ -23,11 +30,11 @@ export default function IntakesScreen() {
 
   function handleDelete(id: string, name: string) {
     Alert.alert(
-      'Einnahme entfernen',
-      `„${name}" aus der Liste löschen?`,
+      t.intakeDeleteTitle,
+      t.intakeDeleteMsg(name),
       [
-        { text: 'Abbrechen', style: 'cancel' },
-        { text: 'Löschen', style: 'destructive', onPress: () => removeIntake(id) },
+        { text: t.cancel, style: 'cancel' },
+        { text: t.delete, style: 'destructive', onPress: () => removeIntake(id) },
       ]
     );
   }
@@ -38,23 +45,24 @@ export default function IntakesScreen() {
     const itemActive  = isActive(item, now);
     const remaining   = getRemainingTime(item, now);
     const peak        = fmtHour(item.timeH + sub.pk.tmaxHours);
+    const subName     = getSubstanceName(sub, region);
 
     return (
       <TouchableOpacity
         style={[s.row, { backgroundColor: C.bg2, borderColor: C.border2 },
           itemActive && { borderColor: `${C.accent}25`, backgroundColor: C.surfaceHigh }]}
         onPress={() => setSelectedId(item.substanceId)}
-        onLongPress={() => handleDelete(item.id, sub.name)}
+        onLongPress={() => handleDelete(item.id, subName)}
         activeOpacity={0.75}
       >
         <SubIcon substance={sub} size={44} />
 
         <View style={s.rowBody}>
           <View style={s.rowTop}>
-            <Text style={[s.rowName, { color: C.text }]}>{sub.name}</Text>
+            <Text style={[s.rowName, { color: C.text }]}>{subName}</Text>
             {itemActive && (
               <View style={[s.activeBadge, { backgroundColor: C.accentBg }]}>
-                <Text style={[s.activeBadgeText, { color: C.accent }]}>Aktiv</Text>
+                <Text style={[s.activeBadgeText, { color: C.accent }]}>{t.intakeActive}</Text>
               </View>
             )}
             {sub.prescription && (
@@ -64,13 +72,13 @@ export default function IntakesScreen() {
             )}
           </View>
           <Text style={[s.rowMeta, { color: C.textMuted }]}>
-            {fmtHour(item.timeH)} Uhr · {item.doseLabel} · Peak {peak}
+            {fmtHour(item.timeH)}{t.timeUnit} · {item.doseLabel} · {t.intakePeakAt} {peak}
           </Text>
           <Text style={[s.rowRemaining, { color: itemActive ? C.accent : C.textMuted }]}>{remaining}</Text>
         </View>
 
         <TouchableOpacity
-          onPress={() => handleDelete(item.id, sub.name)}
+          onPress={() => handleDelete(item.id, subName)}
           style={s.deleteBtn}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
@@ -86,29 +94,27 @@ export default function IntakesScreen() {
       {/* Header */}
       <View style={[s.header, { borderBottomColor: C.border2 }]}>
         <View>
-          <Text style={[s.headerTitle, { color: C.text }]}>Einnahmen</Text>
-          <Text style={[s.headerSub, { color: C.textMuted }]}>{intakes.length} Einträge heute</Text>
+          <Text style={[s.headerTitle, { color: C.text }]}>{t.intakesTitle}</Text>
+          <Text style={[s.headerSub, { color: C.textMuted }]}>{t.intakesCount(intakes.length)}</Text>
         </View>
         <TouchableOpacity style={[s.addBtn, { backgroundColor: C.accent }]} onPress={() => setModalVisible(true)}>
-          <Text style={s.addBtnText}>+ Neu</Text>
+          <Text style={s.addBtnText}>+ {t.add}</Text>
         </TouchableOpacity>
       </View>
 
       {intakes.length === 0 ? (
         <View style={s.empty}>
           <Text style={s.emptyIcon}>📋</Text>
-          <Text style={[s.emptyTitle, { color: C.text }]}>Noch keine Einnahmen</Text>
-          <Text style={[s.emptySub, { color: C.textMuted }]}>
-            Hier siehst du alle deine heutigen{'\n'}Einnahmen auf einen Blick.
-          </Text>
+          <Text style={[s.emptyTitle, { color: C.text }]}>{t.intakesEmptyTitle}</Text>
+          <Text style={[s.emptySub, { color: C.textMuted }]}>{t.intakesEmptyDesc}</Text>
           <TouchableOpacity style={[s.emptyBtn, { backgroundColor: C.accent }]} onPress={() => setModalVisible(true)}>
-            <Text style={s.emptyBtnText}>+ Erste Einnahme hinzufügen</Text>
+            <Text style={s.emptyBtnText}>{t.intakesAddBtn}</Text>
           </TouchableOpacity>
           <View style={s.emptyFeatures}>
             {[
-              { icon: '⏰', text: 'Zeiten & Dosierungen tracken' },
-              { icon: '🔔', text: 'Erinnerungen setzen' },
-              { icon: '📊', text: 'Wirkkurven visualisieren' },
+              { icon: '⏰', text: t.homeEmptyHint1 },
+              { icon: '🔔', text: t.homeEmptyHint2 },
+              { icon: '📊', text: t.homeEmptyHint3 },
             ].map((f, i) => (
               <View key={i} style={[s.emptyFeatureRow, { backgroundColor: C.bg2, borderColor: C.border2 }]}>
                 <Text style={s.emptyFeatureIcon}>{f.icon}</Text>
@@ -120,9 +126,9 @@ export default function IntakesScreen() {
       ) : (
         <FlatList
           data={[
-            ...(active.length   ? [{ type: 'header', label: `Aktiv jetzt (${active.length})`,   id: 'h1' }] : []),
+            ...(active.length   ? [{ type: 'header', label: `${t.intakesActiveSection} (${active.length})`, id: 'h1' }] : []),
             ...active.map(i => ({ ...i, type: 'item' })),
-            ...(inactive.length ? [{ type: 'header', label: `Abgelaufen (${inactive.length})`, id: 'h2' }] : []),
+            ...(inactive.length ? [{ type: 'header', label: `${t.intakesOtherSection} (${inactive.length})`, id: 'h2' }] : []),
             ...inactive.map(i => ({ ...i, type: 'item' })),
           ]}
           keyExtractor={(item: any) => item.id}

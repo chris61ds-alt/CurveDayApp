@@ -20,6 +20,12 @@ interface Props {
   mealMarks?: MealMark[];
   sleepWindow?: SleepWindow;
   height?: number;
+  // i18n labels (defaults to German)
+  labelNow?:         string;
+  labelTomorrow?:    string;
+  labelSteadyState?: string;
+  labelSleep?:       string;
+  labelNoIntakes?:   string;
   // Theme
   gridColor?:   string;
   labelColor?:  string;
@@ -72,6 +78,11 @@ export function CurveChart({
   data, entries, selectedId, nowHour,
   peakMarks = [], mealMarks = [], sleepWindow,
   height = 280,
+  labelNow         = 'JETZT',
+  labelTomorrow    = 'morgen',
+  labelSteadyState = 'Steady-State',
+  labelSleep       = 'Schlaf',
+  labelNoIntakes   = 'Noch keine Einnahmen',
   gridColor   = '#182840',
   labelColor  = '#3a5570',
   accentColor = '#38bdf8',
@@ -276,7 +287,7 @@ export function CurveChart({
                   x={xOf(sIdx) + 5} y={PAD.top + plotH - 6}
                   fontSize={8} fill={SLEEP_COLOR} opacity={0.55}
                 >
-                  Schlaf
+                  {labelSleep}
                 </SvgText>
               )}
             </G>
@@ -294,7 +305,7 @@ export function CurveChart({
               x={midnightX + 4} y={PAD.top + 10}
               fontSize={8} fill={labelColor} opacity={0.7}
             >
-              morgen
+              {labelTomorrow}
             </SvgText>
           </G>
         )}
@@ -319,7 +330,7 @@ export function CurveChart({
               <Path d={smoothAreaPath(gPts, baseline)} fill={isDark ? '#38bdf806' : '#0ea5e908'} />
               <Path d={smoothLinePath(gPts)} fill="none" stroke={isDark ? '#38bdf818' : '#0ea5e825'} strokeWidth={1.5} strokeDasharray="6,4" />
               <SvgText x={PAD.left + plotW / 2} y={PAD.top + plotH / 2} fontSize={12} fill={labelColor} textAnchor="middle">
-                Noch keine Einnahmen
+                {labelNoIntakes}
               </SvgText>
             </>
           );
@@ -357,7 +368,7 @@ export function CurveChart({
                     x={x1 + 6} y={y - 5}
                     fontSize={8} fill={e.color} opacity={0.8}
                   >
-                    Steady-State
+                    {labelSteadyState}
                   </SvgText>
                 )}
               </G>
@@ -428,7 +439,7 @@ export function CurveChart({
         {nowX !== null && (
           <>
             <Line x1={nowX} y1={PAD.top} x2={nowX} y2={height - PAD.bottom} stroke={accentColor} strokeWidth={1.5} strokeDasharray="4,3" opacity={0.75} />
-            <SvgText x={nowX} y={PAD.top - 6} fontSize={9} fill={accentColor} textAnchor="middle" fontWeight="700">JETZT</SvgText>
+            <SvgText x={nowX} y={PAD.top - 6} fontSize={9} fill={accentColor} textAnchor="middle" fontWeight="700">{labelNow}</SvgText>
             <SvgText x={nowX + 4} y={PAD.top + 13} fontSize={8} fill={accentColor} opacity={0.7}>{nowLabel}</SvgText>
           </>
         )}
