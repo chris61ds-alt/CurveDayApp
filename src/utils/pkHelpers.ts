@@ -41,30 +41,47 @@ export function getPeakLabel(timeH: number, substanceId: string): string {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Chart-Daten für die letzten ~36h aufbauen.
-// Intakes von gestern (takenAt vorhanden) werden mit negativem
-// intakeHour eingebaut → Carry-over korrekt sichtbar.
+// Chart-Daten aufbauen mit dynamischem Zeitfenster.
+//
+// Das Fenster reicht von 0:00 bis max(24h, letztes Kurvenende),
+// maximal 48h. Intakes von gestern werden mit negativem intakeHour
+// eingebaut → Carry-over korrekt sichtbar.
 // ─────────────────────────────────────────────────────────────
 export function buildChartData(intakes: Intake[]): ChartRow[] {
+  // 1) Benötigtes Fenster berechnen
+  let maxEndHour = 24;
+  for (const intake of intakes) {
+    const sub = getSubstance(intake.substanceId);
+    if (!sub) continue;
+    const intakeHour = getIntakeHourToday(intake);
+    // Sehr lange Substanzen (Vitamin D3 72h) auf 36h deckeln —
+    // ihr Plateau-Effekt ist ohnehin über generateCurve als Steady-State dargestellt
+    const effectiveDur = Math.min(sub.pk.durationHours ?? 0, 36);
+    const endHour = intakeHour + effectiveDur;
+    if (endHour > maxEndHour) maxEndHour = endHour;
+  }
+  // Fenster: auf halbe Stunden aufrunden, Minimum 24h, Maximum 48h
+  const windowHours = Math.min(48, Math.ceil(maxEndHour / 0.5) * 0.5 + 1);
+  const numPoints   = Math.round(windowHours * 2) + 1;
+
+  // 2) Kurven mit korrekter Punktanzahl generieren
   const curves = intakes.map(intake => {
-    const sub         = getSubstance(intake.substanceId);
+    const sub        = getSubstance(intake.substanceId);
     if (!sub) return { id: intake.substanceId, curve: [] };
-
-    const intakeHour  = getIntakeHourToday(intake);
-    const endHour     = intakeHour + (sub.pk.durationHours ?? 0);
-
-    // Intake überspringen wenn vor >36h oder mehr als 24h in der Zukunft
-    if (endHour < -2 || intakeHour > 25) {
+    const intakeHour = getIntakeHourToday(intake);
+    const endHour    = intakeHour + (sub.pk.durationHours ?? 0);
+    // Intakes überspringen die >36h in der Vergangenheit enden oder zu weit in der Zukunft
+    if (endHour < -2 || intakeHour > windowHours) {
       return { id: intake.substanceId, curve: [] };
     }
-
-    return { id: intake.substanceId, curve: generateCurve(sub, intakeHour) };
+    return { id: intake.substanceId, curve: generateCurve(sub, intakeHour, numPoints) };
   });
 
-  return Array.from({ length: 49 }, (_, i) => {
+  // 3) ChartRow-Array mit dynamischer Länge aufbauen
+  return Array.from({ length: numPoints }, (_, i) => {
     const h = i / 2;
     const row: ChartRow = {
-      time: `${String(Math.floor(h)).padStart(2, '0')}:${h % 1 ? '30' : '00'}`,
+      time: `${String(Math.floor(h % 24)).padStart(2, '0')}:${h % 1 ? '30' : '00'}`,
       total: 0,
     };
     curves.forEach(({ id, curve }) => {

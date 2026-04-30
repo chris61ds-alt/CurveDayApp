@@ -77,11 +77,22 @@ export function CurveChart({
   const plotW = svgW - PAD.left - PAD.right;
   const plotH = height - PAD.top - PAD.bottom;
 
+  // ── Dynamisches Zeitfenster ──────────────────────────────────
+  // data.length-1 = maximaler Index (z.B. 48 für 24h, 96 für 48h)
+  const MAX_IDX = data.length - 1;
+
   // ── Zoom/Pan state ───────────────────────────────────────────
-  const [zoomRange, setZoomRangeState] = useState<[number, number]>([0, 48]);
-  const zoomRef  = useRef<[number, number]>([0, 48]);
+  const [zoomRange, setZoomRangeState] = useState<[number, number]>([0, MAX_IDX]);
+  const zoomRef  = useRef<[number, number]>([0, MAX_IDX]);
   const plotWRef = useRef(plotW);
   plotWRef.current = plotW;
+
+  // Zoom zurücksetzen wenn sich das Datenfenster ändert (z.B. neue Einnahme die morgen endet)
+  const prevMaxIdx = useRef(MAX_IDX);
+  if (prevMaxIdx.current !== MAX_IDX) {
+    prevMaxIdx.current = MAX_IDX;
+    zoomRef.current    = [0, MAX_IDX];
+  }
 
   function setZoomRange(r: [number, number]) {
     zoomRef.current = r;
@@ -122,20 +133,21 @@ export function CurveChart({
         const [is, ie]  = pinchRef.current.range;
         const center    = (is + ie) / 2;
         const halfSpan  = Math.max(6, Math.min(24, ((ie - is) * scale) / 2));
-        const newS = Math.max(0,  Math.round(center - halfSpan));
-        const newE = Math.min(48, Math.round(center + halfSpan));
+        const newS = Math.max(0,         Math.round(center - halfSpan));
+        const newE = Math.min(zoomRef.current[1] === 0 ? 48 : Math.max(...zoomRef.current), Math.round(center + halfSpan));
         setZoomRange([newS, newE]);
 
       } else if (t.length === 1 && panRef.current) {
         // Pan / swipe to scroll through time
         const [rs, re] = panRef.current.range;
         const span = re - rs;
-        if (span >= 47) return; // No pan when fully zoomed out
+        const curMax = prevMaxIdx.current;
+        if (span >= curMax - 1) return; // No pan when fully zoomed out
 
         const dx       = t[0].pageX - panRef.current.x;
         const idxDelta = -(dx / plotWRef.current) * span;
         const rawS     = rs + idxDelta;
-        const clampedS = Math.max(0, Math.min(48 - span, rawS));
+        const clampedS = Math.max(0, Math.min(curMax - span, rawS));
         setZoomRange([Math.round(clampedS), Math.round(clampedS + span)]);
       }
     },
@@ -164,18 +176,26 @@ export function CurveChart({
     [entries, selectedId],
   );
 
-  const rawTicks = visibleSpan <= 12
-    ? [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48].filter(t => t >= zS && t <= zE)
-    : [0, 12, 24, 36, 48].filter(t => t >= zS && t <= zE);
+  // X-Achsen-Ticks: Alle 4 Indizes (2h) wenn gezoomt, sonst alle 12 (6h)
+  // Über Mitternacht werden Ticks bei idx=48 (00:00+1), 60 (06:00+1), etc. generiert
+  const allTickCandidates = visibleSpan <= 12
+    ? Array.from({ length: MAX_IDX / 4 + 1 }, (_, i) => i * 4)
+    : Array.from({ length: MAX_IDX / 12 + 1 }, (_, i) => i * 12);
+  const rawTicks = allTickCandidates.filter(t => t >= zS && t <= zE && t <= MAX_IDX);
 
-  const nowIdx  = Math.min(nowHour * 2, 48);
-  const nowX    = nowIdx >= zS && nowIdx <= zE ? xOf(nowIdx) : null;
+  const nowIdx   = Math.min(nowHour * 2, MAX_IDX);
+  const nowX     = nowIdx >= zS && nowIdx <= zE ? xOf(nowIdx) : null;
   const nowLabel = `${String(Math.floor(nowHour)).padStart(2, '0')}:${nowHour % 1 >= 0.5 ? '30' : '00'}`;
   const baseline = yOf(0);
 
+  // "Morgen"-Trennlinie bei idx=48 (Mitternacht), sichtbar wenn Chart >24h
+  const midnightIdx = 48;
+  const midnightX   = MAX_IDX > 48 && midnightIdx >= zS && midnightIdx <= zE
+    ? xOf(midnightIdx) : null;
+
   const yTicks = [25, 50, 75, 100];
   const totalStroke = isDark ? '#ffffff20' : '#00000015';
-  const isZoomed = zS > 0 || zE < 48;
+  const isZoomed = zS > 0 || zE < MAX_IDX;
 
   return (
     <View {...panResponder.panHandlers}>
@@ -197,10 +217,27 @@ export function CurveChart({
           </G>
         ))}
 
-        {/* X-axis */}
+        {/* Mitternacht-Trennlinie ("morgen") */}
+        {midnightX !== null && (
+          <G>
+            <Line
+              x1={midnightX} y1={PAD.top} x2={midnightX} y2={height - PAD.bottom}
+              stroke={labelColor} strokeWidth={1} strokeDasharray="3,4" opacity={0.5}
+            />
+            <SvgText
+              x={midnightX + 4} y={PAD.top + 10}
+              fontSize={8} fill={labelColor} opacity={0.7}
+            >
+              morgen
+            </SvgText>
+          </G>
+        )}
+
+        {/* X-axis labels */}
         {rawTicks.map(idx => {
-          const h = idx / 2;
-          const label = `${String(Math.floor(h)).padStart(2, '0')}:${h % 1 ? '30' : '00'}`;
+          const hAbs   = idx / 2;           // Stunden seit heute 00:00 (kann >24 sein)
+          const hWrap  = hAbs % 24;          // Tageszeit (0-24)
+          const label  = `${String(Math.floor(hWrap)).padStart(2, '0')}:${hWrap % 1 ? '30' : '00'}`;
           return (
             <SvgText key={idx} x={xOf(idx)} y={height - 6} fontSize={9} fill={labelColor} textAnchor="middle">
               {label}
@@ -332,11 +369,9 @@ export function CurveChart({
 
         {/* Zoom/pan indicator */}
         {isZoomed && (
-          <>
-            <SvgText x={PAD.left + plotW / 2} y={PAD.top - 6} fontSize={9} fill={accentColor} textAnchor="middle" opacity={0.7}>
-              {`◀  ${String(Math.floor(zS/2)).padStart(2,'0')}:${zS%2?'30':'00'} – ${String(Math.floor(zE/2)).padStart(2,'0')}:${zE%2?'30':'00'}  ▶`}
-            </SvgText>
-          </>
+          <SvgText x={PAD.left + plotW / 2} y={PAD.top - 6} fontSize={9} fill={accentColor} textAnchor="middle" opacity={0.7}>
+            {`◀  ${String(Math.floor((zS/2)%24)).padStart(2,'0')}:${zS%2?'30':'00'} – ${String(Math.floor((zE/2)%24)).padStart(2,'0')}:${zE%2?'30':'00'}  ▶`}
+          </SvgText>
         )}
 
       </Svg>

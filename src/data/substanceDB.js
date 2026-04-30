@@ -1645,7 +1645,7 @@ export function getActiveInteractions(substanceIds) {
  * zurückgegeben, das den aufgebauten Steady-State-Spiegel symbolisiert –
  * nicht den akuten Peak-Effekt.
  */
-export function generateCurve(substance, intakeHour = 8) {
+export function generateCurve(substance, intakeHour = 8, numPoints = 49) {
   const { onsetHours, tmaxHours, durationHours, halflifeHours } = substance.pk;
   const { maxEffectScore } = substance;
   if (!tmaxHours || !durationHours) return [];
@@ -1655,7 +1655,7 @@ export function generateCurve(substance, intakeHour = 8) {
   // dass die Substanz dauerhaft im System ist.
   if (substance.pk.curveType === "chronic") {
     const plateau = +(maxEffectScore * 0.35).toFixed(1); // ~35 % = typischer Steady-State
-    return Array.from({ length: 49 }, (_, i) => ({
+    return Array.from({ length: numPoints }, (_, i) => ({
       time: `${String(Math.floor(i/2)).padStart(2,"0")}:${i%2 ? "30" : "00"}`,
       value: plateau,
       isChronic: true,
@@ -1665,7 +1665,7 @@ export function generateCurve(substance, intakeHour = 8) {
   // ── Alkohol: Zero-Order-Kinetik (linearer Abbau) ─────────────
   const isLinear = substance.pk.metabolismType === "linear";
 
-  return Array.from({ length: 49 }, (_, i) => {
+  return Array.from({ length: numPoints }, (_, i) => {
     const h = i / 2;
     const t = h - intakeHour - (onsetHours || 0);
     const peakT  = tmaxHours    - (onsetHours || 0);
