@@ -44,7 +44,9 @@ export const SUBSTANCES = [
   {
     id: "ibuprofen",
     name: "Ibuprofen",
-    brandNames: ["Nurofen", "Ibuflam", "Advil", "Dolormin"],
+    nameUS: "Ibuprofen (Advil / Motrin)",
+    markets: ["DE", "US", "AT", "CH"],
+    brandNames: ["Nurofen", "Ibuflam", "Advil", "Motrin", "Dolormin"],
     category: "analgesic",
     icon: "💊",
     color: "#c084fc",
@@ -86,6 +88,8 @@ export const SUBSTANCES = [
   {
     id: "paracetamol",
     name: "Paracetamol",
+    nameUS: "Acetaminophen (Tylenol)",
+    markets: ["DE", "US", "AT", "CH"],
     brandNames: ["Panadol", "ben-u-ron", "Tylenol", "Perfalgan"],
     category: "analgesic",
     icon: "💊",
@@ -126,7 +130,9 @@ export const SUBSTANCES = [
   {
     id: "aspirin",
     name: "Aspirin (ASS)",
-    brandNames: ["Aspirin", "ASS-ratiopharm", "Aspirin Cardio 100"],
+    nameUS: "Aspirin (Acetylsalicylic Acid)",
+    markets: ["DE", "US", "AT", "CH"],
+    brandNames: ["Aspirin", "ASS-ratiopharm", "Aspirin Cardio 100", "Bayer Aspirin"],
     category: "analgesic",
     icon: "💊",
     color: "#d946ef",
@@ -168,6 +174,8 @@ export const SUBSTANCES = [
   {
     id: "diclofenac",
     name: "Diclofenac",
+    nameUS: "Diclofenac (Voltaren)",
+    markets: ["DE", "US", "AT", "CH"],  // US: topical OTC only; oral is Rx
     brandNames: ["Voltaren", "Diclac", "Rewodina"],
     category: "analgesic",
     icon: "💊",
@@ -208,6 +216,8 @@ export const SUBSTANCES = [
   {
     id: "naproxen",
     name: "Naproxen",
+    nameUS: "Naproxen (Aleve)",
+    markets: ["DE", "US", "AT", "CH"],
     brandNames: ["Aleve", "Proxen", "Dysmenalgit"],
     category: "analgesic",
     icon: "💊",
@@ -249,6 +259,8 @@ export const SUBSTANCES = [
   {
     id: "mph_ir",
     name: "Methylphenidat IR",
+    nameUS: "Methylphenidate IR (Ritalin)",
+    markets: ["DE", "US", "AT", "CH"],
     brandNames: ["Ritalin", "Medikinet", "Methylphenidat-ratiopharm"],
     category: "adhd",
     icon: "🧠",
@@ -292,6 +304,8 @@ export const SUBSTANCES = [
   {
     id: "mph_ret",
     name: "Methylphenidat Retard",
+    nameUS: "Methylphenidate XR (Ritalin LA)",
+    markets: ["DE", "US", "AT", "CH"],
     brandNames: ["Ritalin LA", "Medikinet retard", "Methylphenidat-retard"],
     category: "adhd",
     icon: "🧠",
@@ -334,6 +348,8 @@ export const SUBSTANCES = [
   {
     id: "concerta",
     name: "Methylphenidat OROS",
+    nameUS: "Methylphenidate OROS (Concerta)",
+    markets: ["DE", "US", "AT", "CH"],
     brandNames: ["Concerta", "Equasym XL"],
     category: "adhd",
     icon: "🧠",
@@ -374,6 +390,8 @@ export const SUBSTANCES = [
   {
     id: "lisdex",
     name: "Lisdexamfetamin",
+    nameUS: "Lisdexamfetamine (Vyvanse)",
+    markets: ["DE", "US", "AT", "CH"],
     brandNames: ["Vyvanse", "Elvanse"],
     category: "adhd",
     icon: "🧠",
@@ -416,6 +434,8 @@ export const SUBSTANCES = [
   {
     id: "atomoxetin",
     name: "Atomoxetin",
+    nameUS: "Atomoxetine (Strattera)",
+    markets: ["DE", "US", "AT", "CH"],
     brandNames: ["Strattera"],
     category: "adhd",
     icon: "🧠",
@@ -458,6 +478,8 @@ export const SUBSTANCES = [
   {
     id: "dexamphetamin",
     name: "Dexamfetamin",
+    nameUS: "Dextroamphetamine (Dexedrine)",
+    markets: ["DE", "US", "AT", "CH"],
     brandNames: ["Attentin", "Dexedrine"],
     category: "adhd",
     icon: "🧠",
@@ -496,6 +518,52 @@ export const SUBSTANCES = [
   },
 
 
+  {
+    id: "adderall",
+    name: "Adderall (Mixed Amphetamine Salts)",
+    nameUS: "Adderall",
+    markets: ["US"],  // FDA approved; not available DE/AT/CH
+    brandNames: ["Adderall", "Adderall XR"],
+    category: "adhd",
+    icon: "🧠",
+    color: "#06b6d4",
+    doseUnit: "mg",
+    commonDoses: [5, 10, 15, 20, 30],
+    defaultDose: 20,
+    prescription: true,
+    controlled: true,
+    pk: {
+      onsetHours: 0.5,
+      tmaxHours: 3.0,
+      durationHours: 6,
+      halflifeHours: 11,   // d-amphetamine: ~10h, l-amphetamine: ~13h
+      bioavailability: 75,
+      proteinBinding: 20,
+      foodEffect: "minor",
+      foodNote: "High-fat meal delays peak ~1h but doesn't reduce absorption",
+      curveType: "acute",
+      specialNote: "75% d-amphetamine / 25% l-amphetamine ratio",
+    },
+    effects: { concentration: 90, impulseControl: 85, energy: 68, mood: 50 },
+    effectLabel: "Concentration",
+    maxEffectScore: 88,
+    timing: {
+      recommendation: "Morning; second dose no later than noon",
+      avoidBeforeSleepH: 8,
+      maxPerDay: 2,
+      minIntervalH: 4,
+      maxDailyDose: "40 mg",
+    },
+    warnings: [
+      "⚠️ Schedule II controlled substance",
+      "Do not take after 2 PM (insomnia risk)",
+      "Monitor heart rate and blood pressure",
+      "Appetite suppression – eat on schedule",
+      "Crash/rebound effect as dose wears off",
+    ],
+    mechanism: "Mixed amphetamine salts – dopamine/norepinephrine reuptake inhibitor and releaser",
+  },
+
   // ════════════════════════════════════════
   // SCHLAF & BERUHIGUNG
   // ════════════════════════════════════════
@@ -503,7 +571,9 @@ export const SUBSTANCES = [
   {
     id: "melatonin",
     name: "Melatonin",
-    brandNames: ["Circadin", "Melatonin 0,5mg", "Sleepo", "Doc Melatonin"],
+    nameUS: "Melatonin",
+    markets: ["DE", "US", "AT", "CH"],
+    brandNames: ["Circadin", "Melatonin 0,5mg", "Sleepo", "Doc Melatonin", "Natrol", "ZzzQuil Pure Zzzs"],
     category: "sleep",
     icon: "🌙",
     color: "#818cf8",
@@ -544,7 +614,9 @@ export const SUBSTANCES = [
   {
     id: "baldrian",
     name: "Baldrian",
-    brandNames: ["Baldriparan", "Sedonium", "Euvegal", "Kytta Sedativum"],
+    nameUS: "Valerian Root",
+    markets: ["DE", "US", "AT", "CH"],
+    brandNames: ["Baldriparan", "Sedonium", "Euvegal", "Kytta Sedativum", "Nature's Bounty Valerian"],
     category: "sleep",
     icon: "🌿",
     color: "#6366f1",
@@ -582,7 +654,9 @@ export const SUBSTANCES = [
   {
     id: "diphenhydramin",
     name: "Diphenhydramin",
-    brandNames: ["Betadorm", "Nytol", "Sediat", "Sedaplus"],
+    nameUS: "Diphenhydramine (Benadryl / ZzzQuil)",
+    markets: ["DE", "US", "AT", "CH"],
+    brandNames: ["Betadorm", "Nytol", "Sediat", "Sedaplus", "Benadryl", "ZzzQuil", "Unisom SleepGels"],
     category: "sleep",
     icon: "😴",
     color: "#4f46e5",
@@ -622,7 +696,9 @@ export const SUBSTANCES = [
   {
     id: "doxylamin",
     name: "Doxylamin",
-    brandNames: ["Hoggar Night", "Schlaf-Tablinen", "Gittalun"],
+    nameUS: "Doxylamine (Unisom SleepTabs)",
+    markets: ["DE", "US", "AT", "CH"],
+    brandNames: ["Hoggar Night", "Schlaf-Tablinen", "Gittalun", "Unisom SleepTabs", "Nyquil"],
     category: "sleep",
     icon: "😴",
     color: "#4338ca",
@@ -660,7 +736,9 @@ export const SUBSTANCES = [
   {
     id: "koffein",
     name: "Koffein",
-    brandNames: ["Kaffee", "Espresso", "Red Bull", "Monster", "Coffein-Tabletten"],
+    nameUS: "Caffeine",
+    markets: ["DE", "US", "AT", "CH"],
+    brandNames: ["Kaffee", "Espresso", "Red Bull", "Monster", "Coffein-Tabletten", "NoDoz", "Vivarin"],
     category: "stimulant",
     icon: "☕",
     color: "#f59e0b",
@@ -701,7 +779,9 @@ export const SUBSTANCES = [
   {
     id: "nikotin_patch",
     name: "Nikotinpflaster",
-    brandNames: ["Nicorette Patch", "Niquitin", "Nicotinell"],
+    nameUS: "Nicotine Patch (NicoDerm CQ)",
+    markets: ["DE", "US", "AT", "CH"],
+    brandNames: ["Nicorette Patch", "Niquitin", "Nicotinell", "NicoDerm CQ"],
     category: "stimulant",
     icon: "🩹",
     color: "#78716c",
@@ -778,6 +858,8 @@ export const SUBSTANCES = [
   {
     id: "cetirizin",
     name: "Cetirizin",
+    nameUS: "Cetirizine (Zyrtec)",
+    markets: ["DE", "US", "AT", "CH"],
     brandNames: ["Zyrtec", "Cetirizin Hexal", "Lisino", "Reactine"],
     category: "antihistamine",
     icon: "🌿",
@@ -812,7 +894,9 @@ export const SUBSTANCES = [
   {
     id: "loratadin",
     name: "Loratadin",
-    brandNames: ["Clarityn", "Lorano", "Lisino Loratadin"],
+    nameUS: "Loratadine (Claritin)",
+    markets: ["DE", "US", "AT", "CH"],
+    brandNames: ["Claritin", "Clarityn", "Lorano", "Lisino Loratadin"],
     category: "antihistamine",
     icon: "🌿",
     color: "#10b981",
@@ -843,7 +927,9 @@ export const SUBSTANCES = [
   {
     id: "desloratadin",
     name: "Desloratadin",
-    brandNames: ["Aerius", "Desloratadin-ratiopharm"],
+    nameUS: "Desloratadine (Clarinex)",
+    markets: ["DE", "US", "AT", "CH"],
+    brandNames: ["Aerius", "Clarinex", "Desloratadin-ratiopharm"],
     category: "antihistamine",
     icon: "🌿",
     color: "#059669",
@@ -872,7 +958,9 @@ export const SUBSTANCES = [
   {
     id: "fexofenadin",
     name: "Fexofenadin",
-    brandNames: ["Telfast", "Fexofenadin Stada"],
+    nameUS: "Fexofenadine (Allegra)",
+    markets: ["DE", "US", "AT", "CH"],
+    brandNames: ["Telfast", "Allegra", "Fexofenadin Stada"],
     category: "antihistamine",
     icon: "🌿",
     color: "#047857",
@@ -1303,7 +1391,9 @@ export const SUBSTANCES = [
   {
     id: "metoprolol",
     name: "Metoprolol",
-    brandNames: ["Beloc Zok", "Metohexal", "Metoprolol-ratiopharm"],
+    nameUS: "Metoprolol (Lopressor / Toprol-XL)",
+    markets: ["DE", "US", "AT", "CH"],
+    brandNames: ["Beloc Zok", "Metohexal", "Metoprolol-ratiopharm", "Lopressor", "Toprol-XL"],
     category: "cardiovascular",
     icon: "❤️",
     color: "#f87171",
@@ -1341,7 +1431,9 @@ export const SUBSTANCES = [
   {
     id: "ramipril",
     name: "Ramipril",
-    brandNames: ["Delix", "Vesdil", "Ramipril Hexal"],
+    nameUS: "Ramipril (Altace)",
+    markets: ["DE", "US", "AT", "CH"],
+    brandNames: ["Delix", "Vesdil", "Ramipril Hexal", "Altace"],
     category: "cardiovascular",
     icon: "❤️",
     color: "#fca5a5",
@@ -1375,6 +1467,8 @@ export const SUBSTANCES = [
   {
     id: "amlodipin",
     name: "Amlodipin",
+    nameUS: "Amlodipine (Norvasc)",
+    markets: ["DE", "US", "AT", "CH"],
     brandNames: ["Norvasc", "Amlodipin Stada"],
     category: "cardiovascular",
     icon: "❤️",
@@ -1414,6 +1508,8 @@ export const SUBSTANCES = [
   {
     id: "sertralin",
     name: "Sertralin",
+    nameUS: "Sertraline (Zoloft)",
+    markets: ["DE", "US", "AT", "CH"],
     brandNames: ["Zoloft", "Sertralin Stada", "Gladem", "Asentra"],
     category: "antidepressant",
     icon: "🌈",
@@ -1456,6 +1552,8 @@ export const SUBSTANCES = [
   {
     id: "escitalopram",
     name: "Escitalopram",
+    nameUS: "Escitalopram (Lexapro)",
+    markets: ["DE", "US", "AT", "CH"],
     brandNames: ["Cipralex", "Escitalopram Stada", "Lexapro"],
     category: "antidepressant",
     icon: "🌈",
@@ -1495,7 +1593,9 @@ export const SUBSTANCES = [
   {
     id: "omeprazol",
     name: "Omeprazol",
-    brandNames: ["Antra", "Omep", "Losec", "Omeprazol-ratiopharm"],
+    nameUS: "Omeprazole (Prilosec OTC)",
+    markets: ["DE", "US", "AT", "CH"],
+    brandNames: ["Antra", "Omep", "Losec", "Prilosec OTC", "Omeprazol-ratiopharm"],
     category: "gastro",
     icon: "🫃",
     color: "#a3e635",
@@ -1590,6 +1690,13 @@ export const INTERACTIONS = [
   { a:"doxylamin",   b:"diphenhydramin", type:"risk",     severity:"high",     note:"⚠️ Zwei sedierende Antihistaminika: stark additive ZNS-Dämpfung und anticholinerge Last. Kombination kontraindiziert." },
   { a:"diphenhydramin",b:"melatonin",    type:"risk",     severity:"moderate", note:"Additive Sedierung – kann Hangover am nächsten Tag verstärken. Niedrigste wirksame Dosis wählen." },
   { a:"sertralin",   b:"escitalopram",   type:"risk",     severity:"critical", note:"⚠️ KRITISCH: Zwei SSRIs kombiniert – massives Serotoninsyndrom-Risiko. Absolute Kontraindikation." },
+
+  // ── Adderall interactions ─────────────────────────────────
+  { a:"adderall",    b:"alkohol",         type:"risk",     severity:"moderate", note:"Alcohol masks amphetamine stimulation – risk of alcohol poisoning without subjective warning signs" },
+  { a:"adderall",    b:"koffein",         type:"mixed",    severity:"low",      note:"Additive stimulant effect – increased heart rate and blood pressure. Monitor for anxiety/jitteriness." },
+  { a:"adderall",    b:"sertralin",       type:"risk",     severity:"moderate", note:"Amphetamines increase serotonin release – moderate serotonin syndrome risk, especially at higher doses" },
+  { a:"adderall",    b:"escitalopram",    type:"risk",     severity:"moderate", note:"Same as sertralin – serotonergic risk with SSRI combination" },
+  { a:"adderall",    b:"melatonin",       type:"antagonist",severity:"moderate",note:"Amphetamine delays melatonin onset significantly. Must allow ≥8h washout before sleep aids." },
 
 ];
 

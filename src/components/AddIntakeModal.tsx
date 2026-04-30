@@ -6,9 +6,12 @@ import {
 } from 'react-native';
 import { SUBSTANCES, getActiveInteractions } from '../data/substanceDB';
 import { useIntakeStore } from '../store/intakeStore';
+import { useOnboardingStore } from '../store/onboardingStore';
 import { scheduleDailyReminder } from '../services/notifications';
 import { fmtHour } from '../utils/pkHelpers';
 import { SubIcon } from './SubIcon';
+import { getSubstanceName } from '../utils/regionUtils';
+import type { Region } from '../utils/regionUtils';
 
 interface Props {
   visible: boolean;
@@ -19,6 +22,8 @@ type Step = 'search' | 'configure';
 
 export function AddIntakeModal({ visible, onClose }: Props) {
   const { intakes, addIntake } = useIntakeStore();
+  const { prefs } = useOnboardingStore();
+  const region: Region = (prefs.profile?.region ?? 'DE') as Region;
 
   const [step, setStep]         = useState<Step>('search');
   const [query, setQuery]       = useState('');
@@ -28,17 +33,27 @@ export function AddIntakeModal({ visible, onClose }: Props) {
   const [dose, setDose]         = useState('');
   const [withReminder, setWithReminder] = useState(true);
 
-  // Substanz-Suche (name + brandNames)
+  // Filter substances by region + search
+  const regionalSubstances = useMemo(() => {
+    return SUBSTANCES.filter((s: any) => {
+      // If no markets field, substance is universal
+      if (!s.markets) return true;
+      return s.markets.includes(region);
+    });
+  }, [region]);
+
+  // Substanz-Suche (name + nameUS + brandNames)
   const results = useMemo(() => {
-    if (!query.trim()) return SUBSTANCES.slice(0, 20);
+    if (!query.trim()) return regionalSubstances.slice(0, 20);
     const q = query.toLowerCase();
-    return SUBSTANCES.filter(
-      s =>
+    return regionalSubstances.filter(
+      (s: any) =>
         s.name.toLowerCase().includes(q) ||
+        s.nameUS?.toLowerCase().includes(q) ||
         s.brandNames?.some((b: string) => b.toLowerCase().includes(q)) ||
         s.effectLabel?.toLowerCase().includes(q),
     ).slice(0, 30);
-  }, [query]);
+  }, [query, regionalSubstances]);
 
   // Warnung wenn kritische Wechselwirkung mit aktiven Substanzen
   const criticalWarnings = useMemo(() => {
@@ -165,7 +180,7 @@ export function AddIntakeModal({ visible, onClose }: Props) {
               </TouchableOpacity>
             )}
             <Text style={s.headerTitle}>
-              {step === 'search' ? '+ Einnahme hinzufügen' : selected?.name}
+              {step === 'search' ? '+ Einnahme hinzufügen' : getSubstanceName(selected, region)}
             </Text>
             <TouchableOpacity onPress={handleClose} style={s.closeBtn}>
               <Text style={s.closeText}>✕</Text>
@@ -202,7 +217,7 @@ export function AddIntakeModal({ visible, onClose }: Props) {
                     <SubIcon icon={item.icon} color={item.color} size={36} />
                     <View style={{ flex: 1, marginLeft: 12 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        <Text style={s.resultName}>{item.name}</Text>
+                        <Text style={s.resultName}>{getSubstanceName(item, region)}</Text>
                         {item.controlled && (
                           <View style={s.btmBadge}><Text style={s.btmText}>BtM</Text></View>
                         )}
@@ -238,7 +253,7 @@ export function AddIntakeModal({ visible, onClose }: Props) {
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                   <SubIcon icon={selected.icon} color={selected.color} size={44} />
                   <View style={{ flex: 1 }}>
-                    <Text style={s.configName}>{selected.name}</Text>
+                    <Text style={s.configName}>{getSubstanceName(selected, region)}</Text>
                     <Text style={s.configMeta}>{selected.effectLabel}</Text>
                   </View>
                 </View>

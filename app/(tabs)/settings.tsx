@@ -13,6 +13,13 @@ import { useThemeStore } from '../../src/store/themeStore';
 import { cancelAllReminders, requestNotificationPermissions } from '../../src/services/notifications';
 import { isSupabaseConfigured } from '../../src/config/supabase';
 import { router } from 'expo-router';
+import {
+  Region, REGION_OPTIONS, getRegionLabel,
+  formatWeight, formatHeight,
+  weightUnitLabel, heightUnitLabel,
+  parseWeightToKg, parseHeightToCm,
+  weightToDisplayValue, heightToDisplayValue,
+} from '../../src/utils/regionUtils';
 
 // ── Section wrapper ───────────────────────────────────────────
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -81,34 +88,41 @@ function Divider() {
 }
 
 // ── Profile Edit Modal ────────────────────────────────────────
-function ProfileEditModal({ visible, profile, onSave, onClose }: {
+function ProfileEditModal({ visible, profile, region, onSave, onClose }: {
   visible: boolean;
   profile: UserProfile;
+  region: Region;
   onSave: (p: UserProfile) => void;
   onClose: () => void;
 }) {
   const { colors: C } = useThemeStore();
-  const [weight, setWeight] = useState(profile.weight?.toString() ?? '');
-  const [height, setHeight] = useState(profile.height?.toString() ?? '');
+  const [weight, setWeight] = useState(() => weightToDisplayValue(profile.weight, region));
+  const [height, setHeight] = useState(() => heightToDisplayValue(profile.height, region));
   const [age,    setAge]    = useState(profile.age?.toString() ?? '');
   const [sex,    setSex]    = useState<UserProfile['sex']>(profile.sex);
 
   useEffect(() => {
-    setWeight(profile.weight?.toString() ?? '');
-    setHeight(profile.height?.toString() ?? '');
-    setAge(profile.age?.toString()    ?? '');
+    setWeight(weightToDisplayValue(profile.weight, region));
+    setHeight(heightToDisplayValue(profile.height, region));
+    setAge(profile.age?.toString() ?? '');
     setSex(profile.sex);
-  }, [profile, visible]);
+  }, [profile, visible, region]);
 
   function save() {
+    const wKg = weight ? parseWeightToKg(weight, region) : undefined;
+    const hCm = height ? parseHeightToCm(height, region) : undefined;
     onSave({
-      weight: weight ? parseFloat(weight) : undefined,
-      height: height ? parseFloat(height) : undefined,
-      age:    age    ? parseInt(age, 10)  : undefined,
+      weight: wKg && wKg > 0 ? Math.round(wKg * 10) / 10 : undefined,
+      height: hCm && hCm > 0 ? Math.round(hCm)           : undefined,
+      age:    age ? parseInt(age, 10) : undefined,
       sex,
+      region,   // preserve region
     });
     onClose();
   }
+
+  const wUnit = weightUnitLabel(region);
+  const hUnit = heightUnitLabel(region);
 
   const SEX_OPTIONS: { key: UserProfile['sex']; label: string }[] = [
     { key: 'male',   label: '♂ Männlich' },
@@ -133,30 +147,36 @@ function ProfileEditModal({ visible, profile, onSave, onClose }: {
           </View>
           <ScrollView contentContainerStyle={{ padding: 20, gap: 20 }}>
             <Text style={[pe.hint, { color: C.textMuted, backgroundColor: C.bg2, borderColor: C.border2 }]}>
-              ℹ️ Körperdaten verbessern die Berechnungsgenauigkeit (z. B. Standardwerte basieren auf 70 kg). Alle Angaben sind optional.
+              ℹ️ Body data improves calculation accuracy (defaults based on 70 kg). All fields are optional.
             </Text>
 
             <View style={pe.fieldGroup}>
-              <Text style={[pe.label, { color: C.textMuted }]}>Gewicht (kg)</Text>
+              <Text style={[pe.label, { color: C.textMuted }]}>Gewicht ({wUnit})</Text>
               <TextInput
                 style={inputStyle} value={weight} onChangeText={setWeight}
-                placeholder="z. B. 70" placeholderTextColor={C.textDim}
+                placeholder={region === 'US' ? 'e.g. 154' : 'z. B. 70'}
+                placeholderTextColor={C.textDim}
                 keyboardType="decimal-pad"
               />
             </View>
             <View style={pe.fieldGroup}>
-              <Text style={[pe.label, { color: C.textMuted }]}>Körpergröße (cm)</Text>
+              <Text style={[pe.label, { color: C.textMuted }]}>
+                {region === 'US' ? 'Height (in)' : 'Körpergröße (cm)'}
+              </Text>
               <TextInput
                 style={inputStyle} value={height} onChangeText={setHeight}
-                placeholder="z. B. 175" placeholderTextColor={C.textDim}
+                placeholder={region === 'US' ? 'e.g. 69' : 'z. B. 175'}
+                placeholderTextColor={C.textDim}
                 keyboardType="number-pad"
               />
             </View>
             <View style={pe.fieldGroup}>
-              <Text style={[pe.label, { color: C.textMuted }]}>Alter (Jahre)</Text>
+              <Text style={[pe.label, { color: C.textMuted }]}>
+                {region === 'US' ? 'Age' : 'Alter (Jahre)'}
+              </Text>
               <TextInput
                 style={inputStyle} value={age} onChangeText={setAge}
-                placeholder="z. B. 30" placeholderTextColor={C.textDim}
+                placeholder="30" placeholderTextColor={C.textDim}
                 keyboardType="number-pad"
               />
             </View>
@@ -207,10 +227,13 @@ const pe = StyleSheet.create({
 // ── Main Screen ───────────────────────────────────────────────
 export default function SettingsScreen() {
   const { intakes, removeIntake, syncFromCloud, uploadToCloud } = useIntakeStore();
-  const { prefs, resetOnboarding, updateProfile } = useOnboardingStore();
+  const { prefs, resetOnboarding, updateProfile, updateRegion } = useOnboardingStore();
   const { user, loading, syncing, hydrate: hydrateAuth, login, logout, setSyncing } = useAuthStore();
   const { colors: C, isDark, toggle: toggleTheme } = useThemeStore();
   const [profileModalVisible, setProfileModalVisible] = useState(false);
+  const [regionModalVisible,  setRegionModalVisible]  = useState(false);
+
+  const region: Region = (prefs.profile?.region ?? 'DE') as Region;
   const [notifEnabled,   setNotifEnabled]   = useState(false);
   const [peakAlerts,     setPeakAlerts]     = useState(true);
   const [dailyDigest,    setDailyDigest]    = useState(false);
@@ -441,13 +464,30 @@ export default function SettingsScreen() {
             onPress={() => Linking.openURL('mailto:chris61ds@gmail.com?subject=CurveDay%20Feedback')} />
         </Section>
 
+        {/* ── Region ───────────────────────────── */}
+        <Section title="🌍 Region & Sprache">
+          <RowInfo
+            icon={REGION_OPTIONS.find(r => r.id === region)?.flag ?? '🌐'}
+            label="Region"
+            value={getRegionLabel(region)}
+          />
+          <Divider />
+          <RowAction icon="✏️" label="Region ändern"
+            sub="Substanznamen, Marktfilter & Einheiten"
+            onPress={() => setRegionModalVisible(true)}
+          />
+        </Section>
+
         {/* ── Körperprofil ─────────────────────── */}
         <Section title="👤 Mein Körperprofil">
-          <RowInfo icon="⚖️" label="Gewicht"      value={prefs.profile?.weight ? `${prefs.profile.weight} kg` : 'nicht angegeben'} />
+          <RowInfo icon="⚖️" label="Gewicht"
+            value={prefs.profile?.weight ? formatWeight(prefs.profile.weight, region) : 'nicht angegeben'} />
           <Divider />
-          <RowInfo icon="📏" label="Körpergröße"  value={prefs.profile?.height ? `${prefs.profile.height} cm` : 'nicht angegeben'} />
+          <RowInfo icon="📏" label="Körpergröße"
+            value={prefs.profile?.height ? formatHeight(prefs.profile.height, region) : 'nicht angegeben'} />
           <Divider />
-          <RowInfo icon="🎂" label="Alter"         value={prefs.profile?.age    ? `${prefs.profile.age} Jahre`  : 'nicht angegeben'} />
+          <RowInfo icon="🎂" label="Alter"
+            value={prefs.profile?.age ? `${prefs.profile.age} Jahre` : 'nicht angegeben'} />
           <Divider />
           <RowInfo icon="⚥"  label="Geschlecht"   value={
             prefs.profile?.sex === 'male'   ? '♂ Männlich' :
@@ -493,12 +533,68 @@ export default function SettingsScreen() {
       <ProfileEditModal
         visible={profileModalVisible}
         profile={prefs.profile ?? {}}
+        region={region}
         onSave={updateProfile}
         onClose={() => setProfileModalVisible(false)}
       />
+
+      {/* Region picker modal */}
+      <Modal visible={regionModalVisible} animationType="slide" presentationStyle="pageSheet"
+        onRequestClose={() => setRegionModalVisible(false)}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
+          <View style={[pe.header, { borderBottomColor: C.border2 }]}>
+            <TouchableOpacity onPress={() => setRegionModalVisible(false)}>
+              <Text style={[pe.cancel, { color: C.textMuted }]}>Abbrechen</Text>
+            </TouchableOpacity>
+            <Text style={[pe.title, { color: C.text }]}>Region wählen</Text>
+            <View style={{ width: 70 }} />
+          </View>
+          <ScrollView contentContainerStyle={{ padding: 20, gap: 12 }}>
+            {REGION_OPTIONS.map(r => {
+              const active = region === r.id;
+              return (
+                <TouchableOpacity
+                  key={r.id}
+                  style={[
+                    rm.row,
+                    { backgroundColor: C.bg2, borderColor: active ? C.accent : C.border2 },
+                    active && { backgroundColor: `${C.accent}10` },
+                  ]}
+                  onPress={async () => {
+                    await updateRegion(r.id);
+                    setRegionModalVisible(false);
+                  }}
+                  activeOpacity={0.75}
+                >
+                  <Text style={rm.flag}>{r.flag}</Text>
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={[rm.label, { color: active ? C.accent : C.text }]}>{r.label}</Text>
+                    <Text style={[rm.sub,   { color: C.textMuted }]}>{r.sub}</Text>
+                  </View>
+                  {active && <Text style={[rm.check, { color: C.accent }]}>✓</Text>}
+                </TouchableOpacity>
+              );
+            })}
+            <Text style={[rm.hint, { color: C.textDim }]}>
+              Die Region beeinflusst Substanznamen (z. B. Acetaminophen statt Paracetamol),
+              verfügbare Medikamente und Maßeinheiten im Körperprofil.
+            </Text>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
     </SafeAreaView>
   );
 }
+
+const rm = StyleSheet.create({
+  row:   { flexDirection: 'row', alignItems: 'center', borderRadius: 14, padding: 16, borderWidth: 1.5 },
+  flag:  { fontSize: 30, width: 42, textAlign: 'center' },
+  label: { fontSize: 16, fontWeight: '700', marginBottom: 2 },
+  sub:   { fontSize: 12 },
+  check: { fontSize: 18, fontWeight: '800', marginLeft: 8 },
+  hint:  { fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 4 },
+});
 
 const s = StyleSheet.create({
   header:      { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 14, borderBottomWidth: 1 },

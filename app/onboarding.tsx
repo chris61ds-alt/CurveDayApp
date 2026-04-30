@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useOnboardingStore, UserProfile } from '../src/store/onboardingStore';
 import { requestNotificationPermissions } from '../src/services/notifications';
+import { Region, REGION_OPTIONS } from '../src/utils/regionUtils';
 
 const { width: W } = Dimensions.get('window');
 
@@ -51,7 +52,53 @@ function StepWelcome({ onNext }: { onNext: () => void }) {
   );
 }
 
-// ── Step 1: Disclaimer ────────────────────────────────────────
+// ── Step 1: Region ────────────────────────────────────────────
+function StepRegion({ onNext }: { onNext: (region: Region) => void }) {
+  const [selected, setSelected] = useState<Region | null>(null);
+
+  return (
+    <View style={s.stepWrap}>
+      <Text style={s.stepTitle}>Wo befindest du dich?</Text>
+      <Text style={s.stepSub}>
+        Damit zeigen wir dir die richtigen Substanznamen,{'\n'}
+        Marktregulierungen und Maßeinheiten.
+      </Text>
+
+      <View style={{ gap: 12, marginTop: 8, marginBottom: 24 }}>
+        {REGION_OPTIONS.map(r => {
+          const active = selected === r.id;
+          return (
+            <TouchableOpacity
+              key={r.id}
+              style={[s.regionRow, active && s.regionRowActive]}
+              onPress={() => setSelected(r.id)}
+              activeOpacity={0.75}
+            >
+              <Text style={s.regionFlag}>{r.flag}</Text>
+              <View style={s.regionBody}>
+                <Text style={[s.regionLabel, active && { color: '#fff' }]}>{r.label}</Text>
+                <Text style={s.regionSub}>{r.sub}</Text>
+              </View>
+              <View style={[s.regionCheck, active && s.regionCheckActive]}>
+                {active && <Text style={s.checkmark}>✓</Text>}
+              </View>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      <TouchableOpacity
+        style={[s.btnPrimary, !selected && s.btnDisabled]}
+        onPress={() => selected && onNext(selected)}
+        disabled={!selected}
+      >
+        <Text style={s.btnPrimaryText}>Weiter →</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+// ── Step 2: Disclaimer ────────────────────────────────────────
 function StepDisclaimer({ onNext }: { onNext: (timestamp: string) => void }) {
   const [scrolled, setScrolled] = useState(false);
   const [accepted, setAccepted] = useState(false);
@@ -355,15 +402,20 @@ function StepReady({ goals, onFinish }: { goals: string[]; onFinish: () => void 
 export default function OnboardingScreen() {
   const { completeOnboarding } = useOnboardingStore();
   const [step,    setStep]   = useState(0);
+  const [region,  setRegion] = useState<Region>('DE');
   const [discTs,  setDiscTs] = useState<string | null>(null);
   const [goals,   setGoals]  = useState<string[]>([]);
   const [profile, setProfile]= useState<UserProfile>({});
 
-  const TOTAL_STEPS = 4; // steps 1–4 shown in indicator
+  const TOTAL_STEPS = 5; // steps 1–5 shown in indicator
 
   async function finish() {
     await requestNotificationPermissions();
-    await completeOnboarding({ trackingGoals: goals, disclaimerAcceptedAt: discTs, profile });
+    await completeOnboarding({
+      trackingGoals: goals,
+      disclaimerAcceptedAt: discTs,
+      profile: { ...profile, region },
+    });
     router.replace('/(tabs)');
   }
 
@@ -372,10 +424,11 @@ export default function OnboardingScreen() {
       {step > 0 && <Steps current={step - 1} total={TOTAL_STEPS} />}
 
       {step === 0 && <StepWelcome    onNext={() => setStep(1)} />}
-      {step === 1 && <StepDisclaimer onNext={(ts) => { setDiscTs(ts); setStep(2); }} />}
-      {step === 2 && <StepGoals      onNext={(g) => { setGoals(g); setStep(3); }} />}
-      {step === 3 && <StepProfile    onNext={(p) => { setProfile(p); setStep(4); }} />}
-      {step === 4 && <StepReady      goals={goals} onFinish={finish} />}
+      {step === 1 && <StepRegion     onNext={(r) => { setRegion(r); setStep(2); }} />}
+      {step === 2 && <StepDisclaimer onNext={(ts) => { setDiscTs(ts); setStep(3); }} />}
+      {step === 3 && <StepGoals      onNext={(g) => { setGoals(g); setStep(4); }} />}
+      {step === 4 && <StepProfile    onNext={(p) => { setProfile(p); setStep(5); }} />}
+      {step === 5 && <StepReady      goals={goals} onFinish={finish} />}
     </SafeAreaView>
   );
 }
@@ -427,6 +480,20 @@ const s = StyleSheet.create({
   checkmark:       { color: '#000', fontWeight: '900', fontSize: 13 },
   checkLabel:      { flex: 1, fontSize: 13, color: TEXT, lineHeight: 19 },
   checkLabelDim:   { color: DIM },
+
+  // Region
+  regionRow: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: SURFACE, borderRadius: 14,
+    padding: 16, borderWidth: 1.5, borderColor: BORDER,
+  },
+  regionRowActive: { borderColor: ACCENT, backgroundColor: `${ACCENT}12` },
+  regionFlag:  { fontSize: 32, width: 46, textAlign: 'center' },
+  regionBody:  { flex: 1, marginLeft: 10 },
+  regionLabel: { fontSize: 16, fontWeight: '700', color: '#b0c8e0', marginBottom: 2 },
+  regionSub:   { fontSize: 12, color: DIM },
+  regionCheck: { width: 26, height: 26, borderRadius: 13, borderWidth: 2, borderColor: DIM, alignItems: 'center', justifyContent: 'center' },
+  regionCheckActive: { backgroundColor: ACCENT, borderColor: ACCENT },
 
   // Goals
   stepTitle:   { fontSize: 24, fontWeight: '800', color: TEXT, marginTop: 24, marginBottom: 8 },
