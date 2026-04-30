@@ -1584,6 +1584,13 @@ export const INTERACTIONS = [
   { a:"doxylamin",   b:"alkohol",      type:"risk",       severity:"critical", note:"⚠️ KRITISCH: Lebensbedrohliche Atemdepression möglich" },
   { a:"sertralin",   b:"tramadol",     type:"risk",       severity:"critical", note:"⚠️ KRITISCH: Serotoninsyndrom-Risiko (Fieber, Klonus, Agitation) – Kombination kontraindiziert" },
 
+  // ── Neu ergänzte Interaktionen ────────────────────────────
+  { a:"cetirizin",   b:"diphenhydramin", type:"risk",     severity:"high",     note:"⚠️ Zwei H1-Antihistaminika kombiniert: additive anticholinerge Toxizität (Mundtrockenheit, Harnverhalt, Verwirrtheit), verstärkte Sedierung. Kein Autofahren! Kombination vermeiden – besonders bei älteren Personen (Delir-Risiko)." },
+  { a:"loratadin",   b:"diphenhydramin", type:"risk",     severity:"moderate", note:"Zwei Antihistaminika: additive Sedierung möglich, anticholinerge Effekte kumulieren. Kombination nicht empfohlen." },
+  { a:"doxylamin",   b:"diphenhydramin", type:"risk",     severity:"high",     note:"⚠️ Zwei sedierende Antihistaminika: stark additive ZNS-Dämpfung und anticholinerge Last. Kombination kontraindiziert." },
+  { a:"diphenhydramin",b:"melatonin",    type:"risk",     severity:"moderate", note:"Additive Sedierung – kann Hangover am nächsten Tag verstärken. Niedrigste wirksame Dosis wählen." },
+  { a:"sertralin",   b:"escitalopram",   type:"risk",     severity:"critical", note:"⚠️ KRITISCH: Zwei SSRIs kombiniert – massives Serotoninsyndrom-Risiko. Absolute Kontraindikation." },
+
 ];
 
 
@@ -1631,11 +1638,32 @@ export function getActiveInteractions(substanceIds) {
   return result;
 }
 
-/** PK-Kurve generieren (für Recharts) */
+/**
+ * PK-Kurve generieren.
+ *
+ * Für chronische Substanzen (SSRIs, Atomoxetin) wird ein flaches Plateau
+ * zurückgegeben, das den aufgebauten Steady-State-Spiegel symbolisiert –
+ * nicht den akuten Peak-Effekt.
+ */
 export function generateCurve(substance, intakeHour = 8) {
   const { onsetHours, tmaxHours, durationHours, halflifeHours } = substance.pk;
   const { maxEffectScore } = substance;
-  if (!tmaxHours || !durationHours || substance.pk.curveType === "chronic") return [];
+  if (!tmaxHours || !durationHours) return [];
+
+  // ── Chronische Substanzen: Steady-State-Plateau ──────────────
+  // Kein akuter Wirkverlauf sichtbar – stattdessen flache Linie die zeigt,
+  // dass die Substanz dauerhaft im System ist.
+  if (substance.pk.curveType === "chronic") {
+    const plateau = +(maxEffectScore * 0.35).toFixed(1); // ~35 % = typischer Steady-State
+    return Array.from({ length: 49 }, (_, i) => ({
+      time: `${String(Math.floor(i/2)).padStart(2,"0")}:${i%2 ? "30" : "00"}`,
+      value: plateau,
+      isChronic: true,
+    }));
+  }
+
+  // ── Alkohol: Zero-Order-Kinetik (linearer Abbau) ─────────────
+  const isLinear = substance.pk.metabolismType === "linear";
 
   return Array.from({ length: 49 }, (_, i) => {
     const h = i / 2;
@@ -1648,12 +1676,20 @@ export function generateCurve(substance, intakeHour = 8) {
       if (t <= peakT) {
         // Glatter kubischer Anstieg (Smoothstep)
         v = maxEffectScore * Math.pow(t / peakT, 2) * (3 - 2 * (t / peakT));
+      } else if (isLinear) {
+        // Zero-Order-Kinetik: konstante Abbaurate (Alkohol, ~0.15 ‰/h)
+        v = maxEffectScore * Math.max(0, 1 - (t - peakT) / (endT - peakT));
       } else {
         // Pharmakokinetischer Abfall mit echter Halbwertszeit
-        // ke = ln(2) / t½  →  kurze HWZ fällt steil, lange HWZ flach
         const t12 = halflifeHours || (durationHours / 3);
         const ke  = Math.log(2) / t12;
         v = maxEffectScore * Math.exp(-ke * (t - peakT));
+
+        // Sanfter Ausklang nahe dem Ende der Wirkdauer (letztes Drittel)
+        const fadeStart = peakT + (endT - peakT) * 0.65;
+        if (t > fadeStart) {
+          v *= Math.max(0, (endT - t) / (endT - fadeStart));
+        }
       }
     }
 

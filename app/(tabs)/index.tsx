@@ -103,10 +103,14 @@ export default function TageskurveScreen() {
   const selectedSub    = getSubstance(selectedId);
 
   const chartEntries = useMemo(
-    () => intakes.map(i => ({
-      substanceId: i.substanceId,
-      color: getSubstance(i.substanceId)?.color ?? '#fff',
-    })),
+    () => intakes.map(i => {
+      const sub = getSubstance(i.substanceId);
+      return {
+        substanceId: i.substanceId,
+        color: sub?.color ?? '#fff',
+        isChronic: sub?.pk?.curveType === 'chronic',
+      };
+    }),
     [intakes],
   );
 

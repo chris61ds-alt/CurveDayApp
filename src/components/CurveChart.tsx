@@ -5,7 +5,7 @@ import { ChartRow } from '../utils/pkHelpers';
 
 const PAD = { left: 32, right: 12, top: 20, bottom: 26 };
 
-interface ChartEntry { substanceId: string; color: string; }
+interface ChartEntry { substanceId: string; color: string; isChronic?: boolean; }
 interface PeakMark  { substanceId: string; peakIndex: number; color: string; label: string; }
 export interface MealMark { timeH: number; size: 'klein' | 'mittel' | 'groß'; }
 
@@ -222,8 +222,8 @@ export function CurveChart({
           );
         })()}
 
-        {/* Area fills */}
-        {sorted.map(e => {
+        {/* Area fills — nur für akute Kurven */}
+        {sorted.filter(e => !e.isChronic).map(e => {
           const pts = visiblePts(e.substanceId);
           return <Path key={`a${e.substanceId}`} d={smoothAreaPath(pts, baseline)} fill={`url(#g${e.substanceId})`} />;
         })}
@@ -235,6 +235,32 @@ export function CurveChart({
         {sorted.map(e => {
           const pts   = visiblePts(e.substanceId);
           const isSel = e.substanceId === selectedId;
+
+          if (e.isChronic) {
+            // Chronische Substanzen: flache gestrichelte Linie + Label
+            if (pts.length < 2) return null;
+            const y = pts[0].y;
+            const x1 = pts[0].x;
+            const x2 = pts[pts.length - 1].x;
+            return (
+              <G key={`l${e.substanceId}`}>
+                <Line
+                  x1={x1} y1={y} x2={x2} y2={y}
+                  stroke={e.color} strokeWidth={isSel ? 2 : 1.2}
+                  strokeDasharray="8,5" opacity={isSel ? 0.9 : 0.45}
+                />
+                {isSel && (
+                  <SvgText
+                    x={x1 + 6} y={y - 5}
+                    fontSize={8} fill={e.color} opacity={0.8}
+                  >
+                    Steady-State
+                  </SvgText>
+                )}
+              </G>
+            );
+          }
+
           return (
             <Path
               key={`l${e.substanceId}`}
