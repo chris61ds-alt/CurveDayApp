@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useIntakeStore } from '../../src/store/intakeStore';
 import { useThemeStore } from '../../src/store/themeStore';
 import { useMealStore, MealSize } from '../../src/store/mealStore';
+import { useOnboardingStore } from '../../src/store/onboardingStore';
 import { getSubstance, getActiveInteractions } from '../../src/data/substanceDB';
 import {
   buildChartData, getRemainingTime, isActive, getCurrentEffect,
@@ -67,7 +68,16 @@ export default function TageskurveScreen() {
   const { intakes, selectedId, setSelectedId, hydrate, hydrated } = useIntakeStore();
   const { colors: C } = useThemeStore();
   const { meals, hydrate: hydrateMeals, addMeal } = useMealStore();
+  const { prefs } = useOnboardingStore();
   const now = useNow();
+
+  // Sleep window from profile (default: 23:00 → 07:00)
+  const sleepWindow = useMemo(() => {
+    const s = prefs.profile?.sleepStart;
+    const e = prefs.profile?.sleepEnd;
+    if (s !== undefined && e !== undefined) return { start: s, end: e };
+    return { start: 23, end: 7 }; // sensible default
+  }, [prefs.profile?.sleepStart, prefs.profile?.sleepEnd]);
   const [modalVisible, setModalVisible] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -129,6 +139,26 @@ export default function TageskurveScreen() {
     () => meals.map(m => ({ timeH: m.timeH, size: m.size })),
     [meals],
   );
+
+  // ── Schlaf-Warnung: Stimulanzien noch aktiv bei Schlafbeginn? ──
+  // Substanzen mit Wach/Energie/Konzentrations-Effekten
+  const STIMULANT_EFFECTS = ['alertness', 'energy', 'concentration', 'impulseControl'];
+  const bedtimeWarnings = useMemo(() => {
+    if (!chartData.length) return [];
+    const bedtimeIdx = Math.min(Math.round(sleepWindow.start * 2), chartData.length - 1);
+    return intakes.filter(intake => {
+      const sub = getSubstance(intake.substanceId);
+      if (!sub) return false;
+      const hasStimEffect = STIMULANT_EFFECTS.some(k => (sub.effects as any)[k] > 0);
+      if (!hasStimEffect) return false;
+      const val = chartData[bedtimeIdx]?.[intake.substanceId];
+      return typeof val === 'number' && val > 18; // >18% = noch spürbar
+    }).map(i => {
+      const sub = getSubstance(i.substanceId);
+      const val = chartData[Math.min(Math.round(sleepWindow.start * 2), chartData.length - 1)]?.[i.substanceId] as number;
+      return { name: sub?.name ?? i.substanceId, color: sub?.color ?? '#fff', val: Math.round(val) };
+    });
+  }, [chartData, intakes, sleepWindow.start]);
 
   if (!hydrated) {
     return (
@@ -203,10 +233,26 @@ export default function TageskurveScreen() {
         <View style={[s.card, { backgroundColor: C.surface, borderColor: C.border }]}>
           <CurveChart
             data={chartData} entries={chartEntries} selectedId={selectedId}
-            nowHour={now} peakMarks={peakMarks} mealMarks={mealMarks} height={280}
+            nowHour={now} peakMarks={peakMarks} mealMarks={mealMarks}
+            sleepWindow={sleepWindow}
+            height={280}
             gridColor={C.gridLine} labelColor={C.textMuted}
             accentColor={C.accent} isDark={C.isDark}
           />
+
+          {/* Schlaf-Warnung */}
+          {bedtimeWarnings.length > 0 && (
+            <View style={[s.sleepWarnBox, { backgroundColor: '#818cf808', borderColor: '#818cf830' }]}>
+              <Text style={[s.sleepWarnTitle, { color: '#818cf8' }]}>
+                🌙 {`${fmtHour(sleepWindow.start)} Uhr – noch aktiv bei Schlafbeginn:`}
+              </Text>
+              {bedtimeWarnings.map((w, i) => (
+                <Text key={i} style={[s.sleepWarnItem, { color: w.color }]}>
+                  {'  ·  '}{w.name} ({w.val}%)
+                </Text>
+              ))}
+            </View>
+          )}
 
           {/* Intake pills — tap to select, swipe to scroll */}
           {intakes.length > 0 && (
@@ -461,6 +507,10 @@ const s = StyleSheet.create({
   pkGrid:       { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
   pkCell:       { flex: 1, minWidth: 80, borderRadius: 10, padding: 10, alignItems: 'center' },
   warnBox:      { borderRadius: 10, padding: 12, borderWidth: 1 },
+
+  sleepWarnBox:   { marginTop: 10, borderRadius: 10, padding: 10, borderWidth: 1 },
+  sleepWarnTitle: { fontSize: 12, fontWeight: '600', marginBottom: 3 },
+  sleepWarnItem:  { fontSize: 11, lineHeight: 18 },
 
   ixCard:    { borderRadius: 12, padding: 12, marginTop: 10, borderWidth: 1, borderLeftWidth: 3 },
   ixHeader:  { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },

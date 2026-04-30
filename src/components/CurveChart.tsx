@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { View, useWindowDimensions, PanResponder } from 'react-native';
-import Svg, { Path, Line, Circle, Text as SvgText, G, Defs, LinearGradient, Stop } from 'react-native-svg';
+import Svg, { Path, Line, Circle, Rect, Text as SvgText, G, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { ChartRow } from '../utils/pkHelpers';
 
 const PAD = { left: 32, right: 12, top: 20, bottom: 26 };
@@ -9,6 +9,8 @@ interface ChartEntry { substanceId: string; color: string; isChronic?: boolean; 
 interface PeakMark  { substanceId: string; peakIndex: number; color: string; label: string; }
 export interface MealMark { timeH: number; size: 'klein' | 'mittel' | 'groß'; }
 
+export interface SleepWindow { start: number; end: number; } // decimal hours, e.g. {start:23, end:7}
+
 interface Props {
   data: ChartRow[];
   entries: ChartEntry[];
@@ -16,6 +18,7 @@ interface Props {
   nowHour: number;
   peakMarks?: PeakMark[];
   mealMarks?: MealMark[];
+  sleepWindow?: SleepWindow;
   height?: number;
   // Theme
   gridColor?:   string;
@@ -24,8 +27,9 @@ interface Props {
   isDark?:      boolean;
 }
 
-const MEAL_COLOR = '#f97316';
+const MEAL_COLOR  = '#f97316';
 const MEAL_OPACITY: Record<string, number> = { klein: 0.3, mittel: 0.55, groß: 0.85 };
+const SLEEP_COLOR = '#818cf8';
 
 function smoothLinePath(pts: { x: number; y: number }[]): string {
   if (pts.length === 0) return '';
@@ -66,7 +70,8 @@ function touchDist(touches: any[]): number {
 
 export function CurveChart({
   data, entries, selectedId, nowHour,
-  peakMarks = [], mealMarks = [], height = 280,
+  peakMarks = [], mealMarks = [], sleepWindow,
+  height = 280,
   gridColor   = '#182840',
   labelColor  = '#3a5570',
   accentColor = '#38bdf8',
@@ -216,6 +221,67 @@ export function CurveChart({
             <SvgText x={PAD.left - 5} y={yOf(v) + 3.5} fontSize={9} fill={labelColor} textAnchor="end">{v}%</SvgText>
           </G>
         ))}
+
+        {/* Sleep window shading */}
+        {sleepWindow && (() => {
+          // Sleep may cross midnight: end < start means "next day"
+          const sH   = sleepWindow.start;
+          const eH   = sleepWindow.end < sleepWindow.start
+            ? sleepWindow.end + 24
+            : sleepWindow.end;
+          const sIdx = sH * 2;
+          const eIdx = eH * 2;
+
+          // Clamp to visible zoom range
+          const visStart = Math.max(sIdx, zS);
+          const visEnd   = Math.min(eIdx, zE);
+          if (visEnd <= visStart) return null;
+
+          const rx1 = xOf(visStart);
+          const rx2 = xOf(visEnd);
+          const bandW = Math.max(0, rx2 - rx1);
+
+          // Show moon label only if sleep start is within zoom
+          const showLabel = sIdx >= zS && sIdx <= zE;
+
+          return (
+            <G>
+              {/* Shaded band */}
+              <Rect
+                x={rx1} y={PAD.top}
+                width={bandW} height={plotH}
+                fill={SLEEP_COLOR} fillOpacity={isDark ? 0.09 : 0.06}
+              />
+              {/* Left border (bedtime line) */}
+              {sIdx >= zS && sIdx <= zE && (
+                <Line
+                  x1={xOf(sIdx)} y1={PAD.top}
+                  x2={xOf(sIdx)} y2={PAD.top + plotH}
+                  stroke={SLEEP_COLOR} strokeWidth={1}
+                  strokeDasharray="3,3" opacity={0.45}
+                />
+              )}
+              {/* Right border (wake-up line) */}
+              {eIdx >= zS && eIdx <= zE && (
+                <Line
+                  x1={xOf(eIdx)} y1={PAD.top}
+                  x2={xOf(eIdx)} y2={PAD.top + plotH}
+                  stroke={SLEEP_COLOR} strokeWidth={1}
+                  strokeDasharray="3,3" opacity={0.35}
+                />
+              )}
+              {/* Label */}
+              {showLabel && (
+                <SvgText
+                  x={xOf(sIdx) + 5} y={PAD.top + plotH - 6}
+                  fontSize={8} fill={SLEEP_COLOR} opacity={0.55}
+                >
+                  Schlaf
+                </SvgText>
+              )}
+            </G>
+          );
+        })()}
 
         {/* Mitternacht-Trennlinie ("morgen") */}
         {midnightX !== null && (

@@ -87,6 +87,113 @@ function Divider() {
   return <View style={[s.divider, { backgroundColor: C.border2 }]} />;
 }
 
+// ── Sleep Window Modal ────────────────────────────────────────
+function SleepModal({ visible, sleepStart, sleepEnd, onSave, onClose }: {
+  visible: boolean;
+  sleepStart: number;
+  sleepEnd: number;
+  onSave: (start: number, end: number) => void;
+  onClose: () => void;
+}) {
+  const { colors: C } = useThemeStore();
+  const [start, setStart] = useState(sleepStart);
+  const [end,   setEnd]   = useState(sleepEnd);
+
+  function adjust(which: 'start' | 'end', delta: number) {
+    const setter = which === 'start' ? setStart : setEnd;
+    setter(prev => {
+      let next = prev + delta * 0.5;
+      if (next < 0)  next += 24;
+      if (next >= 24) next -= 24;
+      return Math.round(next * 2) / 2; // snap to 30 min
+    });
+  }
+
+  function fmt(h: number) {
+    return `${String(Math.floor(h)).padStart(2,'0')}:${h % 1 ? '30' : '00'}`;
+  }
+
+  const duration = (() => {
+    const d = end < start ? end + 24 - start : end - start;
+    const h = Math.floor(d);
+    const m = Math.round((d - h) * 60);
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  })();
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <SafeAreaView style={[pe.safe, { backgroundColor: C.bg }]}>
+        <View style={[pe.header, { borderBottomColor: C.border2 }]}>
+          <TouchableOpacity onPress={onClose}>
+            <Text style={[pe.cancel, { color: C.textMuted }]}>Abbrechen</Text>
+          </TouchableOpacity>
+          <Text style={[pe.title, { color: C.text }]}>Schlaffenster</Text>
+          <TouchableOpacity onPress={() => onSave(start, end)}>
+            <Text style={[pe.save, { color: C.accent }]}>Speichern</Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView contentContainerStyle={{ padding: 24, gap: 24 }}>
+          <Text style={[sm.hint, { color: C.textMuted, backgroundColor: C.bg2, borderColor: C.border2 }]}>
+            💡 Das Schlaffenster wird im Chart als lila schattierter Bereich angezeigt.
+            Du siehst sofort welche Substanzen noch aktiv sind wenn du schlafen gehst.
+          </Text>
+
+          {/* Schlafbeginn */}
+          <View style={[sm.pickerCard, { backgroundColor: C.bg2, borderColor: C.border2 }]}>
+            <Text style={[sm.pickerLabel, { color: C.textMuted }]}>🌙  Schlafbeginn</Text>
+            <View style={sm.pickerRow}>
+              <TouchableOpacity style={[sm.adjBtn, { backgroundColor: C.bg, borderColor: C.border2 }]}
+                onPress={() => adjust('start', -1)}>
+                <Text style={[sm.adjText, { color: C.text }]}>−</Text>
+              </TouchableOpacity>
+              <Text style={[sm.timeText, { color: C.accent }]}>{fmt(start)}</Text>
+              <TouchableOpacity style={[sm.adjBtn, { backgroundColor: C.bg, borderColor: C.border2 }]}
+                onPress={() => adjust('start', 1)}>
+                <Text style={[sm.adjText, { color: C.text }]}>+</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Aufwachzeit */}
+          <View style={[sm.pickerCard, { backgroundColor: C.bg2, borderColor: C.border2 }]}>
+            <Text style={[sm.pickerLabel, { color: C.textMuted }]}>☀️  Aufwachen</Text>
+            <View style={sm.pickerRow}>
+              <TouchableOpacity style={[sm.adjBtn, { backgroundColor: C.bg, borderColor: C.border2 }]}
+                onPress={() => adjust('end', -1)}>
+                <Text style={[sm.adjText, { color: C.text }]}>−</Text>
+              </TouchableOpacity>
+              <Text style={[sm.timeText, { color: C.accent }]}>{fmt(end)}</Text>
+              <TouchableOpacity style={[sm.adjBtn, { backgroundColor: C.bg, borderColor: C.border2 }]}
+                onPress={() => adjust('end', 1)}>
+                <Text style={[sm.adjText, { color: C.text }]}>+</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={[sm.durationRow, { backgroundColor: `${'#818cf8'}12`, borderColor: `${'#818cf8'}30` }]}>
+            <Text style={{ fontSize: 13, color: '#818cf8' }}>
+              😴 Schlafdauer: <Text style={{ fontWeight: '700' }}>{duration}</Text>
+              {`  (${fmt(start)} → ${fmt(end)})`}
+            </Text>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
+const sm = StyleSheet.create({
+  hint:        { fontSize: 13, lineHeight: 19, padding: 14, borderRadius: 12, borderWidth: 1 },
+  pickerCard:  { borderRadius: 14, padding: 18, borderWidth: 1, alignItems: 'center', gap: 14 },
+  pickerLabel: { fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+  pickerRow:   { flexDirection: 'row', alignItems: 'center', gap: 24 },
+  adjBtn:      { width: 44, height: 44, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  adjText:     { fontSize: 22, fontWeight: '300' },
+  timeText:    { fontSize: 36, fontWeight: '700', minWidth: 90, textAlign: 'center' },
+  durationRow: { borderRadius: 10, padding: 12, borderWidth: 1, alignItems: 'center' },
+});
+
 // ── Profile Edit Modal ────────────────────────────────────────
 function ProfileEditModal({ visible, profile, region, onSave, onClose }: {
   visible: boolean;
@@ -227,11 +334,12 @@ const pe = StyleSheet.create({
 // ── Main Screen ───────────────────────────────────────────────
 export default function SettingsScreen() {
   const { intakes, removeIntake, syncFromCloud, uploadToCloud } = useIntakeStore();
-  const { prefs, resetOnboarding, updateProfile, updateRegion } = useOnboardingStore();
+  const { prefs, resetOnboarding, updateProfile, updateRegion, updateSleep } = useOnboardingStore();
   const { user, loading, syncing, hydrate: hydrateAuth, login, logout, setSyncing } = useAuthStore();
   const { colors: C, isDark, toggle: toggleTheme } = useThemeStore();
   const [profileModalVisible, setProfileModalVisible] = useState(false);
   const [regionModalVisible,  setRegionModalVisible]  = useState(false);
+  const [sleepModalVisible,   setSleepModalVisible]   = useState(false);
 
   const region: Region = (prefs.profile?.region ?? 'DE') as Region;
   const [notifEnabled,   setNotifEnabled]   = useState(false);
@@ -478,6 +586,25 @@ export default function SettingsScreen() {
           />
         </Section>
 
+        {/* ── Schlaf ───────────────────────────── */}
+        {(() => {
+          const ss = prefs.profile?.sleepStart ?? 23;
+          const se = prefs.profile?.sleepEnd   ?? 7;
+          const fmt = (h: number) => `${String(Math.floor(h)).padStart(2,'0')}:${h % 1 ? '30' : '00'}`;
+          return (
+            <Section title="😴 Schlaffenster">
+              <RowInfo icon="🌙" label="Schlafbeginn" value={`${fmt(ss)} Uhr`} />
+              <Divider />
+              <RowInfo icon="☀️" label="Aufwachen"    value={`${fmt(se)} Uhr`} />
+              <Divider />
+              <RowAction icon="✏️" label="Schlaffenster bearbeiten"
+                sub="Wird im Chart als lila Bereich angezeigt"
+                onPress={() => setSleepModalVisible(true)}
+              />
+            </Section>
+          );
+        })()}
+
         {/* ── Körperprofil ─────────────────────── */}
         <Section title="👤 Mein Körperprofil">
           <RowInfo icon="⚖️" label="Gewicht"
@@ -537,6 +664,17 @@ export default function SettingsScreen() {
         onSave={updateProfile}
         onClose={() => setProfileModalVisible(false)}
       />
+
+      {/* Sleep window modal */}
+      {sleepModalVisible && (
+        <SleepModal
+          visible={sleepModalVisible}
+          sleepStart={prefs.profile?.sleepStart ?? 23}
+          sleepEnd={prefs.profile?.sleepEnd ?? 7}
+          onSave={async (s, e) => { await updateSleep(s, e); setSleepModalVisible(false); }}
+          onClose={() => setSleepModalVisible(false)}
+        />
+      )}
 
       {/* Region picker modal */}
       <Modal visible={regionModalVisible} animationType="slide" presentationStyle="pageSheet"

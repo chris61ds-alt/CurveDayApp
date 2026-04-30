@@ -13,6 +13,8 @@ export interface UserProfile {
   age?: number;
   sex?: 'male' | 'female' | 'other';
   region?: Region;   // user's country/locale
+  sleepStart?: number; // decimal hour, e.g. 23.0 = 11 PM
+  sleepEnd?: number;   // decimal hour, e.g. 7.0  =  7 AM (next day if < sleepStart)
 }
 
 export interface OnboardingPrefs {
@@ -29,6 +31,7 @@ interface OnboardingStore {
   completeOnboarding: (prefs: OnboardingPrefs) => Promise<void>;
   updateProfile: (profile: UserProfile) => Promise<void>;
   updateRegion: (region: Region) => Promise<void>;
+  updateSleep: (start: number, end: number) => Promise<void>;
   resetOnboarding: () => Promise<void>;
 }
 
@@ -80,6 +83,16 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
     ];
     if (profile.region) saves.push(AsyncStorage.setItem(KEY_REGION, profile.region));
     await Promise.all(saves);
+    set({ prefs });
+  },
+
+  updateSleep: async (start, end) => {
+    const profile = { ...(get().prefs.profile ?? {}), sleepStart: start, sleepEnd: end };
+    const prefs   = { ...get().prefs, profile };
+    await Promise.all([
+      AsyncStorage.setItem(KEY_PROFILE, JSON.stringify(profile)),
+      AsyncStorage.setItem(KEY_PREFS,   JSON.stringify(prefs)),
+    ]);
     set({ prefs });
   },
 
