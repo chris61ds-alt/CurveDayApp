@@ -65,7 +65,7 @@ function computeCurrentState(
 }
 
 export default function TageskurveScreen() {
-  const { intakes, selectedId, setSelectedId, hydrate, hydrated } = useIntakeStore();
+  const { intakes, selectedId, setSelectedId, hydrate, hydrated, removeIntake } = useIntakeStore();
   const { colors: C } = useThemeStore();
   const { prefs } = useOnboardingStore();
   const t = useT();
@@ -82,6 +82,17 @@ export default function TageskurveScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => { hydrate(); }, []);
+
+  function handleDeleteIntake(id: string, name: string) {
+    Alert.alert(
+      t.intakeDeleteTitle,
+      t.intakeDeleteMsg(name),
+      [
+        { text: t.cancel, style: 'cancel' },
+        { text: t.delete, style: 'destructive', onPress: () => removeIntake(id) },
+      ],
+    );
+  }
 
 
   useEffect(() => {
@@ -256,6 +267,7 @@ export default function TageskurveScreen() {
                       style={[s.intakePill, { backgroundColor: C.surfaceHigh, borderColor: C.border },
                         sel && { borderColor: `${sub.color}60`, backgroundColor: `${sub.color}12` }]}
                       onPress={() => setSelectedId(intake.substanceId)}
+                      onLongPress={() => handleDeleteIntake(intake.id, sub.name)}
                       activeOpacity={0.75}
                     >
                       <View style={[s.legendDot, { backgroundColor: sub.color }]} />
@@ -316,6 +328,7 @@ export default function TageskurveScreen() {
                   <TouchableOpacity
                     key={intake.id}
                     onPress={() => setSelectedId(intake.substanceId)}
+                    onLongPress={() => handleDeleteIntake(intake.id, sub.name)}
                     style={[s.activeCard, { backgroundColor: C.surfaceHigh, borderColor: C.border },
                       sel && { borderColor: `${sub.color}40`, backgroundColor: `${sub.color}08` }]}
                     activeOpacity={0.8}
