@@ -87,7 +87,9 @@ export function buildChartData(intakes: Intake[]): ChartRow[] {
       total: 0,
     };
     curves.forEach(({ id, curve }) => {
-      row[id] = (curve[i] as any)?.value ?? 0;
+      const v = (curve[i] as any)?.value ?? 0;
+      // Sum multiple intakes of the same substance (e.g. 2 Bier, 2 Kaffee)
+      row[id] = +Math.min(100, ((row[id] as number) ?? 0) + v).toFixed(1);
     });
     const vals = curves.map(({ curve }) => (curve[i] as any)?.value ?? 0);
     row.total = +Math.min(100, vals.reduce((a: number, b: number) => a + b, 0) * 0.38).toFixed(1);

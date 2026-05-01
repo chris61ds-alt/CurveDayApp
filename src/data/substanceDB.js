@@ -1186,6 +1186,308 @@ export const SUBSTANCES = [
     mechanism: "GABA-A-Agonist, NMDA-Antagonist – ZNS-Dämpfer mit biphasischem Effekt",
   },
 
+  // ── Alkohol-Getränke ─────────────────────────────────────────
+  // Jedes Getränk entspricht einer realen Portion mit berechnetem Ethanolgehalt.
+  // interactionGroup: "alkohol" → erben alle Alkohol-Interaktionen automatisch.
+  // Ethanol-Formel: mL × Vol% × 0.789 (Dichte) = g EtOH
+  // Abbau: ~10g EtOH/h (Zero-Order). Kurvendauer ≈ EtOH_g/10 + 0.75h Anstieg.
+  {
+    id: "bier_klein",
+    name: "Bier (0,33L)",
+    nameUS: "Beer (12oz)",
+    markets: ["DE", "AT", "CH", "US"],
+    brandNames: ["Pils", "Lager", "Export", "IPA"],
+    category: "recreational",
+    icon: "🍺",
+    color: "#f97316",
+    doseUnit: "Glas",
+    commonDoses: [1, 2, 3],
+    defaultDose: 1,
+    prescription: false,
+    controlled: false,
+    interactionGroup: "alkohol",
+    pk: {
+      onsetHours: 0.25,
+      tmaxHours: 0.75,
+      durationHours: 2.0,   // ~13g EtOH → 1.3h Abbau + Anflutung
+      halflifeHours: 1,
+      bioavailability: 100,
+      foodEffect: "major",
+      foodNote: "⚠️ Mit Essen: Peak später und flacher",
+      curveType: "acute",
+      metabolismType: "linear",
+    },
+    effects: { relaxation: 55, disinhibition: 60, mood: 40, motorControl: -40 },
+    effectLabel: "Entspannung",
+    maxEffectScore: 42,  // ~13g EtOH (0.33L × 5% × 0.789)
+    timing: {},
+    warnings: [
+      "0,33L Bier 5% ≈ 13g Ethanol ≈ 1,3 Standarddrinks",
+      "⚠️ Kein Autofahren",
+      "Kombination mit Medikamenten vermeiden",
+    ],
+    mechanism: "GABA-A-Agonist, NMDA-Antagonist",
+  },
+
+  {
+    id: "bier_gross",
+    name: "Bier (0,5L)",
+    nameUS: "Beer (Pint)",
+    markets: ["DE", "AT", "CH", "US"],
+    brandNames: ["Maß", "Pint", "Halbe"],
+    category: "recreational",
+    icon: "🍺",
+    color: "#f97316",
+    doseUnit: "Glas",
+    commonDoses: [1, 2, 3],
+    defaultDose: 1,
+    prescription: false,
+    controlled: false,
+    interactionGroup: "alkohol",
+    pk: {
+      onsetHours: 0.25,
+      tmaxHours: 0.75,
+      durationHours: 2.8,   // ~20g EtOH → 2h Abbau + Anflutung
+      halflifeHours: 1,
+      bioavailability: 100,
+      foodEffect: "major",
+      foodNote: "⚠️ Mit Essen: Peak später und flacher",
+      curveType: "acute",
+      metabolismType: "linear",
+    },
+    effects: { relaxation: 65, disinhibition: 70, mood: 50, motorControl: -55 },
+    effectLabel: "Entspannung",
+    maxEffectScore: 58,  // ~20g EtOH (0.5L × 5% × 0.789)
+    timing: {},
+    warnings: [
+      "0,5L Bier 5% ≈ 20g Ethanol ≈ 2 Standarddrinks",
+      "⚠️ Kein Autofahren",
+    ],
+    mechanism: "GABA-A-Agonist, NMDA-Antagonist",
+  },
+
+  {
+    id: "weissbier",
+    name: "Weißbier (0,5L)",
+    nameUS: "Wheat Beer (0.5L)",
+    markets: ["DE", "AT", "CH"],
+    brandNames: ["Weizen", "Hefeweizen", "Dunkel", "Paulaner", "Erdinger"],
+    category: "recreational",
+    icon: "🍺",
+    color: "#f97316",
+    doseUnit: "Glas",
+    commonDoses: [1, 2],
+    defaultDose: 1,
+    prescription: false,
+    controlled: false,
+    interactionGroup: "alkohol",
+    pk: {
+      onsetHours: 0.25,
+      tmaxHours: 0.75,
+      durationHours: 2.9,   // ~21g EtOH (5.4%)
+      halflifeHours: 1,
+      bioavailability: 100,
+      foodEffect: "major",
+      foodNote: "⚠️ Mit Essen: Peak später und flacher",
+      curveType: "acute",
+      metabolismType: "linear",
+    },
+    effects: { relaxation: 65, disinhibition: 70, mood: 50, motorControl: -55 },
+    effectLabel: "Entspannung",
+    maxEffectScore: 60,  // ~21g EtOH (0.5L × 5.4% × 0.789)
+    timing: {},
+    warnings: [
+      "0,5L Weißbier 5,4% ≈ 21g Ethanol",
+      "Kohlensäure beschleunigt Resorption leicht",
+    ],
+    mechanism: "GABA-A-Agonist, NMDA-Antagonist",
+  },
+
+  {
+    id: "wein_glas",
+    name: "Wein (0,2L)",
+    nameUS: "Wine (7oz glass)",
+    markets: ["DE", "AT", "CH", "US"],
+    brandNames: ["Rotwein", "Weißwein", "Rosé", "Grauburgunder"],
+    category: "recreational",
+    icon: "🍷",
+    color: "#c0392b",
+    doseUnit: "Glas",
+    commonDoses: [1, 2, 3],
+    defaultDose: 1,
+    prescription: false,
+    controlled: false,
+    interactionGroup: "alkohol",
+    pk: {
+      onsetHours: 0.25,
+      tmaxHours: 0.75,
+      durationHours: 2.7,   // ~19g EtOH (0.2L × 12%)
+      halflifeHours: 1,
+      bioavailability: 100,
+      foodEffect: "major",
+      foodNote: "⚠️ Mit Essen: deutlich langsamere Resorption, niedrigerer Peak",
+      curveType: "acute",
+      metabolismType: "linear",
+    },
+    effects: { relaxation: 65, disinhibition: 68, mood: 55, motorControl: -50 },
+    effectLabel: "Entspannung",
+    maxEffectScore: 55,  // ~19g EtOH
+    timing: { recommendation: "Zum Essen – Resorption verlangsamt" },
+    warnings: [
+      "0,2L Wein 12% ≈ 19g Ethanol",
+      "⚠️ Kein Autofahren",
+    ],
+    mechanism: "GABA-A-Agonist, NMDA-Antagonist",
+  },
+
+  {
+    id: "wein_gross",
+    name: "Wein (0,25L)",
+    nameUS: "Wine (9oz)",
+    markets: ["DE", "AT", "CH"],
+    brandNames: ["Viertel", "Viertele", "Achterl", "Schoppen"],
+    category: "recreational",
+    icon: "🍷",
+    color: "#c0392b",
+    doseUnit: "Glas",
+    commonDoses: [1, 2],
+    defaultDose: 1,
+    prescription: false,
+    controlled: false,
+    interactionGroup: "alkohol",
+    pk: {
+      onsetHours: 0.25,
+      tmaxHours: 0.75,
+      durationHours: 3.1,   // ~24g EtOH
+      halflifeHours: 1,
+      bioavailability: 100,
+      foodEffect: "major",
+      foodNote: "⚠️ Mit Essen: Peak deutlich flacher",
+      curveType: "acute",
+      metabolismType: "linear",
+    },
+    effects: { relaxation: 68, disinhibition: 72, mood: 58, motorControl: -58 },
+    effectLabel: "Entspannung",
+    maxEffectScore: 65,  // ~24g EtOH
+    timing: {},
+    warnings: [
+      "0,25L Wein 12% ≈ 24g Ethanol ≈ 2,4 Standarddrinks",
+    ],
+    mechanism: "GABA-A-Agonist, NMDA-Antagonist",
+  },
+
+  {
+    id: "sekt_glas",
+    name: "Sekt / Prosecco (0,1L)",
+    nameUS: "Sparkling Wine",
+    markets: ["DE", "AT", "CH", "US"],
+    brandNames: ["Sekt", "Prosecco", "Champagner", "Cava"],
+    category: "recreational",
+    icon: "🥂",
+    color: "#f8d56b",
+    doseUnit: "Glas",
+    commonDoses: [1, 2, 3],
+    defaultDose: 1,
+    prescription: false,
+    controlled: false,
+    interactionGroup: "alkohol",
+    pk: {
+      onsetHours: 0.15,   // Kohlensäure beschleunigt Magenentleerung
+      tmaxHours: 0.5,     // schnellerer Peak durch Kohlensäure
+      durationHours: 1.5,
+      halflifeHours: 1,
+      bioavailability: 100,
+      foodEffect: "moderate",
+      foodNote: "Kohlensäure beschleunigt Resorption – auch mit Essen schnellerer Onset",
+      curveType: "acute",
+      metabolismType: "linear",
+    },
+    effects: { relaxation: 45, disinhibition: 50, mood: 45, motorControl: -30 },
+    effectLabel: "Entspannung",
+    maxEffectScore: 30,  // ~9g EtOH (0.1L × 11% × 0.789)
+    timing: {},
+    warnings: [
+      "0,1L Sekt 11% ≈ 9g Ethanol",
+      "💡 Kohlensäure beschleunigt Resorption – wirkt schneller als Wein",
+    ],
+    mechanism: "GABA-A-Agonist, NMDA-Antagonist; CO₂ beschleunigt Magenentleerung",
+  },
+
+  {
+    id: "shot",
+    name: "Shot / Schnaps (4cl)",
+    nameUS: "Shot (1.5oz)",
+    markets: ["DE", "AT", "CH", "US"],
+    brandNames: ["Vodka", "Whisky", "Tequila", "Rum", "Gin", "Korn", "Obstler"],
+    category: "recreational",
+    icon: "🥃",
+    color: "#e67e22",
+    doseUnit: "Shot",
+    commonDoses: [1, 2, 3],
+    defaultDose: 1,
+    prescription: false,
+    controlled: false,
+    interactionGroup: "alkohol",
+    pk: {
+      onsetHours: 0.2,
+      tmaxHours: 0.6,    // Hochprozentiges: schnellerer Peak nüchtern
+      durationHours: 1.8,
+      halflifeHours: 1,
+      bioavailability: 100,
+      foodEffect: "major",
+      foodNote: "⚠️ Nüchtern: drastisch schnellerer Anstieg, höherer Peak",
+      curveType: "acute",
+      metabolismType: "linear",
+    },
+    effects: { relaxation: 55, disinhibition: 65, mood: 45, motorControl: -50 },
+    effectLabel: "Entspannung",
+    maxEffectScore: 45,  // ~13g EtOH (4cl × 40% × 0.789)
+    timing: {},
+    warnings: [
+      "4cl Schnaps 40% ≈ 13g Ethanol",
+      "⚠️ Schneller Anstieg – Risiko der Unterschätzung",
+      "Mehrere Shots in kurzer Zeit: hohe Intoxikationsgefahr",
+    ],
+    mechanism: "GABA-A-Agonist, NMDA-Antagonist; hochprozentig = schnellere Resorption",
+  },
+
+  {
+    id: "longdrink",
+    name: "Longdrink / Cocktail",
+    nameUS: "Cocktail / Mixed Drink",
+    markets: ["DE", "AT", "CH", "US"],
+    brandNames: ["Gin Tonic", "Vodka Cola", "Cuba Libre", "Mojito", "Aperol Spritz"],
+    category: "recreational",
+    icon: "🍹",
+    color: "#e74c3c",
+    doseUnit: "Glas",
+    commonDoses: [1, 2, 3],
+    defaultDose: 1,
+    prescription: false,
+    controlled: false,
+    interactionGroup: "alkohol",
+    pk: {
+      onsetHours: 0.25,
+      tmaxHours: 0.75,
+      durationHours: 2.5,   // ~15–20g EtOH je nach Rezept
+      halflifeHours: 1,
+      bioavailability: 100,
+      foodEffect: "moderate",
+      foodNote: "Zucker & Mixgetränke verlangsamen Resorption leicht",
+      curveType: "acute",
+      metabolismType: "linear",
+    },
+    effects: { relaxation: 60, disinhibition: 70, mood: 55, motorControl: -50 },
+    effectLabel: "Entspannung",
+    maxEffectScore: 52,  // ~15–20g EtOH geschätzt
+    timing: {},
+    warnings: [
+      "Ethanolgehalt variiert stark je nach Rezept",
+      "💡 Süße Mixgetränke kaschieren Alkoholgeschmack – Überdosierungsrisiko",
+      "⚠️ Koffeinhaltige Mixer (z.B. Red Bull) maskieren Müdigkeit",
+    ],
+    mechanism: "GABA-A-Agonist, NMDA-Antagonist",
+  },
 
   // ════════════════════════════════════════
   // ANTIHISTAMINIKA
@@ -2443,12 +2745,30 @@ export function getInteractionBetween(idA, idB) {
   ) || null;
 }
 
+/**
+ * Resolve interaction ID: substances with interactionGroup inherit interactions
+ * from that group ID (e.g. bier_gross → alkohol, espresso → koffein).
+ */
+function resolveInteractionId(substanceId) {
+  const sub = getSubstance(substanceId);
+  return (sub && sub.interactionGroup) ? sub.interactionGroup : substanceId;
+}
+
 /** Wechselwirkungen für eine Liste aktiver Substanzen */
 export function getActiveInteractions(substanceIds) {
   const result = [];
+  // Deduplicate by resolved interaction ID to avoid duplicate warnings
+  // (e.g. bier_klein + bier_gross both → alkohol, no self-interaction)
+  const seen = new Set();
   for (let i = 0; i < substanceIds.length; i++) {
     for (let j = i + 1; j < substanceIds.length; j++) {
-      const ix = getInteractionBetween(substanceIds[i], substanceIds[j]);
+      const idA = resolveInteractionId(substanceIds[i]);
+      const idB = resolveInteractionId(substanceIds[j]);
+      if (idA === idB) continue; // same group (e.g. two drinks) — no self-interaction
+      const key = [idA, idB].sort().join('|');
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const ix = getInteractionBetween(idA, idB);
       if (ix) result.push(ix);
     }
   }
