@@ -30,7 +30,9 @@ export function getIntakeHourToday(intake: Intake): number {
 
 export function fmtHour(h: number): string {
   const H = Math.floor(h) % 24;
-  return `${String(H).padStart(2, '0')}:${h % 1 >= 0.5 ? '30' : '00'}`;
+  const M = Math.round((h % 1) * 60);
+  if (M === 60) return `${String((H + 1) % 24).padStart(2, '0')}:00`;
+  return `${String(H).padStart(2, '0')}:${String(M).padStart(2, '0')}`;
 }
 
 export function getPeakLabel(timeH: number, substanceId: string): string {

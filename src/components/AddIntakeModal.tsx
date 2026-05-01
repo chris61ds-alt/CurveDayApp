@@ -4,7 +4,7 @@ import {
   Modal, StyleSheet, SafeAreaView, KeyboardAvoidingView,
   Platform, ScrollView, Alert,
 } from 'react-native';
-import { SUBSTANCES, getActiveInteractions } from '../data/substanceDB';
+import { SUBSTANCES, CATEGORIES, getActiveInteractions } from '../data/substanceDB';
 import { useIntakeStore } from '../store/intakeStore';
 import { useOnboardingStore } from '../store/onboardingStore';
 import { scheduleDailyReminder } from '../services/notifications';
@@ -29,9 +29,10 @@ export function AddIntakeModal({ visible, onClose }: Props) {
 
   const [step, setStep]         = useState<Step>('search');
   const [query, setQuery]       = useState('');
+  const [catFilter, setCatFilter] = useState<string | null>(null);
   const [selected, setSelected] = useState<any>(null);
   const [hour, setHour]         = useState(() => new Date().getHours());
-  const [minute, setMinute]     = useState(() => Math.round(new Date().getMinutes() / 30) * 30 % 60);
+  const [minute, setMinute]     = useState(() => Math.round(new Date().getMinutes() / 15) * 15 % 60);
   const [dose, setDose]         = useState('');
   const [withReminder, setWithReminder] = useState(true);
 
@@ -44,18 +45,32 @@ export function AddIntakeModal({ visible, onClose }: Props) {
     });
   }, [region]);
 
-  // Substanz-Suche (name + nameUS + brandNames)
+  // Favorites: most-used substances derived from intake history
+  const favorites = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const i of intakes) counts[i.substanceId] = (counts[i.substanceId] ?? 0) + 1;
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([id]) => regionalSubstances.find((s: any) => s.id === id))
+      .filter(Boolean);
+  }, [intakes, regionalSubstances]);
+
+  // Substanz-Suche (name + nameUS + brandNames) mit Kategorie-Filter
   const results = useMemo(() => {
-    if (!query.trim()) return regionalSubstances.slice(0, 20);
+    const pool = catFilter
+      ? regionalSubstances.filter((s: any) => s.category === catFilter)
+      : regionalSubstances;
+    if (!query.trim()) return pool.slice(0, 25);
     const q = query.toLowerCase();
-    return regionalSubstances.filter(
+    return pool.filter(
       (s: any) =>
         s.name.toLowerCase().includes(q) ||
         s.nameUS?.toLowerCase().includes(q) ||
         s.brandNames?.some((b: string) => b.toLowerCase().includes(q)) ||
         s.effectLabel?.toLowerCase().includes(q),
     ).slice(0, 30);
-  }, [query, regionalSubstances]);
+  }, [query, catFilter, regionalSubstances]);
 
   // Warnung wenn kritische Wechselwirkung mit aktiven Substanzen
   const criticalWarnings = useMemo(() => {
@@ -155,6 +170,7 @@ export function AddIntakeModal({ visible, onClose }: Props) {
   function handleClose() {
     setStep('search');
     setQuery('');
+    setCatFilter(null);
     setSelected(null);
     setDose('');
     onClose();
@@ -192,6 +208,7 @@ export function AddIntakeModal({ visible, onClose }: Props) {
           {/* ─── STEP 1: Suche ─── */}
           {step === 'search' && (
             <>
+              {/* Search bar */}
               <View style={s.searchBox}>
                 <Text style={s.searchIcon}>🔍</Text>
                 <TextInput
@@ -210,6 +227,53 @@ export function AddIntakeModal({ visible, onClose }: Props) {
                 )}
               </View>
 
+              {/* Category chips */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={s.catScroll}
+                contentContainerStyle={s.catContent}
+              >
+                <TouchableOpacity
+                  style={[s.catChip, !catFilter && s.catChipActive]}
+                  onPress={() => setCatFilter(null)}
+                >
+                  <Text style={[s.catChipText, !catFilter && s.catChipTextActive]}>Alle</Text>
+                </TouchableOpacity>
+                {(CATEGORIES as any[]).map((cat: any) => (
+                  <TouchableOpacity
+                    key={cat.id}
+                    style={[s.catChip, catFilter === cat.id && { backgroundColor: `${cat.color}20`, borderColor: cat.color }]}
+                    onPress={() => setCatFilter(catFilter === cat.id ? null : cat.id)}
+                  >
+                    <Text style={[s.catChipText, catFilter === cat.id && { color: cat.color, fontWeight: '700' }]}>
+                      {cat.icon} {cat.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              {/* Favorites strip (only when no search query and no cat filter) */}
+              {!query.trim() && !catFilter && favorites.length > 0 && (
+                <View style={s.favSection}>
+                  <Text style={s.favTitle}>⭐ Zuletzt verwendet</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.favRow}>
+                    {favorites.map((item: any) => (
+                      <TouchableOpacity
+                        key={item.id}
+                        style={[s.favChip, { borderColor: `${item.color}40` }]}
+                        onPress={() => selectSubstance(item)}
+                        activeOpacity={0.7}
+                      >
+                        <SubIcon icon={item.icon} color={item.color} size={26} />
+                        <Text style={s.favChipName} numberOfLines={1}>{getSubstanceName(item, region)}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+
+              {/* Results list */}
               <FlatList
                 data={results}
                 keyExtractor={item => item.id}
@@ -447,6 +511,21 @@ const s = StyleSheet.create({
   searchIcon:  { fontSize: 14, marginRight: 6 },
   searchInput: { flex: 1, height: 44, color: C.text, fontSize: 14 },
   clearText:   { fontSize: 14, color: C.textDim, padding: 4 },
+
+  // ── Category chips ───────────────────────────────────────
+  catScroll:       { flexGrow: 0 },
+  catContent:      { paddingHorizontal: 12, paddingVertical: 8, gap: 7, flexDirection: 'row' },
+  catChip:         { backgroundColor: C.surface, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: C.border },
+  catChipActive:   { backgroundColor: '#38bdf820', borderColor: '#38bdf8' },
+  catChipText:     { fontSize: 12, color: '#94a3b8' },
+  catChipTextActive: { color: '#38bdf8', fontWeight: '700' },
+
+  // ── Favorites ────────────────────────────────────────────
+  favSection:  { paddingHorizontal: 12, paddingBottom: 4 },
+  favTitle:    { fontSize: 11, color: '#4a5a70', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 },
+  favRow:      { gap: 8, flexDirection: 'row' },
+  favChip:     { backgroundColor: C.surface, borderRadius: 12, borderWidth: 1, padding: 10, alignItems: 'center', gap: 5, minWidth: 72, maxWidth: 88 },
+  favChipName: { fontSize: 10, color: '#94a3b8', textAlign: 'center' },
 
   resultRow:    { flexDirection: 'row', alignItems: 'center', padding: 12, paddingHorizontal: 16 },
   resultName:   { fontSize: 14, fontWeight: '600', color: C.text },
