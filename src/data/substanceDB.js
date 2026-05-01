@@ -1018,6 +1018,134 @@ export const SUBSTANCES = [
     mechanism: "Transdermales Nikotin – gleichmäßige Abgabe ohne Peak-Tal-Schwankungen",
   },
 
+  // ── Nikotin-Konsumformen ──────────────────────────────────
+  // Unterschiedliche Applikationsrouten → völlig verschiedene Kurvenformen
+
+  {
+    id: "zigarette",
+    name: "Zigarette",
+    nameUS: "Cigarette",
+    markets: ["DE", "US", "AT", "CH"],
+    brandNames: ["Marlboro", "Camel", "Lucky Strike", "Winston", "Philip Morris"],
+    category: "stimulant",
+    icon: "🚬",
+    color: "#d4d4aa",
+    doseUnit: "Stück",
+    commonDoses: [1, 2, 3],
+    defaultDose: 1,
+    prescription: false,
+    controlled: false,
+    pk: {
+      onsetHours: 0.03,       // ~2 min – Lunge ist schnellste Resorptionsroute
+      tmaxHours: 0.17,        // ~10 min Peak
+      durationHours: 1.0,     // subjektive Wirkung ~40–60 min
+      halflifeHours: 2,       // Nikotin-T1/2 ~2h; Cotinin-T1/2 ~16h
+      bioavailability: 90,    // pulmonale Bioverfügbarkeit
+      foodEffect: "none",
+      foodNote: "",
+      curveType: "acute",
+      specialNote: "1 Zigarette ≈ 1–2mg resorbiertes Nikotin (trotz 10–15mg Gesamtgehalt). Stechend kurze Kurve = klassisches Suchtmuster.",
+    },
+    effects: { cravingControl: 90, relaxation: 55, concentration: 40, mood: 35 },
+    effectLabel: "Stimmung & Craving",
+    maxEffectScore: 60,
+    timing: {
+      recommendation: "Craving-Peak tritt nach ~20 min Abstand zur letzten Zigarette auf.",
+      maxPerDay: 20,
+    },
+    warnings: [
+      "⚠️ Hohes Suchtpotenzial – körperliche Abhängigkeit innerhalb von Wochen",
+      "Stark erhöhtes Risiko für Lungen-, Mund- und Kehlkopfkrebs",
+      "Herz-Kreislauf: erhöhte Herzfrequenz, Blutdruckanstieg, Arteriosklerose",
+      "Nikotin beschleunigt Koffeinabbau um ~50% – bei Rauchstopp: höhere Kaffeewirkung!",
+      "Entzug: Reizbarkeit, Konzentrationsprobleme, starkes Craving für 2–4 Wochen",
+    ],
+    mechanism: "Nikotinische Acetylcholinrezeptoren (nAChR) → Dopamin-Ausschüttung im Nucleus accumbens",
+  },
+
+  {
+    id: "e_zigarette",
+    name: "E-Zigarette / Vape",
+    nameUS: "Vape / E-Cigarette",
+    markets: ["DE", "US", "AT", "CH"],
+    brandNames: ["Vuse", "JUUL", "Elfbar", "Lost Mary", "Vozol", "Geekvape"],
+    category: "stimulant",
+    icon: "💨",
+    color: "#7dd3fc",
+    doseUnit: "Züge",
+    commonDoses: [5, 10, 20],
+    defaultDose: 10,
+    prescription: false,
+    controlled: false,
+    pk: {
+      onsetHours: 0.03,       // ~2 min, ähnlich Zigarette
+      tmaxHours: 0.2,         // ~12 min – minimal langsamer als Zigarette
+      durationHours: 1.0,
+      halflifeHours: 2,
+      bioavailability: 85,    // etwas variabel je nach Gerät/Heiztemperatur
+      foodEffect: "none",
+      foodNote: "",
+      curveType: "acute",
+      specialNote: "Nikotinsalze (Salz-Nikotin in Pods) werden schneller absorbiert als Freebase-Nikotin in normalen Liquids.",
+    },
+    effects: { cravingControl: 88, relaxation: 50, concentration: 38 },
+    effectLabel: "Stimmung & Craving",
+    maxEffectScore: 58,
+    timing: {
+      recommendation: "10 Züge ≈ etwa 1 Zigaretten-Äquivalent (abhängig vom Nikotingehalt des Liquids).",
+      maxPerDay: 200,
+    },
+    warnings: [
+      "⚠️ Suchtpotenzial identisch mit Zigaretten – oft noch höherer Nikotingehalt (v.a. Pods/Salts)",
+      "Langzeitfolgen der inhalierten Aromastoffe noch nicht vollständig erforscht",
+      "Popcornlunge-Risiko bei Diacetyl-haltigen Aromen (v.a. Billigprodukte)",
+      "Kein zertifiziertes Entwöhnungsmittel – Umstieg von Zigaretten, nicht Einstieg!",
+      "Nikotinsalz-Pods: sehr hohe Nikotinkonzentration → schnelle Abhängigkeit",
+    ],
+    mechanism: "Nikotinische Acetylcholinrezeptoren (nAChR) → Dopamin-Ausschüttung; aerosolvermittelte Lungenresorption",
+  },
+
+  {
+    id: "nikotinbeutel",
+    name: "Nikotinbeutel",
+    nameUS: "Nicotine Pouches",
+    markets: ["DE", "US", "AT", "CH"],
+    brandNames: ["Zyn", "Velo", "Nordic Spirit", "On!", "Lyft", "Skruf"],
+    category: "stimulant",
+    icon: "🟦",
+    color: "#60a5fa",
+    doseUnit: "mg",
+    commonDoses: [4, 6, 8, 11],   // 4mg = leicht, 6mg = mittel, 8mg/11mg = stark
+    defaultDose: 6,
+    prescription: false,
+    controlled: false,
+    pk: {
+      onsetHours: 0.1,        // ~6 min – sublinguale/buccale Absorption
+      tmaxHours: 0.5,         // ~30 min Peak
+      durationHours: 1.5,     // Beutel liegt 30–60 min, dann abklingend
+      halflifeHours: 2,
+      bioavailability: 50,    // orale Schleimhaut: weniger effizient als Lunge
+      foodEffect: "none",
+      foodNote: "",
+      curveType: "acute",
+      specialNote: "Keine Verbrennung, kein Tabak, kein Dampf – reine Nikotinabgabe über Mundschleimhaut.",
+    },
+    effects: { cravingControl: 80, relaxation: 45, concentration: 35 },
+    effectLabel: "Craving & Entspannung",
+    maxEffectScore: 55,
+    timing: {
+      recommendation: "Beutel 20–40 min verwenden. Maximale Absorption in ersten 20 min.",
+      maxPerDay: 15,
+    },
+    warnings: [
+      "⚠️ Suchtpotenzial identisch mit anderen Nikotinprodukten",
+      "Langzeitfolgen auf Mundschleimhaut noch in Erforschung",
+      "Nicht schlucken – Nikotin im Verdauungstrakt schlechter vertragen",
+      "Kinder und Jugendliche: hohe Vergiftungsgefahr bei versehentlichem Schlucken",
+    ],
+    mechanism: "Nikotinische Acetylcholinrezeptoren (nAChR) via buccale Schleimhautresorption",
+  },
+
   {
     id: "alkohol",
     name: "Alkohol (Ethanol)",
