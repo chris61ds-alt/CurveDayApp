@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ExportStoryModal } from '../../src/components/ExportStoryModal';
 import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, Switch, Alert, Linking, Image,
@@ -340,6 +341,7 @@ export default function SettingsScreen() {
   const [profileModalVisible, setProfileModalVisible] = useState(false);
   const [regionModalVisible,  setRegionModalVisible]  = useState(false);
   const [sleepModalVisible,   setSleepModalVisible]   = useState(false);
+  const [exportModalVisible,  setExportModalVisible]  = useState(false);
 
   const region: Region = (prefs.profile?.region ?? 'DE') as Region;
   const t = useT();
@@ -558,6 +560,10 @@ export default function SettingsScreen() {
         <Section title={t.settingsSectionData}>
           <RowInfo icon="📋" label={t.settingsIntakesCount} value={`${intakes.length}`} />
           <Divider />
+          <RowAction icon="📸" label="Story exportieren"
+            sub="Instagram Story mit deinen Einnahmen"
+            onPress={() => setExportModalVisible(true)} />
+          <Divider />
           <RowAction icon="🔄" label={t.settingsResetDemo}
             sub={t.settingsResetDemoSub}
             onPress={handleResetData} danger />
@@ -721,6 +727,12 @@ export default function SettingsScreen() {
           </ScrollView>
         </SafeAreaView>
       </Modal>
+
+      {/* ── Export Story Modal ─────────────────────────── */}
+      <ExportStoryModal
+        visible={exportModalVisible}
+        onClose={() => setExportModalVisible(false)}
+      />
 
     </SafeAreaView>
   );
