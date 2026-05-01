@@ -13,6 +13,8 @@ import { SubIcon } from './SubIcon';
 import { getSubstanceName } from '../utils/regionUtils';
 import type { Region } from '../utils/regionUtils';
 import { useT } from '../i18n';
+import { useThemeStore } from '../store/themeStore';
+import type { ThemeColors } from '../theme';
 
 interface Props {
   visible: boolean;
@@ -24,8 +26,10 @@ type Step = 'search' | 'configure';
 export function AddIntakeModal({ visible, onClose }: Props) {
   const { intakes, addIntake } = useIntakeStore();
   const { prefs } = useOnboardingStore();
+  const { colors: C } = useThemeStore();
   const region: Region = (prefs.profile?.region ?? 'DE') as Region;
   const t = useT();
+  const s = useMemo(() => makeStyles(C), [C]);
 
   const [step, setStep]         = useState<Step>('search');
   const [query, setQuery]       = useState('');
@@ -493,17 +497,12 @@ export function AddIntakeModal({ visible, onClose }: Props) {
   );
 }
 
-const C = {
-  bg: '#060b13', surface: '#0d1725', surfaceDim: '#080f1c',
-  border: '#1a2840', text: '#e2e8f0', textDim: '#4a5a70', accent: '#38bdf8',
-};
-
-const s = StyleSheet.create({
+function makeStyles(C: ThemeColors) { return StyleSheet.create({
   safe:        { flex: 1, backgroundColor: C.bg },
   header:      { flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: C.border },
   backBtn:     { marginRight: 8 },
   backText:    { fontSize: 14, color: C.accent },
-  headerTitle: { flex: 1, fontSize: 15, fontWeight: '700', color: '#fff', textAlign: 'center' },
+  headerTitle: { flex: 1, fontSize: 15, fontWeight: '700', color: C.text, textAlign: 'center' },
   closeBtn:    { padding: 4 },
   closeText:   { fontSize: 16, color: C.textDim },
 
@@ -516,21 +515,21 @@ const s = StyleSheet.create({
   catScroll:       { flexGrow: 0 },
   catContent:      { paddingHorizontal: 12, paddingVertical: 8, gap: 7, flexDirection: 'row' },
   catChip:         { backgroundColor: C.surface, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: C.border },
-  catChipActive:   { backgroundColor: '#38bdf820', borderColor: '#38bdf8' },
-  catChipText:     { fontSize: 12, color: '#94a3b8' },
-  catChipTextActive: { color: '#38bdf8', fontWeight: '700' },
+  catChipActive:   { backgroundColor: C.accentBg, borderColor: C.accent },
+  catChipText:     { fontSize: 12, color: C.textDim },
+  catChipTextActive: { color: C.accent, fontWeight: '700' },
 
   // ── Favorites ────────────────────────────────────────────
   favSection:  { paddingHorizontal: 12, paddingBottom: 4 },
-  favTitle:    { fontSize: 11, color: '#4a5a70', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 },
+  favTitle:    { fontSize: 11, color: C.textDim, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 },
   favRow:      { gap: 8, flexDirection: 'row' },
   favChip:     { backgroundColor: C.surface, borderRadius: 12, borderWidth: 1, padding: 10, alignItems: 'center', gap: 5, minWidth: 72, maxWidth: 88 },
-  favChipName: { fontSize: 10, color: '#94a3b8', textAlign: 'center' },
+  favChipName: { fontSize: 10, color: C.textDim, textAlign: 'center' },
 
   resultRow:    { flexDirection: 'row', alignItems: 'center', padding: 12, paddingHorizontal: 16 },
   resultName:   { fontSize: 14, fontWeight: '600', color: C.text },
   resultMeta:   { fontSize: 11, color: C.textDim, marginTop: 2 },
-  resultBrands: { fontSize: 10, color: '#374560', marginTop: 1 },
+  resultBrands: { fontSize: 10, color: C.textDim, marginTop: 1 },
   resultArrow:  { fontSize: 20, marginLeft: 8 },
   separator:    { height: 1, backgroundColor: C.border, marginLeft: 68 },
 
@@ -538,10 +537,10 @@ const s = StyleSheet.create({
   btmText:   { fontSize: 9, color: '#f87171', fontWeight: '700' },
 
   configCard:    { backgroundColor: C.surface, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: C.border },
-  configName:    { fontSize: 16, fontWeight: '700', color: '#fff' },
+  configName:    { fontSize: 16, fontWeight: '700', color: C.text },
   configMeta:    { fontSize: 12, color: C.textDim, marginTop: 2 },
-  foodNote:      { marginTop: 10, backgroundColor: '#fbbf2412', borderRadius: 9, padding: 9, borderWidth: 1, borderColor: '#fbbf2425' },
-  foodNoteText:  { fontSize: 11, color: '#fde68a', lineHeight: 17 },
+  foodNote:      { marginTop: 10, backgroundColor: `${C.warning}12`, borderRadius: 9, padding: 9, borderWidth: 1, borderColor: `${C.warning}25` },
+  foodNoteText:  { fontSize: 11, color: C.warning, lineHeight: 17 },
 
   criticalBox:   { backgroundColor: '#ef444412', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#ef444435' },
   criticalTitle: { fontSize: 13, fontWeight: '700', color: '#f87171', marginBottom: 6 },
@@ -551,22 +550,22 @@ const s = StyleSheet.create({
   configLabel:   { fontSize: 11, color: C.textDim, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: '600' },
 
   doseRow:      { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginBottom: 10 },
-  doseChip:     { backgroundColor: C.surfaceDim, borderRadius: 9, paddingHorizontal: 11, paddingVertical: 6, borderWidth: 1, borderColor: C.border },
-  doseChipText: { fontSize: 12, color: '#94a3b8', fontWeight: '600' },
-  doseInput:    { backgroundColor: C.surfaceDim, borderRadius: 9, borderWidth: 1, borderColor: C.border, paddingHorizontal: 12, paddingVertical: 9, color: C.text, fontSize: 13 },
+  doseChip:     { backgroundColor: C.bg, borderRadius: 9, paddingHorizontal: 11, paddingVertical: 6, borderWidth: 1, borderColor: C.border },
+  doseChipText: { fontSize: 12, color: C.textSub, fontWeight: '600' },
+  doseInput:    { backgroundColor: C.bg, borderRadius: 9, borderWidth: 1, borderColor: C.border, paddingHorizontal: 12, paddingVertical: 9, color: C.text, fontSize: 13 },
 
   timeRow:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 },
-  timeArrow:    { width: 36, height: 36, borderRadius: 10, backgroundColor: C.surfaceDim, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.border },
+  timeArrow:    { width: 36, height: 36, borderRadius: 10, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.border },
   timeArrowText:{ fontSize: 18, color: C.accent },
-  timeDisplay:  { backgroundColor: C.surfaceDim, borderRadius: 12, paddingHorizontal: 24, paddingVertical: 10, borderWidth: 1, borderColor: C.border },
-  timeText:     { fontSize: 26, fontWeight: '800', color: '#fff', letterSpacing: 1 },
+  timeDisplay:  { backgroundColor: C.bg, borderRadius: 12, paddingHorizontal: 24, paddingVertical: 10, borderWidth: 1, borderColor: C.border },
+  timeText:     { fontSize: 26, fontWeight: '800', color: C.text, letterSpacing: 1 },
 
-  minChip:     { backgroundColor: C.surfaceDim, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: C.border },
-  minChipText: { fontSize: 12, color: '#94a3b8' },
+  minChip:     { backgroundColor: C.bg, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: C.border },
+  minChipText: { fontSize: 12, color: C.textSub },
 
   pkHint:      { flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center', backgroundColor: C.surface, borderRadius: 10, padding: 10, borderWidth: 1, borderColor: C.border },
   pkHintLabel: { fontSize: 11, color: C.textDim },
-  pkHintValue: { fontSize: 12, fontWeight: '700', color: '#fff' },
+  pkHintValue: { fontSize: 12, fontWeight: '700', color: C.text },
 
   reminderRow:   { flexDirection: 'row', alignItems: 'center', backgroundColor: C.surface, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: C.border },
   checkbox:      { width: 22, height: 22, borderRadius: 7, borderWidth: 2, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
@@ -590,4 +589,4 @@ const s = StyleSheet.create({
 
   confirmBtn:  { borderRadius: 12, padding: 14, alignItems: 'center' },
   confirmText: { fontSize: 15, fontWeight: '800', color: '#fff' },
-});
+}); }

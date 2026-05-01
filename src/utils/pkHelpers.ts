@@ -114,7 +114,7 @@ export function isActive(intake: Intake, nowH: number): boolean {
 }
 
 export function getCurrentEffect(substanceId: string, chartData: ChartRow[], nowH: number): number {
-  const idx = Math.min(Math.round(nowH * 2), 48);
+  const idx = Math.min(Math.round(nowH * 2), Math.max(0, chartData.length - 1));
   const val = chartData[idx]?.[substanceId];
   return typeof val === 'number' ? val : 0;
 }

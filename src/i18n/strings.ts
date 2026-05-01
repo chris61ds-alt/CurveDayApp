@@ -65,6 +65,32 @@ export interface Strings {
   homeRisk:             string;
   homeMixed:            string;
   homeFoodEffect:       string;
+  homeActiveCount:      (n: number) => string;
+  homeCurrentState:     string;
+  homeInsightsTitle:    string;
+  homeInsightActive:    (n: number) => string;
+  homeInsightNone:      string;
+  homeInsightIx:        (n: number) => string;
+  homeInsightNoIx:      string;
+  // State labels (computeCurrentState)
+  statePain:            string;
+  stateSleep:           string;
+  stateRelaxation:      string;
+  stateAnxiety:         string;
+  stateConcentration:   string;
+  stateFocus:           string;
+  stateEnergy:          string;
+  stateMood:            string;
+  stateAlertness:       string;
+  stateDisinhibition:   string;
+  stateMuscleRelax:     string;
+  stateCardio:          string;
+  stateStress:          string;
+  stateAntihistamine:   string;
+  stateAcid:            string;
+  stateBloodPressure:   string;
+  stateFatigue:         string;
+  stateCognition:       string;
 
   // ── Intake Card ───────────────────────────────────────────────
   intakePeakAt:       string;

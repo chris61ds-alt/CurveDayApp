@@ -235,7 +235,8 @@ export function CurveChart({
 
   const nowIdx   = Math.min(nowHour * 2, MAX_IDX);
   const nowX     = nowIdx >= zS && nowIdx <= zE ? xOf(nowIdx) : null;
-  const nowLabel = `${String(Math.floor(nowHour)).padStart(2, '0')}:${nowHour % 1 >= 0.5 ? '30' : '00'}`;
+  const nowM     = Math.round((nowHour % 1) * 60);
+  const nowLabel = `${String(Math.floor(nowHour) % 24).padStart(2, '0')}:${String(nowM).padStart(2, '0')}`;
   const baseline = yOf(0);
 
   // "Morgen"-Trennlinie bei idx=48 (Mitternacht), sichtbar wenn Chart >24h
@@ -358,7 +359,9 @@ export function CurveChart({
         {rawTicks.map(idx => {
           const hAbs   = idx / 2;           // Stunden seit heute 00:00 (kann >24 sein)
           const hWrap  = hAbs % 24;          // Tageszeit (0-24)
-          const label  = `${String(Math.floor(hWrap)).padStart(2, '0')}:${hWrap % 1 ? '30' : '00'}`;
+          const hH     = Math.floor(hWrap);
+          const hM     = Math.round((hWrap % 1) * 60);
+          const label  = `${String(hH).padStart(2, '0')}:${String(hM).padStart(2, '0')}`;
           return (
             <SvgText key={idx} x={xOf(idx)} y={height - 6} fontSize={9} fill={labelColor} textAnchor="middle">
               {label}

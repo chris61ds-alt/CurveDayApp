@@ -19,31 +19,36 @@ import { SubIcon } from '../../src/components/SubIcon';
 import { AddIntakeModal } from '../../src/components/AddIntakeModal';
 
 // ── Zustandsbeschreibung ──────────────────────────────────────
-const STATE_MAP: Record<string, { label: string; emoji: string; color: string }> = {
-  pain:            { label: 'Schmerzlinderung',   emoji: '🛡️', color: '#c084fc' },
-  sleep:           { label: 'Schläfrig',           emoji: '😴', color: '#818cf8' },
-  relaxation:      { label: 'Entspannt',           emoji: '😌', color: '#818cf8' },
-  anxietyReduction:{ label: 'Beruhigt',            emoji: '🧘', color: '#34d399' },
-  concentration:   { label: 'Konzentriert',        emoji: '🎯', color: '#38bdf8' },
-  impulseControl:  { label: 'Fokussiert',          emoji: '🎯', color: '#38bdf8' },
-  energy:          { label: 'Energiegeladen',      emoji: '⚡', color: '#f59e0b' },
-  mood:            { label: 'Gute Stimmung',       emoji: '😊', color: '#fb923c' },
-  alertness:       { label: 'Wach & Aufmerksam',   emoji: '✨', color: '#38bdf8' },
-  disinhibition:   { label: 'Gelöst & Offen',      emoji: '☺️', color: '#94a3b8' },
-  muscleRelax:     { label: 'Muskelentspannt',     emoji: '💆', color: '#4ade80' },
-  cardiovascular:  { label: 'Herzunterstützung',   emoji: '❤️', color: '#f87171' },
-  stressReduction: { label: 'Stressreduziert',     emoji: '🌿', color: '#4ade80' },
-  antihistamine:   { label: 'Antiallergisch',      emoji: '🌸', color: '#34d399' },
-  acidSuppression: { label: 'Magenberuhigt',       emoji: '✨', color: '#a3e635' },
-  bloodPressure:   { label: 'Blutdruck stabil',    emoji: '💗', color: '#f87171' },
-  fatigueReduction:{ label: 'Erschöpfung reduziert', emoji: '💪', color: '#f59e0b' },
-  cognition:       { label: 'Kognition verbessert', emoji: '🧠', color: '#38bdf8' },
-};
+import type { Strings } from '../../src/i18n/strings';
+
+function getStateMap(t: Strings): Record<string, { label: string; emoji: string; color: string }> {
+  return {
+    pain:            { label: t.statePain,          emoji: '🛡️', color: '#c084fc' },
+    sleep:           { label: t.stateSleep,          emoji: '😴', color: '#818cf8' },
+    relaxation:      { label: t.stateRelaxation,     emoji: '😌', color: '#818cf8' },
+    anxietyReduction:{ label: t.stateAnxiety,        emoji: '🧘', color: '#34d399' },
+    concentration:   { label: t.stateConcentration,  emoji: '🎯', color: '#38bdf8' },
+    impulseControl:  { label: t.stateFocus,          emoji: '🎯', color: '#38bdf8' },
+    energy:          { label: t.stateEnergy,         emoji: '⚡', color: '#f59e0b' },
+    mood:            { label: t.stateMood,           emoji: '😊', color: '#fb923c' },
+    alertness:       { label: t.stateAlertness,      emoji: '✨', color: '#38bdf8' },
+    disinhibition:   { label: t.stateDisinhibition,  emoji: '☺️', color: '#94a3b8' },
+    muscleRelax:     { label: t.stateMuscleRelax,    emoji: '💆', color: '#4ade80' },
+    cardiovascular:  { label: t.stateCardio,         emoji: '❤️', color: '#f87171' },
+    stressReduction: { label: t.stateStress,         emoji: '🌿', color: '#4ade80' },
+    antihistamine:   { label: t.stateAntihistamine,  emoji: '🌸', color: '#34d399' },
+    acidSuppression: { label: t.stateAcid,           emoji: '✨', color: '#a3e635' },
+    bloodPressure:   { label: t.stateBloodPressure,  emoji: '💗', color: '#f87171' },
+    fatigueReduction:{ label: t.stateFatigue,        emoji: '💪', color: '#f59e0b' },
+    cognition:       { label: t.stateCognition,      emoji: '🧠', color: '#38bdf8' },
+  };
+}
 
 function computeCurrentState(
   activeIntakes: any[],
   chartData: any[],
   now: number,
+  t: Strings,
 ): { label: string; emoji: string; color: string; strength: string } | null {
   const totals: Record<string, number> = {};
   for (const intake of activeIntakes) {
@@ -58,9 +63,10 @@ function computeCurrentState(
   }
   const top = Object.entries(totals).sort(([, a], [, b]) => b - a)[0];
   if (!top) return null;
-  const mapped = STATE_MAP[top[0]];
+  const stateMap = getStateMap(t);
+  const mapped   = stateMap[top[0]];
   if (!mapped) return null;
-  const strength = top[1] > 60 ? 'stark' : top[1] > 25 ? 'moderat' : 'leicht';
+  const strength = top[1] > 60 ? t.homeStateStrong : top[1] > 25 ? t.homeStateModerate : t.homeStateLight;
   return { ...mapped, strength };
 }
 
@@ -256,7 +262,7 @@ export default function TageskurveScreen() {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ fontSize: 12, color: C.textDim }}>Lade…</Text>
+          <Text style={{ fontSize: 12, color: C.textDim }}>{t.loading}</Text>
         </View>
       </SafeAreaView>
     );
@@ -400,25 +406,25 @@ export default function TageskurveScreen() {
         <View style={[s.card, { backgroundColor: C.surface, borderColor: C.border }]}>
           <View style={s.cardHeader}>
             <Text style={{ fontSize: 11, fontWeight: '600', color: C.textDim, textTransform: 'uppercase', letterSpacing: 0.8 }}>
-              Aktiv jetzt
+              {t.homeActiveNow}
             </Text>
             <View style={[s.activeBadge, { backgroundColor: C.surfaceHigh, borderColor: C.borderMid }]}>
               <Text style={{ fontSize: 12, color: activeIntakes.length > 0 ? C.accent : C.textDim }}>
-                {activeIntakes.length} Substanz{activeIntakes.length !== 1 ? 'en' : ''}
+                {t.homeActiveCount(activeIntakes.length)}
               </Text>
             </View>
           </View>
 
           {/* Current state description */}
           {activeIntakes.length > 0 && (() => {
-            const state = computeCurrentState(activeIntakes, chartData, now);
+            const state = computeCurrentState(activeIntakes, chartData, now, t);
             if (!state) return null;
             return (
               <View style={[s.stateRow, { backgroundColor: `${state.color}12`, borderColor: `${state.color}30` }]}>
                 <Text style={{ fontSize: 20 }}>{state.emoji}</Text>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 15, fontWeight: '700', color: state.color }}>{state.label}</Text>
-                  <Text style={{ fontSize: 11, color: C.textDim }}>Aktueller Wirkzustand · {state.strength}</Text>
+                  <Text style={{ fontSize: 11, color: C.textDim }}>{t.homeCurrentState} · {state.strength}</Text>
                 </View>
               </View>
             );
@@ -426,7 +432,7 @@ export default function TageskurveScreen() {
 
           {activeIntakes.length === 0 ? (
             <View style={s.emptyInline}>
-              <Text style={{ fontSize: 12, color: C.textDim }}>Keine aktiven Substanzen</Text>
+              <Text style={{ fontSize: 12, color: C.textDim }}>{t.homeNoActive}</Text>
             </View>
           ) : (
             <View style={s.activeGrid}>
@@ -473,13 +479,13 @@ export default function TageskurveScreen() {
           return (
             <View style={[s.card, { backgroundColor: C.surface, borderColor: C.border }]}>
               <Text style={{ fontSize: 11, fontWeight: '600', color: C.textDim, textTransform: 'uppercase', letterSpacing: 0.8 }}>
-                Details
+                {t.homeSectionDetail}
               </Text>
               <View style={[s.detailHeader]}>
                 <SubIcon substance={selectedSub} size={44} />
                 <View style={{ marginLeft: 14, flex: 1 }}>
                   <Text style={{ fontSize: 17, fontWeight: '700', color: C.text }}>{selectedSub.name}</Text>
-                  <Text style={{ fontSize: 12, color: C.textDim }}>{selectedIntake.doseLabel} · {fmtHour(selectedIntake.timeH)} Uhr</Text>
+                  <Text style={{ fontSize: 12, color: C.textDim }}>{selectedIntake.doseLabel} · {fmtHour(selectedIntake.timeH)}{t.timeUnit}</Text>
                   <View style={s.effectChips}>
                     {effects.map(e => (
                       <View key={e} style={[s.chip, { backgroundColor: `${selectedSub.color}18`, borderColor: `${selectedSub.color}30` }]}>
@@ -519,7 +525,7 @@ export default function TageskurveScreen() {
         {interactions.length > 0 && (
           <View style={[s.card, { backgroundColor: C.surface, borderColor: C.border }]}>
             <Text style={{ fontSize: 11, fontWeight: '600', color: C.textDim, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>
-              Wechselwirkungen · {interactions.length}
+              {t.homeSectionIx} · {interactions.length}
             </Text>
             {interactions.map((ix: any, i: number) => {
               const subA   = getSubstance(ix.a);
@@ -554,19 +560,21 @@ export default function TageskurveScreen() {
         {/* ── INSIGHTS ───────────────────────── */}
         <View style={[s.card, { backgroundColor: C.surface, borderColor: `${C.accent}20` }]}>
           <Text style={{ fontSize: 11, fontWeight: '600', color: C.textDim, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>
-            💡 Tages-Insights
+            {t.homeInsightsTitle}
           </Text>
           {[
-            activeIntakes.length > 0
-              ? `${activeIntakes.length} Substanz${activeIntakes.length !== 1 ? 'en' : ''} aktiv — beachte Einnahme-Intervalle.`
-              : 'Keine aktiven Substanzen. Nächste Einnahme planen?',
-            interactions.length > 0
-              ? `${interactions.length} Wechselwirkung${interactions.length !== 1 ? 'en' : ''} erkannt — siehe Details oben.`
-              : 'Keine bekannten Interaktionen zwischen deinen Substanzen.',
-          ].map((t, i) => (
+            {
+              text: activeIntakes.length > 0 ? t.homeInsightActive(activeIntakes.length) : t.homeInsightNone,
+              color: C.accent,
+            },
+            {
+              text: interactions.length > 0 ? t.homeInsightIx(interactions.length) : t.homeInsightNoIx,
+              color: C.success,
+            },
+          ].map((insight, i) => (
             <View key={i} style={s.insightRow}>
-              <View style={[s.insightDot, { backgroundColor: i === 0 ? C.accent : C.success }]} />
-              <Text style={{ fontSize: 14, color: C.textSub, lineHeight: 20, flex: 1 }}>{t}</Text>
+              <View style={[s.insightDot, { backgroundColor: insight.color }]} />
+              <Text style={{ fontSize: 14, color: C.textSub, lineHeight: 20, flex: 1 }}>{insight.text}</Text>
             </View>
           ))}
         </View>

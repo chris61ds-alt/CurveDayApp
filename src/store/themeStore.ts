@@ -11,8 +11,8 @@ interface ThemeState {
 }
 
 export const useThemeStore = create<ThemeState>((set, get) => ({
-  isDark:   false,
-  colors:   LIGHT,
+  isDark:   true,
+  colors:   DARK,
   hydrated: false,
 
   toggle: () => {
@@ -27,8 +27,11 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
       const saved = await AsyncStorage.getItem('@curveday_theme');
       if (saved === 'light') {
         set({ isDark: false, colors: LIGHT, hydrated: true });
+      } else if (saved === 'dark') {
+        set({ isDark: true, colors: DARK, hydrated: true });
       } else {
-        set({ hydrated: true });
+        // First install — default to dark
+        set({ isDark: true, colors: DARK, hydrated: true });
       }
     } catch {
       set({ hydrated: true });
