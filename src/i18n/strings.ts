@@ -65,11 +65,6 @@ export interface Strings {
   homeRisk:             string;
   homeMixed:            string;
   homeFoodEffect:       string;
-  homeMealTitle:        (time: string) => string;
-  homeMealSmall:        string;
-  homeMealMedium:       string;
-  homeMealLarge:        string;
-  homeMealCancel:       string;
 
   // ── Intake Card ───────────────────────────────────────────────
   intakePeakAt:       string;

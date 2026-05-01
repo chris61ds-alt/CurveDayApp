@@ -6,7 +6,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useIntakeStore } from '../../src/store/intakeStore';
 import { useThemeStore } from '../../src/store/themeStore';
-import { useMealStore, MealSize } from '../../src/store/mealStore';
 import { useOnboardingStore } from '../../src/store/onboardingStore';
 import { useT } from '../../src/i18n';
 import { getSubstance, getActiveInteractions } from '../../src/data/substanceDB';
@@ -68,7 +67,6 @@ function computeCurrentState(
 export default function TageskurveScreen() {
   const { intakes, selectedId, setSelectedId, hydrate, hydrated } = useIntakeStore();
   const { colors: C } = useThemeStore();
-  const { meals, hydrate: hydrateMeals, addMeal } = useMealStore();
   const { prefs } = useOnboardingStore();
   const t = useT();
   const now = useNow();
@@ -83,21 +81,8 @@ export default function TageskurveScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => { hydrate(); hydrateMeals(); }, []);
+  useEffect(() => { hydrate(); }, []);
 
-  function handleAddMeal() {
-    const nowH = now;
-    Alert.alert(
-      '🍽',
-      t.homeMealTitle(fmtHour(nowH)),
-      [
-        { text: t.homeMealSmall,  onPress: () => addMeal({ timeH: nowH, size: 'klein'  }) },
-        { text: t.homeMealMedium, onPress: () => addMeal({ timeH: nowH, size: 'mittel' }) },
-        { text: t.homeMealLarge,  onPress: () => addMeal({ timeH: nowH, size: 'groß'   }) },
-        { text: t.homeMealCancel, style: 'cancel' },
-      ],
-    );
-  }
 
   useEffect(() => {
     if (hydrated) {
@@ -137,10 +122,6 @@ export default function TageskurveScreen() {
     [intakes],
   );
 
-  const mealMarks = useMemo(
-    () => meals.map(m => ({ timeH: m.timeH, size: m.size })),
-    [meals],
-  );
 
   // ── Schlaf-Warnung: Stimulanzien noch aktiv bei Schlafbeginn? ──
   // Substanzen mit Wach/Energie/Konzentrations-Effekten
@@ -235,7 +216,7 @@ export default function TageskurveScreen() {
         <View style={[s.card, { backgroundColor: C.surface, borderColor: C.border }]}>
           <CurveChart
             data={chartData} entries={chartEntries} selectedId={selectedId}
-            nowHour={now} peakMarks={peakMarks} mealMarks={mealMarks}
+            nowHour={now} peakMarks={peakMarks}
             sleepWindow={sleepWindow}
             height={280}
             labelNow={t.chartNow}
@@ -463,14 +444,7 @@ export default function TageskurveScreen() {
 
       </Animated.ScrollView>
 
-      {/* ── FABs ────────────────────────────── */}
-      <TouchableOpacity
-        style={[s.fabMeal, { backgroundColor: C.surfaceHigh, borderColor: C.border, shadowColor: '#f97316' }]}
-        onPress={handleAddMeal}
-        activeOpacity={0.85}
-      >
-        <Text style={s.fabMealIcon}>🍽</Text>
-      </TouchableOpacity>
+      {/* ── FAB ─────────────────────────────── */}
       <TouchableOpacity
         style={[s.fab, { backgroundColor: C.accent, shadowColor: C.accent }]}
         onPress={() => setModalVisible(true)}
@@ -543,13 +517,4 @@ const s = StyleSheet.create({
   },
   fabIcon: { fontSize: 28, color: '#000', fontWeight: '300', marginTop: -2 },
 
-  fabMeal: {
-    position: 'absolute', right: 88,
-    bottom: Platform.OS === 'ios' ? 28 : 20,
-    width: 48, height: 48, borderRadius: 24,
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1,
-    shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5,
-  },
-  fabMealIcon: { fontSize: 22 },
 });

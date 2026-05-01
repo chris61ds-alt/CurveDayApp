@@ -63,11 +63,6 @@ export const en: Strings = {
   homeRisk:         'Risk',
   homeMixed:        'Mixed',
   homeFoodEffect:   'Food Note',
-  homeMealTitle:    (t) => `🍽 Log Meal\nTime: ${t}\nChoose meal size:`,
-  homeMealSmall:    'Small · Snack / Fruit',
-  homeMealMedium:   'Medium · Regular meal',
-  homeMealLarge:    'Large · Full / rich meal',
-  homeMealCancel:   'Cancel',
 
   // ── Intake Card ───────────────────────────────────────────────
   intakePeakAt:      'Peak',

@@ -63,11 +63,6 @@ export const de: Strings = {
   homeRisk:         'Risiko',
   homeMixed:        'Gemischt',
   homeFoodEffect:   'Essenshinweis',
-  homeMealTitle:    (t) => `🍽 Mahlzeit erfassen\nUhrzeit: ${t} Uhr\nWähle die Größe der Mahlzeit:`,
-  homeMealSmall:    'Klein · Snack / Obst',
-  homeMealMedium:   'Mittel · normale Mahlzeit',
-  homeMealLarge:    'Groß · reichhaltige Mahlzeit',
-  homeMealCancel:   'Abbrechen',
 
   // ── Intake Card ───────────────────────────────────────────────
   intakePeakAt:      'Peak',
