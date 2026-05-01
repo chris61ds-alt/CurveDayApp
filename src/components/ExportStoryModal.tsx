@@ -141,74 +141,70 @@ function StoryCard({ period, intakes }: StoryCardProps) {
       {/* ── divider ───────────────────────────────────────── */}
       <View style={sc.divider} />
 
-      {/* ── intake list ───────────────────────────────────── */}
-      <View style={sc.intakeList}>
-        {shown.map((intake, idx) => {
-          const sub = getSubstance(intake.substanceId);
-          if (!sub) return null;
-          return (
-            <View key={`${intake.id}-${idx}`} style={sc.intakeRow}>
-              {/* colored left bar */}
-              <View style={[sc.intakeBar, { backgroundColor: sub.color }]} />
-              {/* icon bubble */}
-              <View style={[sc.iconBubble, { backgroundColor: `${sub.color}22` }]}>
-                <Text style={sc.iconText}>{sub.icon}</Text>
+      {/* ── list + stats + footer (flex: 1, space-between ensures footer always visible) */}
+      <View style={sc.bottomSection}>
+
+        {/* intake list */}
+        <View style={sc.intakeList}>
+          {shown.map((intake, idx) => {
+            const sub = getSubstance(intake.substanceId);
+            if (!sub) return null;
+            return (
+              <View key={`${intake.id}-${idx}`} style={sc.intakeRow}>
+                <View style={[sc.intakeBar, { backgroundColor: sub.color }]} />
+                <View style={[sc.iconBubble, { backgroundColor: `${sub.color}22` }]}>
+                  <Text style={sc.iconText}>{sub.icon}</Text>
+                </View>
+                <View style={sc.intakeInfo}>
+                  <Text style={sc.intakeName} numberOfLines={1}>{sub.name}</Text>
+                  <Text style={sc.intakeMeta}>
+                    {intake.doseLabel}{'  ·  '}
+                    {period !== '1d' && `${intakeDay(intake)}, `}
+                    {intakeTime(intake)}
+                  </Text>
+                </View>
+                <View style={[sc.effectDot, { backgroundColor: sub.color }]} />
               </View>
-              {/* info */}
-              <View style={sc.intakeInfo}>
-                <Text style={sc.intakeName} numberOfLines={1}>{sub.name}</Text>
-                <Text style={sc.intakeMeta}>
-                  {intake.doseLabel}
-                  {'  ·  '}
-                  {period !== '1d' && `${intakeDay(intake)}, `}
-                  {intakeTime(intake)}
-                </Text>
-              </View>
-              {/* effect dot */}
-              <View style={[sc.effectDot, { backgroundColor: sub.color }]} />
+            );
+          })}
+          {overflow > 0 && (
+            <Text style={sc.overflowText}>+{overflow} weitere Einnahme{overflow !== 1 ? 'n' : ''}</Text>
+          )}
+          {shown.length === 0 && (
+            <View style={sc.emptySlot}>
+              <Text style={sc.emptySlotText}>Keine Einnahmen in diesem Zeitraum</Text>
             </View>
-          );
-        })}
+          )}
+        </View>
 
-        {overflow > 0 && (
-          <Text style={sc.overflowText}>+{overflow} weitere Einnahme{overflow !== 1 ? 'n' : ''}</Text>
-        )}
-
-        {shown.length === 0 && (
-          <View style={sc.emptySlot}>
-            <Text style={sc.emptySlotText}>Keine Einnahmen in diesem Zeitraum</Text>
+        {/* stats row */}
+        <View style={sc.statsRow}>
+          <View style={sc.statItem}>
+            <Text style={sc.statVal}>{intakes.length}</Text>
+            <Text style={sc.statLbl}>{intakes.length === 1 ? 'Einnahme' : 'Einnahmen'}</Text>
           </View>
-        )}
-      </View>
-
-      {/* ── stats row ────────────────────────────────────── */}
-      <View style={sc.statsRow}>
-        <View style={sc.statItem}>
-          <Text style={sc.statVal}>{intakes.length}</Text>
-          <Text style={sc.statLbl}>{intakes.length === 1 ? 'Einnahme' : 'Einnahmen'}</Text>
+          <View style={sc.statSep} />
+          <View style={sc.statItem}>
+            <Text style={sc.statVal}>{substanceCount}</Text>
+            <Text style={sc.statLbl}>{substanceCount === 1 ? 'Substanz' : 'Substanzen'}</Text>
+          </View>
+          {intakes.length > 0 && (
+            <>
+              <View style={sc.statSep} />
+              <View style={sc.statItem}>
+                <Text style={sc.statVal}>{new Set(intakes.map(i => intakeDay(i))).size}</Text>
+                <Text style={sc.statLbl}>{period === '1d' ? 'Heute' : 'Tage'}</Text>
+              </View>
+            </>
+          )}
         </View>
-        <View style={sc.statSep} />
-        <View style={sc.statItem}>
-          <Text style={sc.statVal}>{substanceCount}</Text>
-          <Text style={sc.statLbl}>{substanceCount === 1 ? 'Substanz' : 'Substanzen'}</Text>
-        </View>
-        {intakes.length > 0 && (
-          <>
-            <View style={sc.statSep} />
-            <View style={sc.statItem}>
-              <Text style={sc.statVal}>
-                {new Set(intakes.map(i => intakeDay(i))).size}
-              </Text>
-              <Text style={sc.statLbl}>{period === '1d' ? 'Heute' : 'Tage'}</Text>
-            </View>
-          </>
-        )}
-      </View>
 
-      {/* ── footer ───────────────────────────────────────── */}
-      <View style={sc.footer}>
-        <View style={sc.footerLine} />
-        <Text style={sc.footerBrand}>📲  curveday.app</Text>
+        {/* footer — always pinned to bottom via space-between */}
+        <View style={sc.footer}>
+          <View style={sc.footerLine} />
+          <Text style={sc.footerBrand}>📲  curveday.app</Text>
+        </View>
+
       </View>
     </View>
   );
@@ -452,43 +448,48 @@ const sc = StyleSheet.create({
     height: 1, backgroundColor: '#1e293b', marginBottom: 12,
   },
 
+  // Bottom section: flex:1 container that spaces list / stats / footer
+  bottomSection: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+
   // Intake list
-  intakeList: { flex: 1 },
+  intakeList: {},
   intakeRow: {
     flexDirection: 'row', alignItems: 'center',
-    gap: 8, marginBottom: 7,
+    gap: 7, marginBottom: 5,
   },
-  intakeBar: { width: 2.5, height: 34, borderRadius: 2 },
+  intakeBar: { width: 2.5, height: 30, borderRadius: 2 },
   iconBubble: {
-    width: 32, height: 32, borderRadius: 10,
+    width: 28, height: 28, borderRadius: 8,
     alignItems: 'center', justifyContent: 'center',
   },
-  iconText: { fontSize: 15 },
+  iconText: { fontSize: 13 },
   intakeInfo: { flex: 1 },
-  intakeName: { fontSize: 12, fontWeight: '700', color: '#e2e8f0', marginBottom: 1 },
-  intakeMeta: { fontSize: 9.5, color: '#64748b' },
-  effectDot:  { width: 6, height: 6, borderRadius: 3, opacity: 0.8 },
+  intakeName: { fontSize: 11, fontWeight: '700', color: '#e2e8f0', marginBottom: 1 },
+  intakeMeta: { fontSize: 9, color: '#64748b' },
+  effectDot:  { width: 5, height: 5, borderRadius: 2.5, opacity: 0.8 },
 
-  overflowText: { fontSize: 10, color: '#475569', marginTop: 2, paddingLeft: 10 },
-  emptySlot: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 20 },
+  overflowText: { fontSize: 9, color: '#475569', marginTop: 2, paddingLeft: 10 },
+  emptySlot: { alignItems: 'center', justifyContent: 'center', paddingVertical: 16 },
   emptySlotText: { fontSize: 11, color: '#475569', textAlign: 'center' },
 
   // Stats row
   statsRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 10, marginTop: 4,
+    paddingVertical: 8,
     backgroundColor: '#0f1e2e', borderRadius: 10,
-    gap: 0,
   },
   statItem:  { flex: 1, alignItems: 'center' },
-  statVal:   { fontSize: 20, fontWeight: '800', color: '#38bdf8' },
-  statLbl:   { fontSize: 9, color: '#64748b', marginTop: 1, fontWeight: '500' },
-  statSep:   { width: 1, height: 28, backgroundColor: '#1e293b' },
+  statVal:   { fontSize: 18, fontWeight: '800', color: '#38bdf8' },
+  statLbl:   { fontSize: 8, color: '#64748b', marginTop: 1, fontWeight: '500' },
+  statSep:   { width: 1, height: 24, backgroundColor: '#1e293b' },
 
-  // Footer
-  footer: { marginTop: 10 },
-  footerLine: { height: 1, backgroundColor: '#1e293b', marginBottom: 8 },
-  footerBrand: { fontSize: 10, color: '#475569', textAlign: 'center', letterSpacing: 0.5 },
+  // Footer — always sits at bottom thanks to space-between on bottomSection
+  footer: { paddingTop: 8 },
+  footerLine: { height: 1, backgroundColor: '#1e293b', marginBottom: 6 },
+  footerBrand: { fontSize: 9.5, color: '#475569', textAlign: 'center', letterSpacing: 0.5 },
 });
 
 // ── Modal Styles ──────────────────────────────────────────────

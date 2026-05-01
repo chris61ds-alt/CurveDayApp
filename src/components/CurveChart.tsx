@@ -31,6 +31,8 @@ interface Props {
   labelColor?:  string;
   accentColor?: string;
   isDark?:      boolean;
+  // Interaction
+  onSelectSubstance?: (substanceId: string) => void;
 }
 
 const SLEEP_COLOR = '#818cf8';
@@ -85,6 +87,7 @@ export function CurveChart({
   labelColor  = '#3a5570',
   accentColor = '#38bdf8',
   isDark      = true,
+  onSelectSubstance,
 }: Props) {
   const { width } = useWindowDimensions();
   const svgW  = width - 28;
@@ -434,7 +437,7 @@ export function CurveChart({
           );
         })}
 
-        {/* Peak markers */}
+        {/* Peak markers — tappable to select substance */}
         {peakMarks.map((pm) => {
           if (pm.peakIndex < zS || pm.peakIndex > zE) return null;
           const v = typeof data[pm.peakIndex]?.[pm.substanceId] === 'number'
@@ -444,10 +447,19 @@ export function CurveChart({
           const py    = yOf(v);
           const isSel = pm.substanceId === selectedId;
           return (
-            <G key={`peak-${pm.substanceId}`}>
+            <G
+              key={`peak-${pm.substanceId}`}
+              onPress={onSelectSubstance ? () => onSelectSubstance(pm.substanceId) : undefined}
+            >
+              {/* Large invisible tap target (24×24) */}
+              <Circle cx={px} cy={py} r={20} fill="transparent" />
               {/* Pulsing outer glow for selected peak */}
               {isSel && (
                 <AnimatedCircle cx={px} cy={py} r={peakOuterR} fill={pm.color} opacity={peakOuterOp} />
+              )}
+              {/* Selection ring hint on non-selected — visible when onSelectSubstance is set */}
+              {!isSel && onSelectSubstance && (
+                <Circle cx={px} cy={py} r={10} fill="transparent" stroke={pm.color} strokeWidth={1} opacity={0.3} />
               )}
               <Circle cx={px} cy={py} r={isSel ? 9 : 5} fill={pm.color} opacity={0.15} />
               <Circle cx={px} cy={py} r={isSel ? 4.5 : 3} fill={pm.color} opacity={isSel ? 1 : 0.7} />

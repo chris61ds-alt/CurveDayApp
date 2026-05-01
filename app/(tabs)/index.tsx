@@ -92,7 +92,7 @@ function AnimatedCard({ children, delay = 0, style }: { children: React.ReactNod
 }
 
 export default function TageskurveScreen() {
-  const { intakes, selectedId, setSelectedId, hydrate, hydrated, removeIntake } = useIntakeStore();
+  const { intakes, selectedId, setSelectedId, hydrate, hydrated, removeIntake, addIntake } = useIntakeStore();
   const { colors: C } = useThemeStore();
   const { prefs } = useOnboardingStore();
   const t = useT();
@@ -210,6 +210,26 @@ export default function TageskurveScreen() {
   const chartData     = useMemo(() => buildChartData(intakes), [intakes]);
   const interactions  = useMemo(() => getActiveInteractions(intakes.map(i => i.substanceId)), [intakes]);
   const activeIntakes = useMemo(() => intakes.filter(i => isActive(i, now)), [intakes, now]);
+
+  // ── Quick-Retake: letzte 24h, nicht mehr aktiv, dedupliziert ──
+  const quickRetakes = useMemo(() => {
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    const seen = new Set<string>();
+    return intakes
+      .filter(i => {
+        if (isActive(i, now)) return false; // aktive raus
+        const ts = i.takenAt ? new Date(i.takenAt).getTime() : null;
+        return ts !== null && ts >= cutoff;
+      })
+      .sort((a, b) =>
+        new Date(b.takenAt!).getTime() - new Date(a.takenAt!).getTime()
+      )
+      .filter(i => {
+        if (seen.has(i.substanceId)) return false;
+        seen.add(i.substanceId);
+        return true;
+      });
+  }, [intakes, now]);
 
   const selectedIntake = intakes.find(i => i.substanceId === selectedId) ?? intakes[0];
   const selectedSub    = getSubstance(selectedId);
@@ -343,6 +363,7 @@ export default function TageskurveScreen() {
             labelNoIntakes={t.chartNoIntakes}
             gridColor={C.gridLine} labelColor={C.textMuted}
             accentColor={C.accent} isDark={C.isDark}
+            onSelectSubstance={setSelectedId}
           />
           {/* Reveal wipe: covers curves, slides right to expose them */}
           <Animated.View
@@ -430,12 +451,13 @@ export default function TageskurveScreen() {
             );
           })()}
 
-          {activeIntakes.length === 0 ? (
+          {activeIntakes.length === 0 && quickRetakes.length === 0 ? (
             <View style={s.emptyInline}>
               <Text style={{ fontSize: 12, color: C.textDim }}>{t.homeNoActive}</Text>
             </View>
           ) : (
             <View style={s.activeGrid}>
+              {/* Aktive Substanzen — volle Farbe */}
               {activeIntakes.map((intake, idx) => {
                 const sub = getSubstance(intake.substanceId);
                 if (!sub) return null;
@@ -462,6 +484,37 @@ export default function TageskurveScreen() {
                       </View>
                       <Text style={{ fontSize: 10, color: C.textDim }}>{getRemainingTime(intake, now)}</Text>
                     </TouchableOpacity>
+                  </AnimatedCard>
+                );
+              })}
+
+              {/* Abgelaufen letzte 24h — ausgegraut + Retake-Button */}
+              {quickRetakes.map((intake, idx) => {
+                const sub = getSubstance(intake.substanceId);
+                if (!sub) return null;
+                return (
+                  <AnimatedCard key={`retake-${intake.id}`} delay={(activeIntakes.length + idx) * 70}>
+                    <View style={[s.activeCard, s.retakeCard, { backgroundColor: C.surfaceHigh, borderColor: C.border }]}>
+                      <View style={{ opacity: 0.45 }}>
+                        <SubIcon substance={sub} size={30} />
+                        <Text style={{ fontSize: 12, fontWeight: '700', color: C.text, marginTop: 5, textAlign: 'center' }} numberOfLines={1}>
+                          {sub.name}
+                        </Text>
+                        <Text style={{ fontSize: 10, color: C.textDim, marginTop: 1, textAlign: 'center' }}>{intake.doseLabel}</Text>
+                        <Text style={{ fontSize: 9, color: C.textDim, marginTop: 3, textAlign: 'center' }}>abgelaufen</Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => {
+                          const d = new Date();
+                          const h = d.getHours() + d.getMinutes() / 60;
+                          addIntake({ substanceId: sub.id, timeH: h, doseLabel: intake.doseLabel, takenAt: d.toISOString() });
+                        }}
+                        style={[s.retakeBtn, { backgroundColor: `${sub.color}20`, borderColor: `${sub.color}50` }]}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={{ fontSize: 11, fontWeight: '700', color: sub.color }}>＋ nochmal</Text>
+                      </TouchableOpacity>
+                    </View>
                   </AnimatedCard>
                 );
               })}
@@ -660,6 +713,12 @@ const s = StyleSheet.create({
 
   insightRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 10 },
   insightDot: { width: 6, height: 6, borderRadius: 3, marginTop: 7 },
+
+  retakeCard: { opacity: 1, alignItems: 'center' },
+  retakeBtn: {
+    marginTop: 8, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5,
+    borderWidth: 1, alignItems: 'center',
+  },
 
   emptyState:   { flex: 1 },
   emptyContent: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, paddingTop: 8 },

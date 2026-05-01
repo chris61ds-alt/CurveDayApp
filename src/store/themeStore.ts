@@ -11,8 +11,8 @@ interface ThemeState {
 }
 
 export const useThemeStore = create<ThemeState>((set, get) => ({
-  isDark:   true,
-  colors:   DARK,
+  isDark:   false,
+  colors:   LIGHT,
   hydrated: false,
 
   toggle: () => {
@@ -30,8 +30,8 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
       } else if (saved === 'dark') {
         set({ isDark: true, colors: DARK, hydrated: true });
       } else {
-        // First install — default to dark
-        set({ isDark: true, colors: DARK, hydrated: true });
+        // First install — default to light
+        set({ isDark: false, colors: LIGHT, hydrated: true });
       }
     } catch {
       set({ hydrated: true });
