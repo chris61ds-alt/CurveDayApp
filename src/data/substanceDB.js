@@ -2353,7 +2353,15 @@ export const INTERACTIONS = [
   { a:"sertralin",   b:"alkohol",      type:"risk",       severity:"moderate", note:"Verstärkte ZNS-Depression, verminderte antidepressive Wirkung" },
   { a:"escitalopram",b:"alkohol",      type:"risk",       severity:"moderate", note:"Verstärkte ZNS-Depression" },
   { a:"melatonin",   b:"alkohol",      type:"risk",       severity:"moderate", note:"Alkohol unterdrückt Melatoninausschüttung und stört Schlafarchitektur" },
-  { a:"nikotin_patch",b:"koffein",     type:"mixed",      severity:"low",      note:"Nikotin beschleunigt Koffeinabbau um ~50% – bei Rauchstopp plötzlich höhere Koffeinspiegel möglich" },
+  // Nikotin ↔ Koffein (alle Applikationsformen)
+  { a:"nikotin_patch", b:"koffein",      type:"mixed", severity:"low",      note:"Nikotin induziert CYP1A2 → Koffeinabbau ~50% schneller. Bei Rauchstopp: plötzlich deutlich höhere Koffeinspiegel – Dosis ggf. reduzieren." },
+  { a:"zigarette",     b:"koffein",      type:"mixed", severity:"moderate", note:"Rauchen induziert CYP1A2 stark → Koffein wird ~50% schneller abgebaut. Raucher brauchen mehr Koffein für gleiche Wirkung. Nach Rauchstopp: Koffeinwirkung spürbar stärker – Herzrasen, Schlafstörungen möglich." },
+  { a:"zigarette",     b:"espresso",     type:"mixed", severity:"moderate", note:"Rauchen beschleunigt Koffeinabbau (~50%). Espresso wirkt kürzer und schwächer. Nach Rauchstopp: Espresso-Wirkung plötzlich deutlich stärker." },
+  { a:"zigarette",     b:"filterkaffee", type:"mixed", severity:"moderate", note:"Rauchen induziert CYP1A2 → Koffein aus Kaffee wird schneller metabolisiert. Typisch: Raucher trinken mehr Kaffee für gleichen Effekt." },
+  { a:"zigarette",     b:"redbull",      type:"mixed", severity:"moderate", note:"Rauchen + Energy Drink: Koffeinabbau beschleunigt, kardiovaskuläre Belastung kumulativ erhöht (Herzfrequenz, Blutdruck)." },
+  { a:"e_zigarette",   b:"koffein",      type:"mixed", severity:"low",      note:"Nikotin aus Vaping induziert CYP1A2 – Koffeinabbau beschleunigt ähnlich wie bei Zigaretten, Ausmaß dosisabhängig." },
+  { a:"e_zigarette",   b:"espresso",     type:"mixed", severity:"low",      note:"Nikotin (Vape) + Espresso: leicht beschleunigter Koffeinabbau. Beide stimulierend – additive Herzfrequenzerhöhung möglich." },
+  { a:"nikotinbeutel", b:"koffein",      type:"mixed", severity:"low",      note:"Nikotinbeutel induzieren CYP1A2 schwächer als Rauchen – geringerer Effekt auf Koffeinabbau, aber bei hohem Konsum relevant." },
 
   // ── Kritische Risiken ─────────────────────────────────────
   { a:"paracetamol", b:"alkohol",      type:"risk",       severity:"critical", note:"⚠️ KRITISCH: Beide belasten CYP2E1 mit toxischem NAPQI-Metabolit. Lebertoxisch! Bei regelmäßigem Alkohol: Paracetamol kontraindiziert" },
