@@ -1,6 +1,9 @@
-import React, { useMemo, useRef, useState } from 'react';
-import { View, useWindowDimensions, PanResponder } from 'react-native';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
+import { View, useWindowDimensions, PanResponder, Animated, Easing } from 'react-native';
 import Svg, { Path, Line, Circle, Rect, Text as SvgText, G, Defs, LinearGradient, Stop } from 'react-native-svg';
+
+// Animated SVG primitives (useNativeDriver: false — layout/SVG props)
+const AnimatedCircle = Animated.createAnimatedComponent(Circle as any);
 import { ChartRow } from '../utils/pkHelpers';
 
 const PAD = { left: 32, right: 12, top: 20, bottom: 26 };
@@ -96,6 +99,38 @@ export function CurveChart({
   const [zoomRange, setZoomRangeState] = useState<[number, number]>([0, MAX_IDX]);
   const zoomRef  = useRef<[number, number]>([0, MAX_IDX]);
   const plotWRef = useRef(plotW);
+
+  // ── Radar-ping at NOW line ────────────────────────────────────
+  const ping1 = useRef(new Animated.Value(0)).current;
+  const ping2 = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const makeLoop = (anim: Animated.Value, delay: number) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(anim, { toValue: 1, duration: 2200, easing: Easing.out(Easing.quad), useNativeDriver: false }),
+          Animated.timing(anim, { toValue: 0, duration: 0, useNativeDriver: false }),
+        ]),
+      );
+    const l1 = makeLoop(ping1, 0);
+    const l2 = makeLoop(ping2, 1100);
+    l1.start(); l2.start();
+    return () => { l1.stop(); l2.stop(); };
+  }, []);
+
+  // ── Selected-peak pulse ───────────────────────────────────────
+  const peakPulse = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(peakPulse, { toValue: 1, duration: 900, easing: Easing.out(Easing.sin), useNativeDriver: false }),
+        Animated.timing(peakPulse, { toValue: 0, duration: 900, easing: Easing.in(Easing.sin), useNativeDriver: false }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, []);
   plotWRef.current = plotW;
 
   // Zoom zurücksetzen wenn sich das Datenfenster ändert (z.B. neue Einnahme die morgen endet)
@@ -211,6 +246,16 @@ export function CurveChart({
   const yTicks = [25, 50, 75, 100];
   const totalStroke = isDark ? '#ffffff20' : '#00000015';
   const isZoomed = zS > 0 || zE < MAX_IDX;
+
+  // Radar-ping derived values
+  const ping1R  = ping1.interpolate({ inputRange: [0, 1], outputRange: [0, 28] });
+  const ping1Op = ping1.interpolate({ inputRange: [0, 0.15, 1], outputRange: [0, 0.55, 0] });
+  const ping2R  = ping2.interpolate({ inputRange: [0, 1], outputRange: [0, 28] });
+  const ping2Op = ping2.interpolate({ inputRange: [0, 0.15, 1], outputRange: [0, 0.55, 0] });
+
+  // Peak-pulse derived values
+  const peakOuterR  = peakPulse.interpolate({ inputRange: [0, 1], outputRange: [9, 15] });
+  const peakOuterOp = peakPulse.interpolate({ inputRange: [0, 1], outputRange: [0.12, 0.28] });
 
   return (
     <View {...panResponder.panHandlers}>
@@ -397,10 +442,14 @@ export function CurveChart({
           const isSel = pm.substanceId === selectedId;
           return (
             <G key={`peak-${pm.substanceId}`}>
+              {/* Pulsing outer glow for selected peak */}
+              {isSel && (
+                <AnimatedCircle cx={px} cy={py} r={peakOuterR} fill={pm.color} opacity={peakOuterOp} />
+              )}
               <Circle cx={px} cy={py} r={isSel ? 9 : 5} fill={pm.color} opacity={0.15} />
               <Circle cx={px} cy={py} r={isSel ? 4.5 : 3} fill={pm.color} opacity={isSel ? 1 : 0.7} />
               {isSel && (
-                <SvgText x={px} y={py - 12} fontSize={10} fill={pm.color} textAnchor="middle" fontWeight="700">
+                <SvgText x={px} y={py - 14} fontSize={10} fill={pm.color} textAnchor="middle" fontWeight="700">
                   {pm.label}
                 </SvgText>
               )}
@@ -408,10 +457,15 @@ export function CurveChart({
           );
         })}
 
-        {/* NOW line */}
+        {/* NOW line + radar ping */}
         {nowX !== null && (
           <>
+            {/* Radar rings */}
+            <AnimatedCircle cx={nowX} cy={PAD.top + plotH / 2} r={ping1R} fill="none" stroke={accentColor} strokeWidth={1.2} opacity={ping1Op} />
+            <AnimatedCircle cx={nowX} cy={PAD.top + plotH / 2} r={ping2R} fill="none" stroke={accentColor} strokeWidth={1.2} opacity={ping2Op} />
+            {/* Dashed line */}
             <Line x1={nowX} y1={PAD.top} x2={nowX} y2={height - PAD.bottom} stroke={accentColor} strokeWidth={1.5} strokeDasharray="4,3" opacity={0.75} />
+            {/* Labels */}
             <SvgText x={nowX} y={PAD.top - 6} fontSize={9} fill={accentColor} textAnchor="middle" fontWeight="700">{labelNow}</SvgText>
             <SvgText x={nowX + 4} y={PAD.top + 13} fontSize={8} fill={accentColor} opacity={0.7}>{nowLabel}</SvgText>
           </>

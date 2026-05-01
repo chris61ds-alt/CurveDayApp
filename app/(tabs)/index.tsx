@@ -1,7 +1,7 @@
-import React, { useMemo, useEffect, useRef, useState } from 'react';
+import React, { useMemo, useEffect, useRef, useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  Animated, Platform, Alert,
+  Animated, Easing, Platform, Alert, useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useIntakeStore } from '../../src/store/intakeStore';
@@ -64,6 +64,27 @@ function computeCurrentState(
   return { ...mapped, strength };
 }
 
+// ── Animated card: spring-entrance on mount ───────────────────
+function AnimatedCard({ children, delay = 0, style }: { children: React.ReactNode; delay?: number; style?: any }) {
+  const anim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.spring(anim, {
+      toValue: 1, delay, friction: 7, tension: 120, useNativeDriver: true,
+    }).start();
+  }, []);
+  return (
+    <Animated.View style={[style, {
+      opacity: anim,
+      transform: [
+        { scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1] }) },
+        { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) },
+      ],
+    }]}>
+      {children}
+    </Animated.View>
+  );
+}
+
 export default function TageskurveScreen() {
   const { intakes, selectedId, setSelectedId, hydrate, hydrated, removeIntake } = useIntakeStore();
   const { colors: C } = useThemeStore();
@@ -79,7 +100,24 @@ export default function TageskurveScreen() {
     return { start: 23, end: 7 }; // sensible default
   }, [prefs.profile?.sleepStart, prefs.profile?.sleepEnd]);
   const [modalVisible, setModalVisible] = useState(false);
+  const { width: screenWidth } = useWindowDimensions();
+
+  // ── Page fade-in ─────────────────────────────────────────────
   const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  // ── Chart reveal (left→right wipe) ───────────────────────────
+  const chartReveal = useRef(new Animated.Value(0)).current;
+
+  // ── FAB glow pulse ───────────────────────────────────────────
+  const fabPulse = useRef(new Animated.Value(0)).current;
+
+  // ── NOW dot heartbeat ────────────────────────────────────────
+  const dotPulse = useRef(new Animated.Value(1)).current;
+
+  // ── XP floats (game-style "+Substance" popups) ───────────────
+  type XpFloat = { id: string; text: string; color: string; anim: Animated.Value };
+  const [xpFloats, setXpFloats] = useState<XpFloat[]>([]);
+  const prevIntakeCount = useRef(0);
 
   useEffect(() => { hydrate(); }, []);
 
@@ -95,6 +133,7 @@ export default function TageskurveScreen() {
   }
 
 
+  // Page fade-in
   useEffect(() => {
     if (hydrated) {
       Animated.timing(fadeAnim, {
@@ -102,6 +141,65 @@ export default function TageskurveScreen() {
       }).start();
     }
   }, [hydrated]);
+
+  // Chart reveal: wipe left→right whenever intakes change
+  useEffect(() => {
+    if (!hydrated) return;
+    chartReveal.setValue(0);
+    Animated.timing(chartReveal, {
+      toValue: 1, duration: 1400,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [intakes.length, hydrated]);
+
+  // FAB glow: continuous breathe
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(fabPulse, { toValue: 1, duration: 1400, easing: Easing.out(Easing.sin), useNativeDriver: true }),
+        Animated.timing(fabPulse, { toValue: 0, duration: 1400, easing: Easing.in(Easing.sin), useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, []);
+
+  // NOW dot heartbeat
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(dotPulse, { toValue: 0.2, duration: 500, useNativeDriver: true }),
+        Animated.timing(dotPulse, { toValue: 1, duration: 800, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+        Animated.delay(600),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, []);
+
+  // XP floats: trigger when a new intake is added
+  useEffect(() => {
+    if (!hydrated) { prevIntakeCount.current = intakes.length; return; }
+    if (intakes.length > prevIntakeCount.current) {
+      const newOnes = intakes.slice(prevIntakeCount.current);
+      newOnes.forEach((intake, idx) => {
+        const sub  = getSubstance(intake.substanceId);
+        const anim = new Animated.Value(0);
+        const entry: XpFloat = {
+          id:    `${intake.id}_${Date.now()}_${idx}`,
+          text:  `+ ${sub?.name ?? '✓'}`,
+          color: sub?.color ?? '#38bdf8',
+          anim,
+        };
+        setXpFloats(prev => [...prev, entry]);
+        Animated.timing(anim, { toValue: 1, duration: 2000, useNativeDriver: true }).start(() => {
+          setXpFloats(prev => prev.filter(f => f.id !== entry.id));
+        });
+      });
+    }
+    prevIntakeCount.current = intakes.length;
+  }, [intakes.length, hydrated]);
 
   const chartData     = useMemo(() => buildChartData(intakes), [intakes]);
   const interactions  = useMemo(() => getActiveInteractions(intakes.map(i => i.substanceId)), [intakes]);
@@ -181,7 +279,7 @@ export default function TageskurveScreen() {
           </Text>
         </View>
         <View style={[s.nowPill, { backgroundColor: `${C.accent}12`, borderColor: `${C.accent}25` }]}>
-          <View style={[s.nowDot, { backgroundColor: C.accent }]} />
+          <Animated.View style={[s.nowDot, { backgroundColor: C.accent, opacity: dotPulse }]} />
           <Text style={{ fontSize: 12, color: C.accent }}>{fmtHour(now)}</Text>
         </View>
       </View>
@@ -225,6 +323,8 @@ export default function TageskurveScreen() {
 
         {/* ── CHART ──────────────────────────── */}
         <View style={[s.card, { backgroundColor: C.surface, borderColor: C.border }]}>
+          {/* Chart + left→right reveal wipe */}
+          <View style={{ position: 'relative', overflow: 'hidden' }}>
           <CurveChart
             data={chartData} entries={chartEntries} selectedId={selectedId}
             nowHour={now} peakMarks={peakMarks}
@@ -238,6 +338,17 @@ export default function TageskurveScreen() {
             gridColor={C.gridLine} labelColor={C.textMuted}
             accentColor={C.accent} isDark={C.isDark}
           />
+          {/* Reveal wipe: covers curves, slides right to expose them */}
+          <Animated.View
+            pointerEvents="none"
+            style={{
+              position: 'absolute', top: 0, bottom: 0,
+              right: 0,
+              left: chartReveal.interpolate({ inputRange: [0, 1], outputRange: [30, screenWidth + 60] }),
+              backgroundColor: C.surface,
+            }}
+          />
+          </View>
 
           {/* Schlaf-Warnung */}
           {bedtimeWarnings.length > 0 && (
@@ -319,28 +430,33 @@ export default function TageskurveScreen() {
             </View>
           ) : (
             <View style={s.activeGrid}>
-              {activeIntakes.map(intake => {
+              {activeIntakes.map((intake, idx) => {
                 const sub = getSubstance(intake.substanceId);
                 if (!sub) return null;
                 const sel    = selectedId === intake.substanceId;
                 const effect = getCurrentEffect(intake.substanceId, chartData, now);
+                const atPeak = effect >= 85;
                 return (
-                  <TouchableOpacity
-                    key={intake.id}
-                    onPress={() => setSelectedId(intake.substanceId)}
-                    onLongPress={() => handleDeleteIntake(intake.id, sub.name)}
-                    style={[s.activeCard, { backgroundColor: C.surfaceHigh, borderColor: C.border },
-                      sel && { borderColor: `${sub.color}40`, backgroundColor: `${sub.color}08` }]}
-                    activeOpacity={0.8}
-                  >
-                    <SubIcon substance={sub} size={36} />
-                    <Text style={{ fontSize: 13, fontWeight: '700', color: C.text, marginTop: 6 }} numberOfLines={1}>
-                      {sub.name}
-                    </Text>
-                    <Text style={{ fontSize: 12, color: C.textDim, marginTop: 2 }}>{intake.doseLabel}</Text>
-                    <Text style={{ fontSize: 18, fontWeight: '800', color: sub.color, marginTop: 4 }}>{effect}%</Text>
-                    <Text style={{ fontSize: 10, color: C.textDim }}>{getRemainingTime(intake, now)}</Text>
-                  </TouchableOpacity>
+                  <AnimatedCard key={intake.id} delay={idx * 70}>
+                    <TouchableOpacity
+                      onPress={() => setSelectedId(intake.substanceId)}
+                      onLongPress={() => handleDeleteIntake(intake.id, sub.name)}
+                      style={[s.activeCard, { backgroundColor: C.surfaceHigh, borderColor: C.border },
+                        sel && { borderColor: `${sub.color}40`, backgroundColor: `${sub.color}08` }]}
+                      activeOpacity={0.8}
+                    >
+                      <SubIcon substance={sub} size={36} />
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: C.text, marginTop: 6 }} numberOfLines={1}>
+                        {sub.name}
+                      </Text>
+                      <Text style={{ fontSize: 12, color: C.textDim, marginTop: 2 }}>{intake.doseLabel}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                        <Text style={{ fontSize: 18, fontWeight: '800', color: sub.color }}>{effect}%</Text>
+                        {atPeak && <Text style={{ fontSize: 10 }}>⚡</Text>}
+                      </View>
+                      <Text style={{ fontSize: 10, color: C.textDim }}>{getRemainingTime(intake, now)}</Text>
+                    </TouchableOpacity>
+                  </AnimatedCard>
                 );
               })}
             </View>
@@ -457,16 +573,41 @@ export default function TageskurveScreen() {
 
       </Animated.ScrollView>
 
-      {/* ── FAB ─────────────────────────────── */}
-      <TouchableOpacity
-        style={[s.fab, { backgroundColor: C.accent, shadowColor: C.accent }]}
-        onPress={() => setModalVisible(true)}
-        activeOpacity={0.85}
-      >
-        <Text style={s.fabIcon}>+</Text>
-      </TouchableOpacity>
+      {/* ── FAB + glow ring ─────────────────── */}
+      <View style={s.fabContainer}>
+        <Animated.View style={[s.fabGlow, {
+          backgroundColor: C.accent,
+          opacity: fabPulse.interpolate({ inputRange: [0, 1], outputRange: [0.08, 0.28] }),
+          transform: [{ scale: fabPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.7] }) }],
+        }]} />
+        <TouchableOpacity
+          style={[s.fab, { backgroundColor: C.accent, shadowColor: C.accent }]}
+          onPress={() => setModalVisible(true)}
+          activeOpacity={0.85}
+        >
+          <Text style={s.fabIcon}>+</Text>
+        </TouchableOpacity>
+      </View>
 
       <AddIntakeModal visible={modalVisible} onClose={() => setModalVisible(false)} />
+
+      {/* ── XP floats ────────────────────────── */}
+      {xpFloats.map(f => (
+        <Animated.View
+          key={f.id}
+          pointerEvents="none"
+          style={{
+            position: 'absolute', right: 28, bottom: 110,
+            opacity: f.anim.interpolate({ inputRange: [0, 0.08, 0.7, 1], outputRange: [0, 1, 1, 0] }),
+            transform: [{ translateY: f.anim.interpolate({ inputRange: [0, 1], outputRange: [0, -90] }) }],
+          }}
+        >
+          <View style={[s.xpBubble, { backgroundColor: `${f.color}18`, borderColor: `${f.color}55` }]}>
+            <Text style={{ fontSize: 14 }}>⬆</Text>
+            <Text style={{ fontSize: 14, fontWeight: '800', color: f.color }}>{f.text}</Text>
+          </View>
+        </Animated.View>
+      ))}
     </SafeAreaView>
   );
 }
@@ -521,13 +662,27 @@ const s = StyleSheet.create({
   emptyBtn:     { borderRadius: 16, paddingVertical: 15, paddingHorizontal: 28, alignSelf: 'stretch', alignItems: 'center' },
   emptyBtnText: { fontSize: 15, fontWeight: '700', color: '#000' },
 
-  fab: {
+  fabContainer: {
     position: 'absolute', right: 20,
     bottom: Platform.OS === 'ios' ? 24 : 16,
+    width: 58, height: 58,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  fabGlow: {
+    position: 'absolute',
+    width: 58, height: 58, borderRadius: 29,
+  },
+  fab: {
     width: 58, height: 58, borderRadius: 29,
     alignItems: 'center', justifyContent: 'center',
     shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.5, shadowRadius: 12, elevation: 8,
   },
   fabIcon: { fontSize: 28, color: '#000', fontWeight: '300', marginTop: -2 },
+
+  xpBubble: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    borderRadius: 22, paddingHorizontal: 14, paddingVertical: 9,
+    borderWidth: 1,
+  },
 
 });
