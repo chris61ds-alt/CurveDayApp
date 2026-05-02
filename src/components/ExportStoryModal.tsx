@@ -16,13 +16,14 @@ import {
   Alert,
   Platform,
 } from 'react-native';
+import Svg, { Path, Line, Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import * as MediaLibrary from 'expo-media-library';
 import { useThemeStore } from '../store/themeStore';
 import { useIntakeStore } from '../store/intakeStore';
 import { getSubstance } from '../data/substanceDB';
-import { fmtHour } from '../utils/pkHelpers';
+import { fmtHour, buildChartData } from '../utils/pkHelpers';
 import type { Intake } from '../utils/pkHelpers';
 
 // ── Types ─────────────────────────────────────────────────────
@@ -94,6 +95,144 @@ function intakeDay(i: Intake): string {
   return d.toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
+// ── Mini PK Curve Chart (1d) ──────────────────────────────────
+
+const CHART_W = 272;
+const CHART_H = 90;
+const CHART_PAD = { t: 6, b: 10, l: 2, r: 2 };
+const innerW = CHART_W - CHART_PAD.l - CHART_PAD.r;
+const innerH = CHART_H - CHART_PAD.t - CHART_PAD.b;
+
+function MiniCurveChart({ intakes }: { intakes: Intake[] }) {
+  const chartData = useMemo(() => buildChartData(intakes), [intakes]);
+  const subIds    = useMemo(() => [...new Set(intakes.map(i => i.substanceId))], [intakes]);
+  const windowHours = (chartData.length - 1) / 2;
+
+  const nowH = (Date.now() - (() => {
+    const m = new Date(); m.setHours(0, 0, 0, 0); return m.getTime();
+  })()) / 3_600_000;
+
+  const xOf = (h: number) =>
+    CHART_PAD.l + Math.min(1, Math.max(0, h / windowHours)) * innerW;
+  const yOf = (v: number) =>
+    CHART_PAD.t + innerH - (Math.min(100, Math.max(0, v)) / 100) * innerH;
+
+  return (
+    <Svg width={CHART_W} height={CHART_H}>
+      {/* Horizontal baseline */}
+      <Line
+        x1={CHART_PAD.l} y1={CHART_PAD.t + innerH}
+        x2={CHART_PAD.l + innerW} y2={CHART_PAD.t + innerH}
+        stroke="#1e293b" strokeWidth={1}
+      />
+
+      {/* Per-substance curve */}
+      {subIds.map(subId => {
+        const sub = getSubstance(subId);
+        if (!sub) return null;
+
+        // Build smooth polyline from chart data
+        const pts = chartData
+          .map((row, i) => {
+            const v = (row[subId] as number) ?? 0;
+            return `${xOf(i / 2).toFixed(1)},${yOf(v).toFixed(1)}`;
+          })
+          .join(' ');
+
+        return (
+          <Path
+            key={subId}
+            d={`M ${pts}`}
+            fill="none"
+            stroke={sub.color}
+            strokeWidth={2}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            opacity={0.9}
+          />
+        );
+      })}
+
+      {/* NOW line */}
+      {nowH >= 0 && nowH <= windowHours && (
+        <Line
+          x1={xOf(nowH)} y1={CHART_PAD.t}
+          x2={xOf(nowH)} y2={CHART_PAD.t + innerH}
+          stroke="#ffffff" strokeWidth={1.2}
+          strokeDasharray="3,4"
+          opacity={0.5}
+        />
+      )}
+
+      {/* Hour ticks at 0, 6, 12, 18, 24 */}
+      {[0, 6, 12, 18, 24].map(h => {
+        if (h > windowHours) return null;
+        const x = xOf(h);
+        return (
+          <Line
+            key={h}
+            x1={x} y1={CHART_PAD.t + innerH}
+            x2={x} y2={CHART_PAD.t + innerH + 3}
+            stroke="#334155" strokeWidth={1}
+          />
+        );
+      })}
+    </Svg>
+  );
+}
+
+// ── Mini Activity Chart (7d / 30d) ────────────────────────────
+
+function MiniActivityChart({ intakes, period }: { intakes: Intake[]; period: Period }) {
+  const days = period === '7d' ? 7 : 30;
+  const W = CHART_W, H = 60;
+  const colW = W / days;
+
+  // Build a map: dayIndex → array of substance colors (newest day = right)
+  const now = new Date();
+  const dayBuckets: string[][] = Array.from({ length: days }, () => []);
+
+  intakes.forEach(i => {
+    const ts = i.takenAt ? new Date(i.takenAt) : new Date();
+    const diffDays = Math.floor(
+      (now.setHours(0,0,0,0) - ts.setHours(0,0,0,0)) / 86_400_000,
+    );
+    if (diffDays >= 0 && diffDays < days) {
+      const bucketIdx = days - 1 - diffDays; // 0 = oldest, days-1 = today
+      const sub = getSubstance(i.substanceId);
+      if (sub) dayBuckets[bucketIdx].push(sub.color);
+    }
+  });
+
+  return (
+    <Svg width={W} height={H}>
+      {dayBuckets.map((colors, dayIdx) => {
+        const cx = dayIdx * colW + colW / 2;
+        if (colors.length === 0) {
+          // Empty day marker
+          return (
+            <Circle key={dayIdx} cx={cx} cy={H / 2} r={3}
+              fill="#1e293b" />
+          );
+        }
+        return colors.slice(0, 4).map((color, ci) => (
+          <Circle
+            key={`${dayIdx}-${ci}`}
+            cx={cx}
+            cy={H / 2 - (colors.length - 1) * 5 / 2 + ci * 5}
+            r={4}
+            fill={color}
+            opacity={0.85}
+          />
+        ));
+      })}
+      {/* Baseline */}
+      <Line x1={0} y1={H - 4} x2={W} y2={H - 4}
+        stroke="#1e293b" strokeWidth={1} />
+    </Svg>
+  );
+}
+
 // ── Story Card (this View gets screenshot'd) ──────────────────
 
 interface StoryCardProps {
@@ -113,7 +252,7 @@ function StoryCard({ period, intakes }: StoryCardProps) {
     return tb - ta;  // newest first
   });
 
-  const shown = sorted.slice(0, 7);
+  const shown = sorted.slice(0, 5);
   const overflow = sorted.length - shown.length;
 
   return (
@@ -140,6 +279,19 @@ function StoryCard({ period, intakes }: StoryCardProps) {
 
       {/* ── divider ───────────────────────────────────────── */}
       <View style={sc.divider} />
+
+      {/* ── mini chart ────────────────────────────────────── */}
+      <View style={sc.chartWrapper}>
+        {period === '1d'
+          ? <MiniCurveChart intakes={intakes} />
+          : <MiniActivityChart intakes={intakes} period={period} />
+        }
+        <View style={sc.chartLabel}>
+          <Text style={sc.chartLabelText}>
+            {period === '1d' ? '— Wirkungsverlauf heute' : `— Einnahmen letzte ${period === '7d' ? '7' : '30'} Tage`}
+          </Text>
+        </View>
+      </View>
 
       {/* ── list + stats + footer (flex: 1, space-between ensures footer always visible) */}
       <View style={sc.bottomSection}>
@@ -445,8 +597,21 @@ const sc = StyleSheet.create({
   dateText: { fontSize: 11, color: '#94a3b8', fontWeight: '500' },
 
   divider: {
-    height: 1, backgroundColor: '#1e293b', marginBottom: 12,
+    height: 1, backgroundColor: '#1e293b', marginBottom: 10,
   },
+
+  // Mini chart
+  chartWrapper: {
+    marginBottom: 10,
+    backgroundColor: '#080f1a',
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 0,
+    borderWidth: 1,
+    borderColor: '#1e293b',
+  },
+  chartLabel: { paddingHorizontal: 10, marginTop: 2 },
+  chartLabelText: { fontSize: 8, color: '#334155', fontWeight: '500' },
 
   // Bottom section: flex:1 container that spaces list / stats / footer
   bottomSection: {
