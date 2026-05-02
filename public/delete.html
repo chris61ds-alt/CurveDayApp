@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CurveDay – Konto & Daten löschen</title>
+  <style>
+    :root {
+      --bg: #f8fafc; --card: #ffffff; --accent: #38bdf8;
+      --text: #1e293b; --muted: #64748b; --border: #e2e8f0;
+      --danger: #ef4444; --danger-bg: #fef2f2;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--text);
+      line-height: 1.7; padding: 0 16px 64px;
+    }
+    header {
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+      color: white; padding: 40px 24px 36px;
+      margin: 0 -16px 32px; text-align: center;
+    }
+    header h1 { font-size: 24px; font-weight: 800; }
+    header p  { font-size: 13px; color: #94a3b8; margin-top: 6px; }
+    .wrap { max-width: 680px; margin: 0 auto; }
+    .card {
+      background: var(--card); border-radius: 16px;
+      border: 1px solid var(--border); padding: 28px 24px; margin-bottom: 20px;
+    }
+    .card-danger { border-color: #fecaca; background: var(--danger-bg); }
+    h2 {
+      font-size: 17px; font-weight: 800; margin-bottom: 14px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    h3 { font-size: 14px; font-weight: 700; margin: 16px 0 6px; }
+    p  { font-size: 14px; margin-bottom: 10px; color: var(--text); }
+    ol, ul { padding-left: 20px; margin-bottom: 12px; }
+    li { font-size: 14px; margin-bottom: 6px; }
+    a  { color: var(--accent); font-weight: 600; }
+    .step {
+      display: flex; gap: 14px; align-items: flex-start;
+      background: #f8fafc; border-radius: 12px; padding: 14px;
+      margin-bottom: 10px; border: 1px solid var(--border);
+    }
+    .step-num {
+      background: var(--accent); color: white;
+      font-weight: 800; font-size: 13px;
+      width: 26px; height: 26px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 1px;
+    }
+    .step-body strong { display: block; font-size: 14px; margin-bottom: 2px; }
+    .step-body span   { font-size: 13px; color: var(--muted); }
+    .email-btn {
+      display: inline-block; margin-top: 8px;
+      background: var(--accent); color: #000;
+      font-weight: 700; font-size: 14px;
+      padding: 12px 24px; border-radius: 10px;
+      text-decoration: none;
+    }
+    table {
+      width: 100%; border-collapse: collapse;
+      font-size: 13px; margin-top: 8px;
+    }
+    th {
+      background: #f1f5f9; text-align: left;
+      padding: 9px 12px; border-bottom: 2px solid var(--border);
+      font-size: 11px; text-transform: uppercase;
+      letter-spacing: 0.5px; color: var(--muted);
+    }
+    td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .badge {
+      font-size: 10px; font-weight: 700; padding: 2px 8px;
+      border-radius: 10px; text-transform: uppercase;
+    }
+    .badge-red   { background: #fee2e2; color: #dc2626; }
+    .badge-green { background: #dcfce7; color: #16a34a; }
+    .badge-gray  { background: #f1f5f9; color: #475569; }
+    .notice {
+      background: #fffbeb; border: 1px solid #fde68a;
+      border-radius: 10px; padding: 14px; font-size: 13px;
+      color: #92400e; margin-top: 12px;
+    }
+    footer { text-align: center; font-size: 12px; color: var(--muted); margin-top: 40px; }
+    @media (max-width: 480px) {
+      .card { padding: 18px 14px; }
+      .step { padding: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>💊 CurveDay</h1>
+  <p>Konto &amp; Daten löschen · Account &amp; Data Deletion</p>
+</header>
+
+<div class="wrap">
+
+  <!-- ── IN-APP LÖSCHUNG ───────────────────────────────────── -->
+  <div class="card">
+    <h2>🗑️ Daten direkt in der App löschen</h2>
+    <p>Der schnellste Weg — kein E-Mail, keine Wartezeit:</p>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <strong>Einstellungen öffnen</strong>
+        <span>Tab-Leiste unten → ⚙️ Einstellungen</span>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <strong>„Alle Einnahmen löschen" tippen</strong>
+        <span>Abschnitt „Daten" → rote Schaltfläche → bestätigen</span>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <strong>Optional: App deinstallieren</strong>
+        <span>Entfernt alle verbleibenden lokalen Daten vollständig</span>
+      </div>
+    </div>
+
+    <div class="notice">
+      ℹ️ Lokale Daten (Einnahmen, Profil, Einstellungen) werden sofort und unwiderruflich gelöscht. Es gibt keine Wartezeit.
+    </div>
+  </div>
+
+  <!-- ── KONTO LÖSCHEN ─────────────────────────────────────── -->
+  <div class="card card-danger">
+    <h2>🔐 Cloud-Konto löschen</h2>
+    <p>Wenn du dich mit Google angemeldet hast und dein Cloud-Konto sowie alle synchronisierten Daten löschen möchtest:</p>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <strong>In der App abmelden</strong>
+        <span>Einstellungen → Konto → Abmelden</span>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <strong>Löschung per E-Mail anfordern</strong>
+        <span>Schicke eine E-Mail mit dem Betreff „Kontolöschung CurveDay" an uns</span>
+      </div>
+    </div>
+
+    <a class="email-btn"
+       href="mailto:chris61ds@gmail.com?subject=Kontol%C3%B6schung%20CurveDay&body=Hallo%2C%0A%0Abitte%20l%C3%B6sche%20mein%20CurveDay-Konto%20und%20alle%20damit%20verbundenen%20Daten.%0A%0AMeine%20E-Mail-Adresse%3A%20%5Bbitte%20ausf%C3%BCllen%5D%0A%0AVielen%20Dank">
+      ✉️ E-Mail senden
+    </a>
+
+    <div class="notice" style="margin-top:16px;">
+      ⏱️ Wir bearbeiten Löschanfragen innerhalb von <strong>30 Tagen</strong>. Du erhältst eine Bestätigung per E-Mail sobald dein Konto und alle Cloud-Daten gelöscht wurden.
+    </div>
+  </div>
+
+  <!-- ── WAS WIRD GELÖSCHT ─────────────────────────────────── -->
+  <div class="card">
+    <h2>📋 Was wird gelöscht – was bleibt?</h2>
+    <table>
+      <thead>
+        <tr><th>Datenkategorie</th><th>In-App-Löschung</th><th>Konto-Löschung (E-Mail)</th><th>Aufbewahrung</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Einnahmeprotokolle (lokal)</td>
+          <td><span class="badge badge-red">Sofort gelöscht</span></td>
+          <td><span class="badge badge-red">Sofort gelöscht</span></td>
+          <td>Keine</td>
+        </tr>
+        <tr>
+          <td>Nutzerprofil (lokal)</td>
+          <td><span class="badge badge-red">Sofort gelöscht</span></td>
+          <td><span class="badge badge-red">Sofort gelöscht</span></td>
+          <td>Keine</td>
+        </tr>
+        <tr>
+          <td>Einnahmeprotokolle (Cloud)</td>
+          <td><span class="badge badge-gray">Nicht betroffen</span></td>
+          <td><span class="badge badge-red">Gelöscht ≤ 30 Tage</span></td>
+          <td>Keine nach Löschung</td>
+        </tr>
+        <tr>
+          <td>E-Mail-Adresse (Authentifizierung)</td>
+          <td><span class="badge badge-gray">Nicht betroffen</span></td>
+          <td><span class="badge badge-red">Gelöscht ≤ 30 Tage</span></td>
+          <td>Keine nach Löschung</td>
+        </tr>
+        <tr>
+          <td>Anonyme Absturzberichte</td>
+          <td><span class="badge badge-gray">Nicht anwendbar</span></td>
+          <td><span class="badge badge-gray">Nicht anwendbar</span></td>
+          <td>Keine (werden nicht gesammelt)</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="margin-top:12px;font-size:13px;color:var(--muted);">
+      CurveDay sammelt keine Analyse-, Werbe- oder Standortdaten. Es gibt keine weiteren Daten, die gelöscht werden müssten.
+    </p>
+  </div>
+
+  <!-- ── NUR DATEN LÖSCHEN (ohne Konto) ───────────────────── -->
+  <div class="card">
+    <h2>📂 Nur Daten löschen (ohne Konto zu löschen)</h2>
+    <p>Du kannst einzelne Datenkategorien löschen, ohne dein Konto zu schließen:</p>
+    <ul>
+      <li><strong>Einnahmeprotokolle:</strong> Einstellungen → Alle Einnahmen löschen</li>
+      <li><strong>Nutzerprofil:</strong> Einstellungen → Profil bearbeiten → Felder leeren und speichern</li>
+      <li><strong>Cloud-Daten:</strong> E-Mail an <a href="mailto:chris61ds@gmail.com?subject=Datenlöschung%20CurveDay%20(ohne%20Konto)">chris61ds@gmail.com</a> mit Betreff „Datenlöschung CurveDay (ohne Konto)"</li>
+    </ul>
+  </div>
+
+  <!-- ── ENGLISH ───────────────────────────────────────────── -->
+  <div class="card">
+    <h2>🇬🇧 English</h2>
+    <h3>Delete data in the app (instant)</h3>
+    <p>Settings → Delete all intakes → confirm. Or uninstall the app to remove all local data.</p>
+
+    <h3>Delete your account &amp; cloud data</h3>
+    <ol>
+      <li>Sign out in the app: Settings → Account → Sign out</li>
+      <li>Email <a href="mailto:chris61ds@gmail.com?subject=Account%20Deletion%20CurveDay">chris61ds@gmail.com</a> with subject: <strong>"Account Deletion CurveDay"</strong></li>
+      <li>We will delete your account and all associated cloud data within <strong>30 days</strong> and confirm by email.</li>
+    </ol>
+
+    <h3>What gets deleted</h3>
+    <p>All intake logs, user profile data, and authentication data (email address) are permanently deleted. CurveDay does not collect analytics, advertising, or location data.</p>
+  </div>
+
+  <!-- ── KONTAKT ───────────────────────────────────────────── -->
+  <div class="card" style="text-align:center;">
+    <h2 style="justify-content:center;">✉️ Kontakt / Contact</h2>
+    <p>Fragen zur Datenlöschung · Questions about data deletion</p>
+    <a href="mailto:chris61ds@gmail.com?subject=Datenlöschung%20CurveDay"
+       style="display:inline-block;margin-top:8px;background:var(--accent);color:#000;font-weight:700;font-size:14px;padding:12px 28px;border-radius:10px;text-decoration:none;">
+      chris61ds@gmail.com
+    </a>
+    <p style="margin-top:16px;font-size:12px;color:var(--muted);">
+      Antwortzeit / Response time: ≤ 30 Tage / days
+    </p>
+  </div>
+
+</div>
+
+<footer>
+  <p>CurveDay · Christoph Lukas Eisner · <a href="privacy-policy.html">Datenschutzerklärung</a></p>
+  <p style="margin-top:4px;">Stand / Last updated: Mai 2026</p>
+</footer>
+
+</body>
+</html>
