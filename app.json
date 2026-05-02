@@ -15,14 +15,14 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "de.curveday.app"
+      "bundleIdentifier": "de.christuslukas.curveday"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#060b13"
       },
-      "package": "de.curveday.app",
+      "package": "de.christuslukas.curveday",
       "edgeToEdgeEnabled": true
     },
     "web": {
