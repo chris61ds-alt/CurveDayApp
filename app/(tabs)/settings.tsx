@@ -573,9 +573,9 @@ export default function SettingsScreen() {
         <Section title={t.settingsSectionApp}>
           <RowInfo icon="📦" label={t.settingsVersion}        value="1.0.0" />
           <Divider />
-          <RowInfo icon="⚗️" label={t.settingsSubstancesCount}     value="50" />
+          <RowInfo icon="⚗️" label={t.settingsSubstancesCount}     value="56" />
           <Divider />
-          <RowInfo icon="🔬" label={t.settingsInteractionsCount}  value="36" />
+          <RowInfo icon="🔬" label={t.settingsInteractionsCount}  value="51" />
           <Divider />
           <RowAction icon="✉️" label={t.settingsFeedback}
             sub="chris61ds@gmail.com"

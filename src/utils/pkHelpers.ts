@@ -7,6 +7,7 @@ export interface Intake {
   id: string;
   takenAt?: string;   // ISO-Timestamp, z.B. "2026-04-30T23:00:00.000Z"
                       // Ermöglicht Carry-over von gestern. Falls fehlt: timeH = heute.
+  notificationIds?: string[]; // scheduled local notification IDs – cancelled on delete
 }
 
 export interface ChartRow {

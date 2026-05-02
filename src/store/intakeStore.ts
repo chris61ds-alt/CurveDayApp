@@ -1,7 +1,13 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Intake } from '../utils/pkHelpers';
+import { Intake, isActive, getIntakeHourToday } from '../utils/pkHelpers';
 import { pushIntake, deleteIntake, pullIntakes, syncAllIntakes } from '../services/syncService';
+import {
+  scheduleIntakeNotifications,
+  cancelIntakeNotifications,
+  notifyInteraction,
+} from '../services/notifications';
+import { getSubstance, getActiveInteractions } from '../data/substanceDB';
 
 const STORAGE_KEY = '@curveday/intakes';
 
@@ -37,19 +43,78 @@ export const useIntakeStore = create<IntakeStore>((set, get) => ({
   setSelectedId: (id) => set({ selectedId: id }),
 
   addIntake: async (intake) => {
+    const takenAt = intake.takenAt ?? new Date().toISOString();
     const newIntake: Intake = {
       ...intake,
       id: Date.now().toString(),
-      takenAt: intake.takenAt ?? new Date().toISOString(), // ISO-Timestamp für Carry-over
+      takenAt,
     };
+
+    // ── Smart PK notifications ────────────────────────────────
+    const substance = getSubstance(newIntake.substanceId);
+    if (substance) {
+      // 1. Schedule onset / peak / wearoff / sleep notifications
+      const sleepStartHour = await (async () => {
+        try {
+          const raw = await AsyncStorage.getItem('@curveday/userProfile');
+          if (raw) {
+            const profile = JSON.parse(raw);
+            return typeof profile.sleepStart === 'number' ? profile.sleepStart : undefined;
+          }
+        } catch {}
+        return undefined;
+      })();
+
+      const notifIds = await scheduleIntakeNotifications(
+        newIntake.id,
+        newIntake.substanceId,
+        takenAt,
+        {
+          name: substance.name,
+          icon: substance.icon,
+          pk: {
+            onsetHours:    substance.pk.onsetHours    ?? 0,
+            tmaxHours:     substance.pk.tmaxHours     ?? 1,
+            durationHours: substance.pk.durationHours ?? 4,
+            halflifeHours: substance.pk.halflifeHours ?? 2,
+          },
+        },
+        sleepStartHour,
+      );
+      if (notifIds.length) newIntake.notificationIds = notifIds;
+
+      // 2. Interaction warnings for critical/high combos with active intakes
+      const nowH = (Date.now() - new Date().setHours(0, 0, 0, 0)) / 3_600_000;
+      const activeIds = get().intakes
+        .filter(i => isActive(i, nowH))
+        .map(i => i.substanceId);
+
+      if (activeIds.length) {
+        const interactions = getActiveInteractions([...activeIds, newIntake.substanceId]);
+        for (const ix of interactions) {
+          const partner = ix.a === newIntake.substanceId ? ix.b : ix.a;
+          if (partner !== newIntake.substanceId) {
+            const partnerSub = getSubstance(partner);
+            if (partnerSub) {
+              notifyInteraction(substance.name, partnerSub.name, ix.severity, ix.note).catch(() => {});
+            }
+          }
+        }
+      }
+    }
+
     const updated = [...get().intakes, newIntake];
     set({ intakes: updated, selectedId: intake.substanceId });
     await persist(updated);
-    // Cloud Sync (fire & forget)
     pushIntake(newIntake).catch(() => {});
   },
 
   removeIntake: async (id) => {
+    // Cancel any scheduled notifications for this intake
+    const target = get().intakes.find(i => i.id === id);
+    if (target?.notificationIds?.length) {
+      cancelIntakeNotifications(target.notificationIds).catch(() => {});
+    }
     const updated = get().intakes.filter((i) => i.id !== id);
     set({ intakes: updated });
     await persist(updated);
