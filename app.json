@@ -3,7 +3,7 @@
     "name": "CurveDay",
     "slug": "curveday",
     "scheme": "curveday",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -23,6 +23,7 @@
         "backgroundColor": "#060b13"
       },
       "package": "de.christuslukas.curveday",
+      "versionCode": 2,
       "edgeToEdgeEnabled": true
     },
     "web": {

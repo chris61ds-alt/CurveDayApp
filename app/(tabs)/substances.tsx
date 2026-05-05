@@ -278,9 +278,9 @@ const s = StyleSheet.create({
   searchIcon: { fontSize: 16, marginRight: 8 },
   search:     { flex: 1, fontSize: 15, paddingVertical: 11 },
 
-  chips:        { maxHeight: 44 },
-  chipsContent: { paddingHorizontal: 16, gap: 8 },
-  chip:         { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },
+  chips:        { height: 52 },
+  chipsContent: { paddingHorizontal: 16, paddingVertical: 6, gap: 8 },
+  chip:         { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
   chipText:     { fontSize: 12 },
 
   list: { padding: 16, paddingBottom: 32 },

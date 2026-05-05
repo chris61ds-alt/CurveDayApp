@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import { View, Text, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeStore } from '../../src/store/themeStore';
 import { useT } from '../../src/i18n';
 
@@ -32,6 +33,12 @@ function TabIcon({ name, nameOutline, label, focused }: {
 export default function TabLayout() {
   const { colors: C } = useThemeStore();
   const t = useT();
+  const insets = useSafeAreaInsets();
+
+  // On Android with edgeToEdgeEnabled the system nav bar overlays the app.
+  // We must add insets.bottom to height AND paddingBottom so icons sit above it.
+  const tabBarHeight     = Platform.OS === 'ios' ? 82   : 56 + insets.bottom;
+  const tabBarPadBottom  = Platform.OS === 'ios' ? 22   : insets.bottom + 4;
 
   return (
     <Tabs
@@ -41,8 +48,8 @@ export default function TabLayout() {
           backgroundColor: C.isDark ? '#07101d' : C.surface,
           borderTopColor: C.border,
           borderTopWidth: 1,
-          height: Platform.OS === 'ios' ? 82 : 66,
-          paddingBottom: Platform.OS === 'ios' ? 22 : 8,
+          height: tabBarHeight,
+          paddingBottom: tabBarPadBottom,
           paddingTop: 4,
         },
         tabBarShowLabel: false,
