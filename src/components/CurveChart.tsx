@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
-import { View, useWindowDimensions, PanResponder, Animated, Easing } from 'react-native';
+import { View, useWindowDimensions, PanResponder, Animated, Easing, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import Svg, { Path, Line, Circle, Rect, Text as SvgText, G, Defs, LinearGradient, Stop } from 'react-native-svg';
 
 // Animated SVG primitives (useNativeDriver: false — layout/SVG props)
@@ -494,6 +494,54 @@ export function CurveChart({
         )}
 
       </Svg>
+
+      {/* ── Zoom buttons ── */}
+      <View style={cs.zoomRow}>
+        <TouchableOpacity
+          style={[cs.zoomBtn, { borderColor: accentColor + '40', backgroundColor: accentColor + '15' }]}
+          onPress={() => {
+            const [s, e] = zoomRef.current;
+            const span   = e - s;
+            const center = Math.round((s + e) / 2);
+            const half   = Math.max(6, Math.round(span / 4)); // half the current span
+            const nS     = Math.max(0, center - half);
+            const nE     = Math.min(MAX_IDX, center + half);
+            if (nE - nS >= 4) setZoomRange([nS, nE]);
+          }}
+          activeOpacity={0.7}
+        >
+          <Text style={[cs.zoomIcon, { color: accentColor }]}>+</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[cs.zoomBtn, { borderColor: accentColor + '40', backgroundColor: accentColor + '15' }]}
+          onPress={() => {
+            const [s, e] = zoomRef.current;
+            const span   = e - s;
+            const center = Math.round((s + e) / 2);
+            const half   = Math.min(MAX_IDX, Math.round(span)); // double the current span
+            const nS     = Math.max(0, center - half);
+            const nE     = Math.min(MAX_IDX, center + half);
+            if (nE - nS >= 4) setZoomRange([nS, nE]);
+            else setZoomRange([0, MAX_IDX]); // full reset
+          }}
+          activeOpacity={0.7}
+        >
+          <Text style={[cs.zoomIcon, { color: accentColor }]}>−</Text>
+        </TouchableOpacity>
+      </View>
+
     </View>
   );
 }
+
+const cs = StyleSheet.create({
+  zoomRow: {
+    position: 'absolute', bottom: 28, right: 10,
+    flexDirection: 'row', gap: 6,
+  },
+  zoomBtn: {
+    width: 30, height: 30, borderRadius: 10, borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  zoomIcon: { fontSize: 18, fontWeight: '700', lineHeight: 22 },
+});

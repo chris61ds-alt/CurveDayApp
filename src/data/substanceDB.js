@@ -2269,6 +2269,98 @@ export const SUBSTANCES = [
     mechanism: "PPI – irreversibel Hemmung der H+/K+-ATPase (Protonenpumpe) in Belegzellen",
   },
 
+  // ════════════════════════════════════════
+  // GENUSSMITTEL (LEGAL / REZEPTPFLICHTIG)
+  // ════════════════════════════════════════
+
+  {
+    id: "cannabis_thc",
+    name: "Cannabis (THC)",
+    nameUS: "Cannabis (THC)",
+    markets: ["DE", "AT", "CH", "US", "CA", "NL"],
+    brandNames: ["Dronabinol", "Bedrocan", "Sativex", "THC-Blüten"],
+    category: "recreational",
+    icon: "🌿",
+    color: "#4ade80",
+    doseUnit: "mg THC",
+    commonDoses: [5, 10, 20],
+    defaultDose: 10,
+    prescription: false,
+    controlled: false,
+    legalNote: "🇩🇪 In Deutschland seit April 2024 legalisiert (CanG). Für Erwachsene (18+) bis 25g Eigenbesitz erlaubt. Kein Verkauf an Minderjährige.",
+    pk: {
+      onsetHours: 0.08,      // Inhalation: ~5 min
+      tmaxHours: 0.17,       // ~10 min (inhaliert)
+      durationHours: 3,      // 2–4h (inhaliert)
+      halflifeHours: 2,      // aktive THC-Phase ~2h (danach Metaboliten)
+      bioavailability: 25,   // inhaliert: 10–35%, variabel
+      proteinBinding: 97,
+      foodEffect: "major",   // oral: stark verlangsamt (>1h Onset)
+      foodNote: "Oral/Edibles: Onset 30–120 min, Peak 2–4h, Dauer 6–8h. Lipophil – Fett erhöht Aufnahme.",
+      curveType: "acute",
+      routeNote: "Werte für Inhalation. Oral: Onset ×10, Dauer ×2–3, Peak ×2",
+    },
+    effects: { relaxation: 80, mood: 70, appetite: 85, cognition: -30, anxiety: -15 },
+    effectLabel: "Entspannung",
+    maxEffectScore: 75,
+    timing: {
+      recommendation: "Nicht kombinieren mit Sedativa, Alkohol oder Antidepressiva",
+      avoidBeforeSleepH: 3,
+    },
+    warnings: [
+      "🇩🇪 Nur für Erwachsene (18+) – seit April 2024 in Deutschland legal",
+      "⚠️ Kein Autofahren (Fahrtüchtigkeit 24h beeinträchtigt möglich)",
+      "Verstärkt sedierende Medikamente (Opiate, Benzos, Schlafmittel)",
+      "Kann Angstzustände verstärken – dosisabhängig",
+      "Nicht während Schwangerschaft oder bei psychiatrischen Vorerkrankungen",
+    ],
+    mechanism: "CB1/CB2-Agonist (Endocannabinoid-System) – moduliert Dopamin, GABA, Glutamat",
+  },
+
+  {
+    id: "ketamin",
+    name: "Ketamin (therapeutisch)",
+    nameUS: "Ketamine (therapeutic)",
+    markets: ["DE", "US", "AT", "CH"],
+    brandNames: ["Ketanest", "Ketalar", "Spravato (Esketamin, nasal)"],
+    category: "recreational",
+    icon: "💉",
+    color: "#a78bfa",
+    doseUnit: "mg",
+    commonDoses: [50, 100, 200],
+    defaultDose: 100,
+    prescription: true,
+    controlled: true,
+    rxNote: "Rx – Verschreibungspflichtig (BtMG-Ausnahme für medizinischen Einsatz). Anwendung nur unter ärztlicher Aufsicht.",
+    therapeuticNote: "Ketamin wird klinisch bei therapieresistenter Depression, PTSD und Schmerztherapie eingesetzt. Esketamin (Spravato) ist EU-zugelassen.",
+    pk: {
+      onsetHours: 0.02,      // IV: sofort; IM: ~5min; nasal: ~10min
+      tmaxHours: 0.08,       // ~5 min (IV/IM)
+      durationHours: 1,      // dissoziativer Effekt: 45–90 min (IM)
+      halflifeHours: 2.5,    // 2–3h (Plasmahalb­wertszeit)
+      bioavailability: 93,   // IM ~93%, nasal ~45%, oral ~17%
+      proteinBinding: 47,
+      foodEffect: "minor",
+      curveType: "acute",
+      routeNote: "Werte für IM-Injektion. Nasal (Spravato): Onset 10–20 min, Dauer 2–4h",
+    },
+    effects: { dissociation: 90, analgesia: 85, antidepressant: 70, sedation: 60 },
+    effectLabel: "Analgesie / Dissoziation",
+    maxEffectScore: 82,
+    timing: {
+      recommendation: "Ausschließlich unter ärztlicher Aufsicht – Notfallausstattung erforderlich",
+    },
+    warnings: [
+      "⚕️ Nur unter ärztlicher Überwachung – BtMG-pflichtig",
+      "Atemdepression bei hohen Dosen möglich",
+      "Nicht kombinieren mit Alkohol, Benzodiazepinen oder Opioiden",
+      "Blutdruck- und Herzfrequenzanstieg – kontraindiziert bei unkontrollierter Hypertonie",
+      "Kein Autofahren nach Einnahme",
+      "Missbrauchs- und Abhängigkeitspotential (psychisch)",
+    ],
+    mechanism: "NMDA-Rezeptor-Antagonist – Glutamat-Blockade; Antidepressiver Effekt via AMPA-Aktivierung und BDNF-Freisetzung",
+  },
+
 ];
 
 
@@ -2343,6 +2435,25 @@ export const INTERACTIONS = [
   { a:"adderall",    b:"sertralin",       type:"risk",     severity:"moderate", note:"Amphetamines increase serotonin release – moderate serotonin syndrome risk, especially at higher doses" },
   { a:"adderall",    b:"escitalopram",    type:"risk",     severity:"moderate", note:"Same as sertralin – serotonergic risk with SSRI combination" },
   { a:"adderall",    b:"melatonin",       type:"antagonist",severity:"moderate",note:"Amphetamine delays melatonin onset significantly. Must allow ≥8h washout before sleep aids." },
+
+  // ── Cannabis (THC) Interaktionen ─────────────────────────────
+  { a:"cannabis_thc", b:"alkohol",        type:"risk",       severity:"high",     note:"⚠️ Starke gegenseitige Verstärkung: Übelkeit, Angst, Blackout ('Greening out') – erhöhtes Risiko besonders beim Mischen" },
+  { a:"cannabis_thc", b:"sertralin",      type:"mixed",      severity:"moderate", note:"THC kann serotoninerge Effekte modulieren; leicht erhöhtes Serotonin-Syndrom-Risiko bei hohen Dosen" },
+  { a:"cannabis_thc", b:"escitalopram",   type:"mixed",      severity:"moderate", note:"THC + SSRI: Wechselwirkung über CYP2C9/3A4 – Plasmaspiegel des SSRIs kann erhöht sein" },
+  { a:"cannabis_thc", b:"diphenhydramin", type:"risk",       severity:"high",     note:"⚠️ Additive ZNS-Dämpfung – starke Sedierung, kognitive Beeinträchtigung" },
+  { a:"cannabis_thc", b:"doxylamin",      type:"risk",       severity:"high",     note:"⚠️ Additive Sedierung – Benommenheit, Koordinationsstörungen" },
+  { a:"cannabis_thc", b:"melatonin",      type:"mixed",      severity:"low",      note:"THC kann Einschlafen erleichtern, unterdrückt aber REM-Schlaf – Melatonin kombiniert möglicherweise kontraproduktiv" },
+  { a:"cannabis_thc", b:"mph_ir",         type:"mixed",      severity:"moderate", note:"THC + MPH: Gegenläufige Effekte auf Dopamin und Fokus – individuelle Wechselwirkung, Herzrate kann steigen" },
+  { a:"cannabis_thc", b:"lisdex",         type:"mixed",      severity:"moderate", note:"THC dämpft Amphetamin-Wirkung teils, erhöht aber Herzrate – Kombination nicht empfohlen" },
+  { a:"cannabis_thc", b:"koffein",        type:"mixed",      severity:"low",      note:"Koffein kann THC-Angst verstärken; gleichzeitig kleine stimulierende Gegensteuerung möglich" },
+
+  // ── Ketamin Interaktionen ─────────────────────────────────────
+  { a:"ketamin",      b:"alkohol",        type:"risk",       severity:"critical", note:"⚠️ KRITISCH: Atemdepression – beides dämpft ZNS stark. Lebensgefahr bei Kombination!" },
+  { a:"ketamin",      b:"diphenhydramin", type:"risk",       severity:"critical", note:"⚠️ KRITISCH: Additive ZNS-Dämpfung und Sedierung – Atemdepression möglich" },
+  { a:"ketamin",      b:"doxylamin",      type:"risk",       severity:"critical", note:"⚠️ KRITISCH: Starke gegenseitige Verstärkung der Sedierung" },
+  { a:"ketamin",      b:"sertralin",      type:"risk",       severity:"moderate", note:"Ketamin hat serotonerge Effekte – Risiko für Serotonin-Syndrom bei SSRI-Kombination" },
+  { a:"ketamin",      b:"escitalopram",   type:"risk",       severity:"moderate", note:"Wie Sertralin – serotoninerges Risiko, ärztliche Überwachung nötig" },
+  { a:"ketamin",      b:"cannabis_thc",   type:"risk",       severity:"high",     note:"⚠️ Beide dissoziativ/sedierend – starke gegenseitige Verstärkung, Desorientierung, Panik möglich" },
 
 ];
 

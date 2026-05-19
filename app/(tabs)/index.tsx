@@ -1,7 +1,7 @@
 import React, { useMemo, useEffect, useRef, useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  Animated, Easing, Platform, Alert, useWindowDimensions,
+  Animated, Easing, Platform, Alert, useWindowDimensions, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useIntakeStore } from '../../src/store/intakeStore';
@@ -20,6 +20,24 @@ import { AddIntakeModal } from '../../src/components/AddIntakeModal';
 
 // ── Zustandsbeschreibung ──────────────────────────────────────
 import type { Strings } from '../../src/i18n/strings';
+
+const MASCOT_IMAGES: Record<string, any> = {
+  tired:            require('../../assets/state/tired.jpeg'),
+  energetic:        require('../../assets/state/energetic.jpeg'),
+  nervous:          require('../../assets/state/nervous.jpeg'),
+  focused:          require('../../assets/state/focused.jpeg'),
+  dizzy:            require('../../assets/state/dizzy.jpeg'),
+  happy:            require('../../assets/state/happy.jpeg'),
+  relaxed:          require('../../assets/state/relaxed.jpeg'),
+  confused:         require('../../assets/state/confused.jpeg'),
+  peacefull:        require('../../assets/state/peacefull.jpeg'),
+  anxious:          require('../../assets/state/anxious.jpeg'),
+  energeticFocused: require('../../assets/state/Energetic + Focused.jpeg'),
+  euphoricMuted:    require('../../assets/state/Euphoric + Muted.jpeg'),
+  focusedConfused:  require('../../assets/state/Focused + Confused.jpeg'),
+  nervousTired:     require('../../assets/state/Nervous + Tired.jpeg'),
+  tiredDizzy:       require('../../assets/state/tired&dizzy.jpeg'),
+};
 
 function getStateMap(t: Strings): Record<string, { label: string; emoji: string; color: string }> {
   return {
@@ -68,6 +86,45 @@ function computeCurrentState(
   if (!mapped) return null;
   const strength = top[1] > 60 ? t.homeStateStrong : top[1] > 25 ? t.homeStateModerate : t.homeStateLight;
   return { ...mapped, strength };
+}
+
+function getMascotKey(
+  state: { label: string; emoji: string; color: string; strength: string } | null,
+  activeCount: number,
+  interactions: any[],
+  substanceIds: string[],
+): string {
+  if (activeCount === 0) return 'tired';
+  const hasCritical = interactions.some((ix: any) => ix.severity === 'critical');
+  if (hasCritical) return 'anxious';
+  const hasHigh = interactions.some((ix: any) => ix.severity === 'high');
+  if (hasHigh && activeCount >= 2) return 'nervous';
+  const hasADHD     = substanceIds.some(id => ['mph_ir','mph_la','lisdex','adderall'].includes(id));
+  const hasCaffeine = substanceIds.some(id => ['koffein','espresso','energy_drink','filter_coffee','kaffee_filter','cold_brew'].includes(id));
+  const hasAlcohol  = substanceIds.some(id => ['alkohol','bier_klein','bier_gross','wein_rot','wein_weiss','cocktail','shot','sekt'].includes(id));
+  if (hasADHD && hasCaffeine) return 'energeticFocused';
+  if (!state) return activeCount >= 3 ? 'confused' : 'happy';
+  if (activeCount >= 3 && interactions.length > 0) return 'confused';
+  if (hasAlcohol && activeCount >= 2) return 'euphoricMuted';
+  switch (state.emoji) {
+    case '🎯': return 'focused';
+    case '⚡': return state.strength === 'stark' || state.strength === 'strong' ? 'energetic' : 'nervous';
+    case '😴': return 'tired';
+    case '😌': return 'relaxed';
+    case '🌿': return 'peacefull';
+    case '😊': return 'happy';
+    case '🧠': return 'focused';
+    case '💆': return 'relaxed';
+    case '☺️': return hasAlcohol ? 'dizzy' : 'happy';
+    default:   return 'happy';
+  }
+}
+
+function getGreeting(nowH: number): string {
+  if (nowH >= 5  && nowH < 12) return 'Guten Morgen ☀️';
+  if (nowH >= 12 && nowH < 17) return 'Guten Tag 👋';
+  if (nowH >= 17 && nowH < 22) return 'Guten Abend 🌙';
+  return 'Nacht-Eule 🦉';
 }
 
 // ── Animated card: spring-entrance on mount ───────────────────
@@ -297,7 +354,10 @@ export default function TageskurveScreen() {
           <View style={[s.logoIcon, { backgroundColor: C.surfaceHigh, borderColor: `${C.accent}30` }]}>
             <Text style={{ fontSize: 13 }}>〜</Text>
           </View>
-          <Text style={{ fontSize: 14, fontWeight: '700', color: C.text }}>CurveDay</Text>
+          <View>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: C.text }}>CurveDay</Text>
+            <Text style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>{getGreeting(now)}</Text>
+          </View>
         </View>
         <View style={s.dateRow}>
           <Text style={{ fontSize: 12, color: C.textDim }}>
@@ -318,7 +378,9 @@ export default function TageskurveScreen() {
             nowHour={now} height={160}
           />
           <View style={s.emptyContent}>
-            <Text style={s.emptyEmoji}>💊</Text>
+            <View style={s.mascotImgWrapper}>
+              <Image source={MASCOT_IMAGES.tired} style={[s.mascotImg, { width: 160, height: 80 }]} resizeMode="contain" />
+            </View>
             <Text style={{ fontSize: 22, fontWeight: '800', color: C.text, textAlign: 'center', marginBottom: 8, letterSpacing: -0.5 }}>
               {t.homeEmptyTitle}
             </Text>
@@ -426,7 +488,7 @@ export default function TageskurveScreen() {
         {/* ── AKTIVE SUBSTANZEN ──────────────── */}
         <View style={[s.card, { backgroundColor: C.surface, borderColor: C.border }]}>
           <View style={s.cardHeader}>
-            <Text style={{ fontSize: 11, fontWeight: '600', color: C.textDim, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: C.textDim, textTransform: 'uppercase', letterSpacing: 0.6 }}>
               {t.homeActiveNow}
             </Text>
             <View style={[s.activeBadge, { backgroundColor: C.surfaceHigh, borderColor: C.borderMid }]}>
@@ -436,16 +498,32 @@ export default function TageskurveScreen() {
             </View>
           </View>
 
-          {/* Current state description */}
-          {activeIntakes.length > 0 && (() => {
-            const state = computeCurrentState(activeIntakes, chartData, now, t);
-            if (!state) return null;
+          {/* Mascot card */}
+          {(() => {
+            const state      = activeIntakes.length > 0 ? computeCurrentState(activeIntakes, chartData, now, t) : null;
+            const mascotKey  = getMascotKey(state, activeIntakes.length, interactions, activeIntakes.map(i => i.substanceId));
+            const mascotImg  = MASCOT_IMAGES[mascotKey];
+            const cardColor  = state?.color ?? C.textDim;
+            const phrase     = activeIntakes.length === 0
+              ? 'Nichts aktiv – alles ruhig 😴'
+              : state ? `${state.label} · ${state.strength}` : 'Aktiv';
             return (
-              <View style={[s.stateRow, { backgroundColor: `${state.color}12`, borderColor: `${state.color}30` }]}>
-                <Text style={{ fontSize: 20 }}>{state.emoji}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 15, fontWeight: '700', color: state.color }}>{state.label}</Text>
-                  <Text style={{ fontSize: 11, color: C.textDim }}>{t.homeCurrentState} · {state.strength}</Text>
+              <View style={[s.mascotCard, { backgroundColor: `${cardColor}10`, borderColor: `${cardColor}25` }]}>
+                <View style={s.mascotImgWrapper}>
+                  <Image source={mascotImg} style={s.mascotImg} resizeMode="contain" />
+                </View>
+                <View style={{ flex: 1, paddingLeft: 14 }}>
+                  <Text style={{ fontSize: 16, fontWeight: '800', color: cardColor, letterSpacing: -0.3 }}>
+                    {state?.label ?? 'Alles ruhig'}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: C.textDim, marginTop: 3 }}>
+                    {activeIntakes.length === 0 ? 'Keine aktiven Substanzen' : `${state?.strength ?? ''} · ${activeIntakes.length} aktiv`}
+                  </Text>
+                  {activeIntakes.length > 0 && (
+                    <Text style={{ fontSize: 11, color: C.textMuted ?? C.textDim, marginTop: 5 }} numberOfLines={1}>
+                      {activeIntakes.map(i => getSubstance(i.substanceId)?.name).filter(Boolean).join(' · ')}
+                    </Text>
+                  )}
                 </View>
               </View>
             );
@@ -681,42 +759,45 @@ const s = StyleSheet.create({
   nowPill:    { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1 },
   nowDot:     { width: 6, height: 6, borderRadius: 3 },
 
-  card:       { marginHorizontal: 14, marginTop: 12, borderRadius: 16, padding: 16, borderWidth: 1 },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  activeBadge:{ borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1 },
+  card:       { marginHorizontal: 14, marginTop: 14, borderRadius: 20, padding: 18, borderWidth: 1 },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  activeBadge:{ borderRadius: 12, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 1 },
 
   legendRow:  { flexDirection: 'row', alignItems: 'center', gap: 8 },
   legendChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
   legendDot:  { width: 9, height: 9, borderRadius: 4.5, marginTop: 1 },
 
   pillRow:    { flexDirection: 'row', gap: 8 },
-  intakePill: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 7, borderWidth: 1 },
+  intakePill: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1 },
 
-  activeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  activeCard: { flex: 1, minWidth: 100, borderRadius: 14, padding: 12, alignItems: 'center', borderWidth: 1 },
-  stateRow:   { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 12, padding: 12, marginBottom: 12, borderWidth: 1 },
+  activeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  activeCard: { flex: 1, minWidth: 110, borderRadius: 16, padding: 14, alignItems: 'center', borderWidth: 1 },
+  stateRow:     { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 12, padding: 12, marginBottom: 12, borderWidth: 1 },
+  mascotCard:   { flexDirection: 'row', alignItems: 'center', borderRadius: 16, padding: 14, marginBottom: 14, borderWidth: 1 },
+  mascotImgWrapper: { width: 150, height: 78, borderRadius: 14, backgroundColor: 'white', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  mascotImg:    { width: 160, height: 88 },
   emptyInline:{ paddingVertical: 16, alignItems: 'center' },
 
   detailHeader: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 12, marginBottom: 14 },
   effectChips:  { flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: 6 },
-  chip:         { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1 },
-  pkGrid:       { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
-  pkCell:       { flex: 1, minWidth: 80, borderRadius: 10, padding: 10, alignItems: 'center' },
-  warnBox:      { borderRadius: 10, padding: 12, borderWidth: 1 },
+  chip:         { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1 },
+  pkGrid:       { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 14 },
+  pkCell:       { flex: 1, minWidth: 80, borderRadius: 12, padding: 12, alignItems: 'center' },
+  warnBox:      { borderRadius: 12, padding: 14, borderWidth: 1 },
 
   sleepWarnBox:   { marginTop: 10, borderRadius: 10, padding: 10, borderWidth: 1 },
   sleepWarnTitle: { fontSize: 12, fontWeight: '600', marginBottom: 3 },
   sleepWarnItem:  { fontSize: 11, lineHeight: 18 },
 
-  ixCard:    { borderRadius: 12, padding: 12, marginTop: 10, borderWidth: 1, borderLeftWidth: 3 },
-  ixHeader:  { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+  ixCard:    { borderRadius: 14, padding: 14, marginTop: 12, borderWidth: 1, borderLeftWidth: 3 },
+  ixHeader:  { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
 
-  insightRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 10 },
-  insightDot: { width: 6, height: 6, borderRadius: 3, marginTop: 7 },
+  insightRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginTop: 12 },
+  insightDot: { width: 8, height: 8, borderRadius: 4, marginTop: 6 },
 
   retakeCard: { opacity: 1, alignItems: 'center' },
   retakeBtn: {
-    marginTop: 8, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5,
+    marginTop: 10, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7,
     borderWidth: 1, alignItems: 'center',
   },
 
