@@ -377,21 +377,21 @@ export default function TageskurveScreen() {
       <View style={[s.header, { borderBottomColor: C.border }]}>
         <View style={s.logoRow}>
           <View style={[s.logoIcon, { backgroundColor: C.surfaceHigh, borderColor: `${C.accent}30` }]}>
-            <Text style={{ fontSize: 13 }}>〜</Text>
+            <Text style={{ fontSize: 14 }}>〜</Text>
           </View>
           <View>
-            <Text style={{ fontSize: 14, fontWeight: '700', color: C.text }}>CurveDay</Text>
-            <Text style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>{getGreeting(now)}</Text>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: C.text }}>CurveDay</Text>
+            <Text style={{ fontSize: 13, color: C.textDim, marginTop: 1 }}>{getGreeting(now)}</Text>
           </View>
         </View>
         <View style={s.dateRow}>
-          <Text style={{ fontSize: 12, color: C.textDim }}>
+          <Text style={{ fontSize: 13, color: C.textDim }}>
             {t.homeDate(new Date())}
           </Text>
         </View>
         <View style={[s.nowPill, { backgroundColor: `${C.accent}12`, borderColor: `${C.accent}25` }]}>
           <Animated.View style={[s.nowDot, { backgroundColor: C.accent, opacity: dotPulse }]} />
-          <Text style={{ fontSize: 12, color: C.accent }}>{fmtHour(now)}</Text>
+          <Text style={{ fontSize: 13, color: C.accent }}>{fmtHour(now)}</Text>
         </View>
       </View>
 
@@ -442,20 +442,26 @@ export default function TageskurveScreen() {
           const cardColor = state?.color ?? C.textDim;
           return (
             <View style={[s.card, s.mascotCard, { backgroundColor: `${cardColor}10`, borderColor: `${cardColor}25` }]}>
-              <View style={s.mascotImgWrapper}>
-                <Image source={mascotImg} style={s.mascotImg} resizeMode="contain" />
-              </View>
+              {(() => {
+                const imgW = Math.round(screenWidth * 0.36);
+                const imgH = Math.round(imgW * 0.52);
+                return (
+                  <View style={[s.mascotImgWrapper, { width: imgW, height: imgH }]}>
+                    <Image source={mascotImg} style={{ width: imgW + 10, height: imgH + 10 }} resizeMode="contain" />
+                  </View>
+                );
+              })()}
               <View style={{ flex: 1, paddingLeft: 14 }}>
-                <Text style={{ fontSize: 20, fontWeight: '800', color: cardColor, letterSpacing: -0.5 }}>
+                <Text style={{ fontSize: 22, fontWeight: '800', color: cardColor, letterSpacing: -0.5 }}>
                   {activeIntakes.length === 0 ? 'Alles ruhig 😴' : (state?.label ?? 'Aktiv')}
                 </Text>
-                <Text style={{ fontSize: 12, color: C.textDim, marginTop: 3 }}>
+                <Text style={{ fontSize: 13, color: C.textDim, marginTop: 4 }}>
                   {activeIntakes.length === 0
                     ? 'Keine aktiven Substanzen'
                     : `${state?.strength ?? ''} · ${activeIntakes.length} aktiv`}
                 </Text>
                 {activeIntakes.length > 0 && (
-                  <Text style={{ fontSize: 11, color: C.textMuted ?? C.textDim, marginTop: 5 }} numberOfLines={1}>
+                  <Text style={{ fontSize: 12, color: C.textDim, marginTop: 6 }} numberOfLines={1}>
                     {activeIntakes.map(i => getSubstance(i.substanceId)?.name).filter(Boolean).join(' · ')}
                   </Text>
                 )}
@@ -507,9 +513,15 @@ export default function TageskurveScreen() {
             </View>
           )}
 
-          {/* ── Trennlinie ── */}
+          {/* ── Trennlinie mit Label ── */}
           {(activeIntakes.length > 0 || quickRetakes.length > 0) && (
-            <View style={[s.divider, { backgroundColor: C.border }]} />
+            <View style={s.dividerRow}>
+              <View style={[s.dividerLine, { backgroundColor: C.border }]} />
+              <Text style={{ fontSize: 11, fontWeight: '600', color: C.textDim, letterSpacing: 0.8, textTransform: 'uppercase', marginHorizontal: 10 }}>
+                {t.homeActiveNow}
+              </Text>
+              <View style={[s.dividerLine, { backgroundColor: C.border }]} />
+            </View>
           )}
 
           {/* Aktive Substanzen — kompakte Zeilen */}
@@ -528,23 +540,23 @@ export default function TageskurveScreen() {
                   style={[s.compactRow, sel && { backgroundColor: `${sub.color}08`, borderRadius: 12 }]}
                   activeOpacity={0.75}
                 >
-                  <SubIcon substance={sub} size={28} />
-                  <View style={{ flex: 1, marginLeft: 10 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                      <Text style={{ fontSize: 13, fontWeight: '700', color: sel ? sub.color : C.text }} numberOfLines={1}>
+                  <SubIcon substance={sub} size={32} />
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text style={{ fontSize: 14, fontWeight: '700', color: sel ? sub.color : C.text }} numberOfLines={1}>
                         {sub.name}
                       </Text>
-                      {intake.pinned && <Text style={{ fontSize: 9 }}>📌</Text>}
-                      {atPeak && <Text style={{ fontSize: 10 }}>⚡</Text>}
+                      {intake.pinned && <Text style={{ fontSize: 11 }}>📌</Text>}
+                      {atPeak && <Text style={{ fontSize: 12 }}>⚡</Text>}
                     </View>
                     {/* Progress bar */}
                     <View style={[s.barTrack, { backgroundColor: C.surfaceHigh }]}>
                       <View style={[s.barFill, { width: barW, backgroundColor: sub.color }]} />
                     </View>
                   </View>
-                  <View style={{ alignItems: 'flex-end', marginLeft: 10 }}>
-                    <Text style={{ fontSize: 15, fontWeight: '800', color: sub.color }}>{effect}%</Text>
-                    <Text style={{ fontSize: 10, color: C.textDim }}>{getRemainingTime(intake, now)}</Text>
+                  <View style={{ alignItems: 'flex-end', marginLeft: 12 }}>
+                    <Text style={{ fontSize: 16, fontWeight: '800', color: sub.color }}>{effect}%</Text>
+                    <Text style={{ fontSize: 12, color: C.textDim, marginTop: 2 }}>{getRemainingTime(intake, now)}</Text>
                   </View>
                 </TouchableOpacity>
               </AnimatedCard>
@@ -570,9 +582,9 @@ export default function TageskurveScreen() {
                         style={[s.retakeChip, { backgroundColor: `${sub.color}12`, borderColor: `${sub.color}35` }]}
                         activeOpacity={0.7}
                       >
-                        <Text style={{ fontSize: 11, color: sub.color, opacity: 0.7 }}>{sub.icon ?? '●'}</Text>
-                        <Text style={{ fontSize: 11, fontWeight: '600', color: sub.color }}>{sub.name}</Text>
-                        <Text style={{ fontSize: 11, color: sub.color, fontWeight: '700' }}>＋</Text>
+                        <Text style={{ fontSize: 12, color: sub.color, opacity: 0.75 }}>{sub.icon ?? '●'}</Text>
+                        <Text style={{ fontSize: 12, fontWeight: '600', color: sub.color }}>{sub.name}</Text>
+                        <Text style={{ fontSize: 13, color: sub.color, fontWeight: '700' }}>＋</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -598,18 +610,18 @@ export default function TageskurveScreen() {
 
           return (
             <View style={[s.card, { backgroundColor: C.surface, borderColor: C.border }]}>
-              <Text style={{ fontSize: 11, fontWeight: '600', color: C.textDim, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: C.textDim, textTransform: 'uppercase', letterSpacing: 0.8 }}>
                 {t.homeSectionDetail}
               </Text>
               <View style={[s.detailHeader]}>
                 <SubIcon substance={selectedSub} size={44} />
                 <View style={{ marginLeft: 14, flex: 1 }}>
                   <Text style={{ fontSize: 17, fontWeight: '700', color: C.text }}>{selectedSub.name}</Text>
-                  <Text style={{ fontSize: 12, color: C.textDim }}>{selectedIntake.doseLabel} · {fmtHour(selectedIntake.timeH)}{t.timeUnit}</Text>
+                  <Text style={{ fontSize: 13, color: C.textDim }}>{selectedIntake.doseLabel} · {fmtHour(selectedIntake.timeH)}{t.timeUnit}</Text>
                   <View style={s.effectChips}>
                     {effects.map(e => (
                       <View key={e} style={[s.chip, { backgroundColor: `${selectedSub.color}18`, borderColor: `${selectedSub.color}30` }]}>
-                        <Text style={{ fontSize: 11, color: selectedSub.color }}>{e}</Text>
+                        <Text style={{ fontSize: 12, color: selectedSub.color }}>{e}</Text>
                       </View>
                     ))}
                   </View>
@@ -624,8 +636,8 @@ export default function TageskurveScreen() {
                   ['Bioverfügbar', `${selectedSub.pk.bioavailability}%`],
                 ].map(([k, v]) => (
                   <View key={k} style={[s.pkCell, { backgroundColor: C.bg }]}>
-                    <Text style={{ fontSize: 10, color: C.textDim }}>{k}</Text>
-                    <Text style={{ fontSize: 14, fontWeight: '700', color: C.accent, marginTop: 3 }}>{v}</Text>
+                    <Text style={{ fontSize: 12, color: C.textDim }}>{k}</Text>
+                    <Text style={{ fontSize: 15, fontWeight: '700', color: C.accent, marginTop: 3 }}>{v}</Text>
                   </View>
                 ))}
               </View>
@@ -644,7 +656,7 @@ export default function TageskurveScreen() {
         {/* ── WECHSELWIRKUNGEN ───────────────── */}
         {interactions.length > 0 && (
           <View style={[s.card, { backgroundColor: C.surface, borderColor: C.border }]}>
-            <Text style={{ fontSize: 11, fontWeight: '600', color: C.textDim, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: C.textDim, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>
               {t.homeSectionIx} · {interactions.length}
             </Text>
             {interactions.map((ix: any, i: number) => {
@@ -664,11 +676,11 @@ export default function TageskurveScreen() {
                       </Text>
                     </View>
                     <View style={[s.chip, { backgroundColor: `${sevColor}20`, borderColor: `${sevColor}40` }]}>
-                      <Text style={{ fontSize: 11, color: sevColor, fontWeight: '700' }}>{ixMeta.tag}</Text>
+                      <Text style={{ fontSize: 12, color: sevColor, fontWeight: '700' }}>{ixMeta.tag}</Text>
                     </View>
                   </View>
                   <Text style={{ fontSize: 14, color: C.textSub, lineHeight: 20 }} numberOfLines={3}>{ix.note}</Text>
-                  <Text style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>
+                  <Text style={{ fontSize: 13, color: C.textDim, marginTop: 4 }}>
                     Stärke: <Text style={{ color: sevColor }}>{IX_SEVERITY_LABEL[ix.severity]}</Text>
                   </Text>
                 </View>
@@ -679,7 +691,7 @@ export default function TageskurveScreen() {
 
         {/* ── INSIGHTS ───────────────────────── */}
         <View style={[s.card, { backgroundColor: C.surface, borderColor: `${C.accent}20` }]}>
-          <Text style={{ fontSize: 11, fontWeight: '600', color: C.textDim, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: C.textDim, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>
             {t.homeInsightsTitle}
           </Text>
           {[
@@ -759,15 +771,17 @@ const s = StyleSheet.create({
   pillRow:    { flexDirection: 'row', gap: 8 },
   intakePill: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1 },
 
-  mascotCard:   { flexDirection: 'row', alignItems: 'center' },
-  mascotImgWrapper: { width: 150, height: 78, borderRadius: 14, backgroundColor: 'white', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
-  mascotImg:    { width: 160, height: 88 },
+  mascotCard:      { flexDirection: 'row', alignItems: 'center' },
+  mascotImgWrapper:{ borderRadius: 14, backgroundColor: 'white', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  mascotImg:       { resizeMode: 'contain' } as any,
 
   divider:      { height: 1, marginVertical: 10 },
-  compactRow:   { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 6, marginVertical: 2 },
-  barTrack:     { height: 4, borderRadius: 2, marginTop: 5, overflow: 'hidden' },
-  barFill:      { height: 4, borderRadius: 2, opacity: 0.8 },
-  retakeChip:   { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7, borderWidth: 1 },
+  dividerRow:   { flexDirection: 'row', alignItems: 'center', marginVertical: 12 },
+  dividerLine:  { flex: 1, height: 1 },
+  compactRow:   { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 10, marginVertical: 2 },
+  barTrack:     { height: 6, borderRadius: 3, marginTop: 6, overflow: 'hidden' },
+  barFill:      { height: 6, borderRadius: 3, opacity: 0.85 },
+  retakeChip:   { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1 },
 
   emptyInline:{ paddingVertical: 16, alignItems: 'center' },
 

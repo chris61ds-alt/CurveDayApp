@@ -13,9 +13,9 @@ export const DARK = {
   border2:     '#132033',
   // Text
   text:        '#e8f0f8',
-  textSub:     '#7a9ab5',
-  textDim:     '#3a5570',
-  textMuted:   '#4a5a70',
+  textSub:     '#8ab0cc',
+  textDim:     '#6a8faa',
+  textMuted:   '#6a8faa',
   // Accent
   accent:      '#38bdf8',
   accentBg:    '#38bdf820',
