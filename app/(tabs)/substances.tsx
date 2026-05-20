@@ -8,6 +8,7 @@ import { SUBSTANCES, CATEGORIES } from '../../src/data/substanceDB';
 import { useThemeStore } from '../../src/store/themeStore';
 import { SubIcon } from '../../src/components/SubIcon';
 import { EFFECT_LABELS } from '../../src/utils/pkHelpers';
+import { AddIntakeModal } from '../../src/components/AddIntakeModal';
 
 // ── Detail Modal ──────────────────────────────────────────────
 function DetailModal({ sub, onClose }: { sub: any; onClose: () => void }) {
@@ -150,9 +151,11 @@ function TCell({ label, value }: { label: string; value: string }) {
 // ── Main Screen ───────────────────────────────────────────────
 export default function SubstancesScreen() {
   const { colors: C } = useThemeStore();
-  const [query, setQuery]       = useState('');
-  const [catFilter, setCat]     = useState<string | null>(null);
-  const [selected, setSelected] = useState<any>(null);
+  const [query, setQuery]         = useState('');
+  const [catFilter, setCat]       = useState<string | null>(null);
+  const [selected, setSelected]   = useState<any>(null);
+  const [addSub, setAddSub]       = useState<any>(null);
+  const [addVisible, setAddVisible] = useState(false);
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase();
@@ -169,31 +172,41 @@ export default function SubstancesScreen() {
   function renderItem({ item }: { item: any }) {
     const cat = CATEGORIES.find((c: any) => c.id === item.category);
     return (
-      <TouchableOpacity
-        style={[s.row, { backgroundColor: C.bg2, borderColor: C.border2 }]}
-        onPress={() => setSelected(item)}
-        activeOpacity={0.75}
-      >
-        <SubIcon substance={item} size={44} />
-        <View style={s.rowBody}>
-          <View style={s.rowTop}>
-            <Text style={[s.rowName, { color: C.text }]}>{item.name}</Text>
-            {item.prescription && (
-              <View style={[s.rxBadge, { backgroundColor: C.dangerBg }]}>
-                <Text style={[s.rxText, { color: C.danger }]}>Rx</Text>
-              </View>
-            )}
-            {item.controlled && (
-              <View style={[s.btmBadge, { backgroundColor: '#ef444420' }]}>
-                <Text style={[s.btmText, { color: '#ef4444' }]}>BTM</Text>
-              </View>
-            )}
+      <View style={[s.row, { backgroundColor: C.bg2, borderColor: C.border2 }]}>
+        <TouchableOpacity
+          style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}
+          onPress={() => setSelected(item)}
+          activeOpacity={0.75}
+        >
+          <SubIcon substance={item} size={44} />
+          <View style={s.rowBody}>
+            <View style={s.rowTop}>
+              <Text style={[s.rowName, { color: C.text }]}>{item.name}</Text>
+              {item.prescription && (
+                <View style={[s.rxBadge, { backgroundColor: C.dangerBg }]}>
+                  <Text style={[s.rxText, { color: C.danger }]}>Rx</Text>
+                </View>
+              )}
+              {item.controlled && (
+                <View style={[s.btmBadge, { backgroundColor: '#ef444420' }]}>
+                  <Text style={[s.btmText, { color: '#ef4444' }]}>BTM</Text>
+                </View>
+              )}
+            </View>
+            <Text style={[s.rowCat, { color: C.textMuted }]}>{cat?.icon} {cat?.label}</Text>
+            <Text style={[s.rowEffect, { color: C.textSub }]} numberOfLines={1}>{item.effectLabel}</Text>
           </View>
-          <Text style={[s.rowCat, { color: C.textMuted }]}>{cat?.icon} {cat?.label}</Text>
-          <Text style={[s.rowEffect, { color: C.textSub }]} numberOfLines={1}>{item.effectLabel}</Text>
-        </View>
-        <Text style={[s.rowArrow, { color: C.textMuted }]}>›</Text>
-      </TouchableOpacity>
+        </TouchableOpacity>
+        {/* ＋ Direkt hinzufügen */}
+        <TouchableOpacity
+          style={[s.addBtn, { backgroundColor: `${item.color ?? C.accent}18`, borderColor: `${item.color ?? C.accent}40` }]}
+          onPress={() => { setAddSub(item); setAddVisible(true); }}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 4, right: 8 }}
+        >
+          <Text style={[s.addBtnText, { color: item.color ?? C.accent }]}>＋</Text>
+        </TouchableOpacity>
+      </View>
     );
   }
 
@@ -267,6 +280,11 @@ export default function SubstancesScreen() {
       />
 
       <DetailModal sub={selected} onClose={() => setSelected(null)} />
+      <AddIntakeModal
+        visible={addVisible}
+        onClose={() => { setAddVisible(false); setAddSub(null); }}
+        initialSubstance={addSub}
+      />
     </SafeAreaView>
   );
 }
@@ -294,7 +312,10 @@ const s = StyleSheet.create({
   row:  {
     flexDirection: 'row', alignItems: 'center',
     borderRadius: 16, padding: 14, marginBottom: 10, borderWidth: 1,
+    gap: 10,
   },
+  addBtn:     { width: 36, height: 36, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  addBtnText: { fontSize: 20, fontWeight: '400', lineHeight: 24 },
   rowBody:   { flex: 1, marginLeft: 14 },
   rowTop:    { flexDirection: 'row', alignItems: 'center', marginBottom: 3 },
   rowName:   { fontSize: 16, fontWeight: '700', marginRight: 8 },

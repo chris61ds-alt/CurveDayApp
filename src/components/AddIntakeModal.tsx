@@ -19,11 +19,12 @@ import type { ThemeColors } from '../theme';
 interface Props {
   visible: boolean;
   onClose: () => void;
+  initialSubstance?: any; // wenn gesetzt: Suche überspringen, direkt zu Konfigurieren
 }
 
 type Step = 'search' | 'configure';
 
-export function AddIntakeModal({ visible, onClose }: Props) {
+export function AddIntakeModal({ visible, onClose, initialSubstance }: Props) {
   const { intakes, addIntake } = useIntakeStore();
   const { prefs } = useOnboardingStore();
   const { colors: C } = useThemeStore();
@@ -39,6 +40,23 @@ export function AddIntakeModal({ visible, onClose }: Props) {
   const [minute, setMinute]     = useState(() => Math.round(new Date().getMinutes() / 15) * 15 % 60);
   const [dose, setDose]         = useState('');
   const [withReminder, setWithReminder] = useState(true);
+
+  // Wenn modal geöffnet wird mit vorausgewählter Substanz → Suche überspringen
+  React.useEffect(() => {
+    if (visible) {
+      if (initialSubstance) {
+        setSelected(initialSubstance);
+        setDose(initialSubstance.defaultDose ? `${initialSubstance.defaultDose} ${initialSubstance.doseUnit}` : '');
+        setStep('configure');
+      } else {
+        setStep('search');
+        setSelected(null);
+        setDose('');
+      }
+      setHour(new Date().getHours());
+      setMinute(Math.round(new Date().getMinutes() / 15) * 15 % 60);
+    }
+  }, [visible, initialSubstance]);
 
   // Filter substances by region + search
   const regionalSubstances = useMemo(() => {
@@ -501,92 +519,92 @@ function makeStyles(C: ThemeColors) { return StyleSheet.create({
   safe:        { flex: 1, backgroundColor: C.bg },
   header:      { flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: C.border },
   backBtn:     { marginRight: 8 },
-  backText:    { fontSize: 14, color: C.accent },
-  headerTitle: { flex: 1, fontSize: 15, fontWeight: '700', color: C.text, textAlign: 'center' },
+  backText:    { fontSize: 15, color: C.accent },
+  headerTitle: { flex: 1, fontSize: 16, fontWeight: '700', color: C.text, textAlign: 'center' },
   closeBtn:    { padding: 4 },
-  closeText:   { fontSize: 16, color: C.textDim },
+  closeText:   { fontSize: 17, color: C.textDim },
 
   searchBox:   { flexDirection: 'row', alignItems: 'center', margin: 12, backgroundColor: C.surface, borderRadius: 12, borderWidth: 1, borderColor: C.border, paddingHorizontal: 12 },
-  searchIcon:  { fontSize: 14, marginRight: 6 },
-  searchInput: { flex: 1, height: 44, color: C.text, fontSize: 14 },
-  clearText:   { fontSize: 14, color: C.textDim, padding: 4 },
+  searchIcon:  { fontSize: 15, marginRight: 6 },
+  searchInput: { flex: 1, height: 48, color: C.text, fontSize: 15 },
+  clearText:   { fontSize: 15, color: C.textDim, padding: 4 },
 
   // ── Category chips ───────────────────────────────────────
   catScroll:       { flexGrow: 0 },
   catContent:      { paddingHorizontal: 12, paddingVertical: 8, gap: 7, flexDirection: 'row' },
-  catChip:         { backgroundColor: C.surface, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: C.border },
+  catChip:         { backgroundColor: C.surface, borderRadius: 20, paddingHorizontal: 13, paddingVertical: 7, borderWidth: 1, borderColor: C.border },
   catChipActive:   { backgroundColor: C.accentBg, borderColor: C.accent },
-  catChipText:     { fontSize: 12, color: C.textDim },
+  catChipText:     { fontSize: 13, color: C.textDim },
   catChipTextActive: { color: C.accent, fontWeight: '700' },
 
   // ── Favorites ────────────────────────────────────────────
   favSection:  { paddingHorizontal: 12, paddingBottom: 4 },
-  favTitle:    { fontSize: 11, color: C.textDim, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 },
+  favTitle:    { fontSize: 12, color: C.textDim, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 },
   favRow:      { gap: 8, flexDirection: 'row' },
   favChip:     { backgroundColor: C.surface, borderRadius: 12, borderWidth: 1, padding: 10, alignItems: 'center', gap: 5, minWidth: 72, maxWidth: 88 },
-  favChipName: { fontSize: 10, color: C.textDim, textAlign: 'center' },
+  favChipName: { fontSize: 12, color: C.textDim, textAlign: 'center' },
 
-  resultRow:    { flexDirection: 'row', alignItems: 'center', padding: 12, paddingHorizontal: 16 },
-  resultName:   { fontSize: 14, fontWeight: '600', color: C.text },
-  resultMeta:   { fontSize: 11, color: C.textDim, marginTop: 2 },
-  resultBrands: { fontSize: 10, color: C.textDim, marginTop: 1 },
+  resultRow:    { flexDirection: 'row', alignItems: 'center', padding: 14, paddingHorizontal: 16 },
+  resultName:   { fontSize: 15, fontWeight: '600', color: C.text },
+  resultMeta:   { fontSize: 12, color: C.textDim, marginTop: 2 },
+  resultBrands: { fontSize: 12, color: C.textDim, marginTop: 1 },
   resultArrow:  { fontSize: 20, marginLeft: 8 },
   separator:    { height: 1, backgroundColor: C.border, marginLeft: 68 },
 
-  btmBadge:  { backgroundColor: '#ef444415', borderRadius: 5, borderWidth: 1, borderColor: '#ef444430', paddingHorizontal: 5, paddingVertical: 1 },
-  btmText:   { fontSize: 9, color: '#f87171', fontWeight: '700' },
+  btmBadge:  { backgroundColor: '#ef444415', borderRadius: 5, borderWidth: 1, borderColor: '#ef444430', paddingHorizontal: 6, paddingVertical: 2 },
+  btmText:   { fontSize: 11, color: '#f87171', fontWeight: '700' },
 
-  configCard:    { backgroundColor: C.surface, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: C.border },
-  configName:    { fontSize: 16, fontWeight: '700', color: C.text },
-  configMeta:    { fontSize: 12, color: C.textDim, marginTop: 2 },
-  foodNote:      { marginTop: 10, backgroundColor: `${C.warning}12`, borderRadius: 9, padding: 9, borderWidth: 1, borderColor: `${C.warning}25` },
-  foodNoteText:  { fontSize: 11, color: C.warning, lineHeight: 17 },
+  configCard:    { backgroundColor: C.surface, borderRadius: 14, padding: 16, borderWidth: 1, borderColor: C.border },
+  configName:    { fontSize: 17, fontWeight: '700', color: C.text },
+  configMeta:    { fontSize: 13, color: C.textDim, marginTop: 3 },
+  foodNote:      { marginTop: 10, backgroundColor: `${C.warning}12`, borderRadius: 9, padding: 10, borderWidth: 1, borderColor: `${C.warning}25` },
+  foodNoteText:  { fontSize: 12, color: C.warning, lineHeight: 18 },
 
-  criticalBox:   { backgroundColor: '#ef444412', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#ef444435' },
-  criticalTitle: { fontSize: 13, fontWeight: '700', color: '#f87171', marginBottom: 6 },
-  criticalText:  { fontSize: 11, color: '#fca5a5', lineHeight: 17 },
+  criticalBox:   { backgroundColor: '#ef444412', borderRadius: 10, padding: 14, borderWidth: 1, borderColor: '#ef444435' },
+  criticalTitle: { fontSize: 14, fontWeight: '700', color: '#f87171', marginBottom: 6 },
+  criticalText:  { fontSize: 13, color: '#fca5a5', lineHeight: 19 },
 
-  configSection: { backgroundColor: C.surface, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: C.border },
-  configLabel:   { fontSize: 11, color: C.textDim, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: '600' },
+  configSection: { backgroundColor: C.surface, borderRadius: 12, padding: 16, borderWidth: 1, borderColor: C.border },
+  configLabel:   { fontSize: 12, color: C.textDim, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: '600' },
 
-  doseRow:      { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginBottom: 10 },
-  doseChip:     { backgroundColor: C.bg, borderRadius: 9, paddingHorizontal: 11, paddingVertical: 6, borderWidth: 1, borderColor: C.border },
-  doseChipText: { fontSize: 12, color: C.textSub, fontWeight: '600' },
-  doseInput:    { backgroundColor: C.bg, borderRadius: 9, borderWidth: 1, borderColor: C.border, paddingHorizontal: 12, paddingVertical: 9, color: C.text, fontSize: 13 },
+  doseRow:      { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
+  doseChip:     { backgroundColor: C.bg, borderRadius: 9, paddingHorizontal: 13, paddingVertical: 8, borderWidth: 1, borderColor: C.border },
+  doseChipText: { fontSize: 13, color: C.textSub, fontWeight: '600' },
+  doseInput:    { backgroundColor: C.bg, borderRadius: 9, borderWidth: 1, borderColor: C.border, paddingHorizontal: 12, paddingVertical: 10, color: C.text, fontSize: 14 },
 
   timeRow:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 },
-  timeArrow:    { width: 36, height: 36, borderRadius: 10, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.border },
-  timeArrowText:{ fontSize: 18, color: C.accent },
-  timeDisplay:  { backgroundColor: C.bg, borderRadius: 12, paddingHorizontal: 24, paddingVertical: 10, borderWidth: 1, borderColor: C.border },
-  timeText:     { fontSize: 26, fontWeight: '800', color: C.text, letterSpacing: 1 },
+  timeArrow:    { width: 40, height: 40, borderRadius: 12, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.border },
+  timeArrowText:{ fontSize: 20, color: C.accent },
+  timeDisplay:  { backgroundColor: C.bg, borderRadius: 12, paddingHorizontal: 28, paddingVertical: 10, borderWidth: 1, borderColor: C.border },
+  timeText:     { fontSize: 28, fontWeight: '800', color: C.text, letterSpacing: 1 },
 
-  minChip:     { backgroundColor: C.bg, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: C.border },
-  minChipText: { fontSize: 12, color: C.textSub },
+  minChip:     { backgroundColor: C.bg, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7, borderWidth: 1, borderColor: C.border },
+  minChipText: { fontSize: 13, color: C.textSub },
 
-  pkHint:      { flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center', backgroundColor: C.surface, borderRadius: 10, padding: 10, borderWidth: 1, borderColor: C.border },
-  pkHintLabel: { fontSize: 11, color: C.textDim },
-  pkHintValue: { fontSize: 12, fontWeight: '700', color: C.text },
+  pkHint:      { flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center', backgroundColor: C.surface, borderRadius: 10, padding: 12, borderWidth: 1, borderColor: C.border },
+  pkHintLabel: { fontSize: 12, color: C.textDim },
+  pkHintValue: { fontSize: 13, fontWeight: '700', color: C.text },
 
   reminderRow:   { flexDirection: 'row', alignItems: 'center', backgroundColor: C.surface, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: C.border },
-  checkbox:      { width: 22, height: 22, borderRadius: 7, borderWidth: 2, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-  reminderTitle: { fontSize: 13, fontWeight: '600', color: C.text },
-  reminderSub:   { fontSize: 11, color: C.textDim, marginTop: 1 },
+  checkbox:      { width: 24, height: 24, borderRadius: 8, borderWidth: 2, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+  reminderTitle: { fontSize: 14, fontWeight: '600', color: C.text },
+  reminderSub:   { fontSize: 12, color: C.textDim, marginTop: 2 },
 
-  btmWarning:    { backgroundColor: '#ef444412', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#ef444435' },
-  rxWarning:     { backgroundColor: '#f59e0b10', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#f59e0b30' },
-  rxWarningTitle:{ fontSize: 12, fontWeight: '700', color: '#fcd34d', marginBottom: 5 },
-  rxWarningText: { fontSize: 11, color: '#fde68a', lineHeight: 17 },
+  btmWarning:    { backgroundColor: '#ef444412', borderRadius: 10, padding: 14, borderWidth: 1, borderColor: '#ef444435' },
+  rxWarning:     { backgroundColor: '#f59e0b10', borderRadius: 10, padding: 14, borderWidth: 1, borderColor: '#f59e0b30' },
+  rxWarningTitle:{ fontSize: 13, fontWeight: '700', color: '#fcd34d', marginBottom: 5 },
+  rxWarningText: { fontSize: 12, color: '#fde68a', lineHeight: 18 },
 
-  doseWarnBox:   { marginTop: 8, borderRadius: 8, padding: 9, borderWidth: 1 },
-  doseWarnText:  { fontSize: 11, lineHeight: 16 },
+  doseWarnBox:   { marginTop: 8, borderRadius: 8, padding: 10, borderWidth: 1 },
+  doseWarnText:  { fontSize: 12, lineHeight: 17 },
 
-  dailyWarnBox:  { backgroundColor: '#f59e0b10', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#f59e0b35', marginBottom: 4 },
-  dailyWarnText: { fontSize: 12, color: '#fcd34d', lineHeight: 17 },
+  dailyWarnBox:  { backgroundColor: '#f59e0b10', borderRadius: 10, padding: 14, borderWidth: 1, borderColor: '#f59e0b35', marginBottom: 4 },
+  dailyWarnText: { fontSize: 13, color: '#fcd34d', lineHeight: 18 },
 
-  warningsBox:   { backgroundColor: '#f59e0b10', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#f59e0b25' },
-  warningsTitle: { fontSize: 11, fontWeight: '700', color: '#fcd34d', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
-  warningItem:   { fontSize: 11, color: '#fde68a', lineHeight: 18 },
+  warningsBox:   { backgroundColor: '#f59e0b10', borderRadius: 10, padding: 14, borderWidth: 1, borderColor: '#f59e0b25' },
+  warningsTitle: { fontSize: 12, fontWeight: '700', color: '#fcd34d', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
+  warningItem:   { fontSize: 12, color: '#fde68a', lineHeight: 19 },
 
-  confirmBtn:  { borderRadius: 12, padding: 14, alignItems: 'center' },
-  confirmText: { fontSize: 15, fontWeight: '800', color: '#fff' },
+  confirmBtn:  { borderRadius: 14, padding: 16, alignItems: 'center' },
+  confirmText: { fontSize: 16, fontWeight: '800', color: '#fff' },
 }); }
