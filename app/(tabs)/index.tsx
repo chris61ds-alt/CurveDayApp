@@ -47,6 +47,7 @@ function getStateMap(t: Strings): Record<string, { label: string; emoji: string;
     anxietyReduction:{ label: t.stateAnxiety,        emoji: '🧘', color: '#34d399' },
     concentration:   { label: t.stateConcentration,  emoji: '🎯', color: '#38bdf8' },
     impulseControl:  { label: t.stateFocus,          emoji: '🎯', color: '#38bdf8' },
+    focus:           { label: t.stateFocus,          emoji: '🎯', color: '#38bdf8' },
     energy:          { label: t.stateEnergy,         emoji: '⚡', color: '#f59e0b' },
     mood:            { label: t.stateMood,           emoji: '😊', color: '#fb923c' },
     alertness:       { label: t.stateAlertness,      emoji: '✨', color: '#38bdf8' },
@@ -59,6 +60,12 @@ function getStateMap(t: Strings): Record<string, { label: string; emoji: string;
     bloodPressure:   { label: t.stateBloodPressure,  emoji: '💗', color: '#f87171' },
     fatigueReduction:{ label: t.stateFatigue,        emoji: '💪', color: '#f59e0b' },
     cognition:       { label: t.stateCognition,      emoji: '🧠', color: '#38bdf8' },
+    // unmapped effects → sensible fallbacks so mascot never gets null
+    immunity:        { label: 'Immunsystem',   emoji: '🛡️', color: '#4ade80' },
+    antioxidant:     { label: 'Antioxidans',   emoji: '🌿', color: '#4ade80' },
+    inflammation:    { label: 'Entzündung ↓',  emoji: '🛡️', color: '#c084fc' },
+    fever:           { label: 'Fieber ↓',      emoji: '🛡️', color: '#c084fc' },
+    strength:        { label: 'Kraft',         emoji: '💪', color: '#f59e0b' },
   };
 }
 
@@ -79,12 +86,14 @@ function computeCurrentState(
       }
     }
   }
-  const top = Object.entries(totals).sort(([, a], [, b]) => b - a)[0];
-  if (!top) return null;
+  // Walk down sorted effects until one maps — avoids null when top effect isn't in stateMap
+  const sorted  = Object.entries(totals).sort(([, a], [, b]) => b - a);
+  if (!sorted.length) return null;
   const stateMap = getStateMap(t);
-  const mapped   = stateMap[top[0]];
-  if (!mapped) return null;
-  const strength = top[1] > 60 ? t.homeStateStrong : top[1] > 25 ? t.homeStateModerate : t.homeStateLight;
+  const entry    = sorted.find(([k]) => stateMap[k]);
+  if (!entry) return null;
+  const mapped   = stateMap[entry[0]];
+  const strength = entry[1] > 60 ? t.homeStateStrong : entry[1] > 25 ? t.homeStateModerate : t.homeStateLight;
   return { ...mapped, strength };
 }
 
@@ -455,34 +464,33 @@ export default function TageskurveScreen() {
           );
         })()}
 
-        {/* ── CHART ──────────────────────────── */}
+        {/* ── CHART + SUBSTANZEN (eine Karte) ── */}
         <View style={[s.card, { backgroundColor: C.surface, borderColor: C.border }]}>
-          {/* Chart + left→right reveal wipe */}
+
+          {/* Chart */}
           <View style={{ position: 'relative', overflow: 'hidden' }}>
-          <CurveChart
-            data={chartData} entries={chartEntries} selectedId={selectedId}
-            nowHour={now} peakMarks={peakMarks}
-            sleepWindow={sleepWindow}
-            height={260}
-            labelNow={t.chartNow}
-            labelTomorrow={t.chartTomorrow}
-            labelSteadyState={t.chartSteadyState}
-            labelSleep={t.chartSleep}
-            labelNoIntakes={t.chartNoIntakes}
-            gridColor={C.gridLine} labelColor={C.textMuted}
-            accentColor={C.accent} isDark={C.isDark}
-            onSelectSubstance={setSelectedId}
-          />
-          {/* Reveal wipe: covers curves, slides right to expose them */}
-          <Animated.View
-            pointerEvents="none"
-            style={{
-              position: 'absolute', top: 0, bottom: 0,
-              right: 0,
-              left: chartReveal.interpolate({ inputRange: [0, 1], outputRange: [30, screenWidth + 60] }),
-              backgroundColor: C.surface,
-            }}
-          />
+            <CurveChart
+              data={chartData} entries={chartEntries} selectedId={selectedId}
+              nowHour={now} peakMarks={peakMarks}
+              sleepWindow={sleepWindow}
+              height={240}
+              labelNow={t.chartNow}
+              labelTomorrow={t.chartTomorrow}
+              labelSteadyState={t.chartSteadyState}
+              labelSleep={t.chartSleep}
+              labelNoIntakes={t.chartNoIntakes}
+              gridColor={C.gridLine} labelColor={C.textMuted}
+              accentColor={C.accent} isDark={C.isDark}
+              onSelectSubstance={setSelectedId}
+            />
+            <Animated.View
+              pointerEvents="none"
+              style={{
+                position: 'absolute', top: 0, bottom: 0, right: 0,
+                left: chartReveal.interpolate({ inputRange: [0, 1], outputRange: [30, screenWidth + 60] }),
+                backgroundColor: C.surface,
+              }}
+            />
           </View>
 
           {/* Schlaf-Warnung */}
@@ -499,121 +507,84 @@ export default function TageskurveScreen() {
             </View>
           )}
 
-          {/* Intake pills — tap to select, swipe to scroll */}
-          {intakes.length > 0 && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 12 }}>
-              <View style={s.pillRow}>
-                {intakes.map(intake => {
-                  const sub = getSubstance(intake.substanceId);
-                  if (!sub) return null;
-                  const sel = selectedId === intake.substanceId;
-                  return (
-                    <TouchableOpacity
-                      key={intake.id}
-                      style={[s.intakePill, { backgroundColor: C.surfaceHigh, borderColor: C.border },
-                        sel && { borderColor: `${sub.color}60`, backgroundColor: `${sub.color}12` }]}
-                      onPress={() => setSelectedId(intake.substanceId)}
-                      onLongPress={() => handleLongPressIntake(intake.id, sub.name, intake.pinned)}
-                      activeOpacity={0.75}
-                    >
-                      <View style={[s.legendDot, { backgroundColor: sub.color }]} />
-                      <View>
-                        <Text style={[{ fontSize: 12, fontWeight: '600', color: C.textSub }, sel && { color: sub.color }]}>
-                          {sub.name}
-                        </Text>
-                        <Text style={{ fontSize: 10, color: C.textDim }}>{fmtHour(intake.timeH)} · {intake.doseLabel}</Text>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </ScrollView>
+          {/* ── Trennlinie ── */}
+          {(activeIntakes.length > 0 || quickRetakes.length > 0) && (
+            <View style={[s.divider, { backgroundColor: C.border }]} />
           )}
-        </View>
 
-        {/* ── AKTIVE SUBSTANZEN ──────────────── */}
-        <View style={[s.card, { backgroundColor: C.surface, borderColor: C.border }]}>
-          <View style={s.cardHeader}>
-            <Text style={{ fontSize: 13, fontWeight: '700', color: C.textDim, textTransform: 'uppercase', letterSpacing: 0.6 }}>
-              {t.homeActiveNow}
-            </Text>
-            <View style={[s.activeBadge, { backgroundColor: C.surfaceHigh, borderColor: C.borderMid }]}>
-              <Text style={{ fontSize: 12, color: activeIntakes.length > 0 ? C.accent : C.textDim }}>
-                {t.homeActiveCount(activeIntakes.length)}
-              </Text>
-            </View>
-          </View>
-
-          {activeIntakes.length === 0 && quickRetakes.length === 0 ? (
-            <View style={s.emptyInline}>
-              <Text style={{ fontSize: 12, color: C.textDim }}>{t.homeNoActive}</Text>
-            </View>
-          ) : (
-            <View style={s.activeGrid}>
-              {/* Aktive Substanzen — volle Farbe */}
-              {activeIntakes.map((intake, idx) => {
-                const sub = getSubstance(intake.substanceId);
-                if (!sub) return null;
-                const sel    = selectedId === intake.substanceId;
-                const effect = getCurrentEffect(intake.substanceId, chartData, now);
-                const atPeak = effect >= 85;
-                return (
-                  <AnimatedCard key={intake.id} delay={idx * 70}>
-                    <TouchableOpacity
-                      onPress={() => setSelectedId(intake.substanceId)}
-                      onLongPress={() => handleLongPressIntake(intake.id, sub.name, intake.pinned)}
-                      style={[s.activeCard, { backgroundColor: C.surfaceHigh, borderColor: C.border },
-                        sel && { borderColor: `${sub.color}40`, backgroundColor: `${sub.color}08` }]}
-                      activeOpacity={0.8}
-                    >
-                      {intake.pinned && (
-                        <Text style={{ fontSize: 10, position: 'absolute', top: 6, right: 8 }}>📌</Text>
-                      )}
-                      <SubIcon substance={sub} size={36} />
-                      <Text style={{ fontSize: 13, fontWeight: '700', color: C.text, marginTop: 6 }} numberOfLines={1}>
+          {/* Aktive Substanzen — kompakte Zeilen */}
+          {activeIntakes.map((intake, idx) => {
+            const sub    = getSubstance(intake.substanceId);
+            if (!sub) return null;
+            const sel    = selectedId === intake.substanceId;
+            const effect = getCurrentEffect(intake.substanceId, chartData, now);
+            const atPeak = effect >= 85;
+            const barW   = `${effect}%` as any;
+            return (
+              <AnimatedCard key={intake.id} delay={idx * 50}>
+                <TouchableOpacity
+                  onPress={() => setSelectedId(intake.substanceId)}
+                  onLongPress={() => handleLongPressIntake(intake.id, sub.name, intake.pinned)}
+                  style={[s.compactRow, sel && { backgroundColor: `${sub.color}08`, borderRadius: 12 }]}
+                  activeOpacity={0.75}
+                >
+                  <SubIcon substance={sub} size={28} />
+                  <View style={{ flex: 1, marginLeft: 10 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: sel ? sub.color : C.text }} numberOfLines={1}>
                         {sub.name}
                       </Text>
-                      <Text style={{ fontSize: 12, color: C.textDim, marginTop: 2 }}>{intake.doseLabel}</Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
-                        <Text style={{ fontSize: 18, fontWeight: '800', color: sub.color }}>{effect}%</Text>
-                        {atPeak && <Text style={{ fontSize: 10 }}>⚡</Text>}
-                      </View>
-                      <Text style={{ fontSize: 10, color: C.textDim }}>{getRemainingTime(intake, now)}</Text>
-                    </TouchableOpacity>
-                  </AnimatedCard>
-                );
-              })}
+                      {intake.pinned && <Text style={{ fontSize: 9 }}>📌</Text>}
+                      {atPeak && <Text style={{ fontSize: 10 }}>⚡</Text>}
+                    </View>
+                    {/* Progress bar */}
+                    <View style={[s.barTrack, { backgroundColor: C.surfaceHigh }]}>
+                      <View style={[s.barFill, { width: barW, backgroundColor: sub.color }]} />
+                    </View>
+                  </View>
+                  <View style={{ alignItems: 'flex-end', marginLeft: 10 }}>
+                    <Text style={{ fontSize: 15, fontWeight: '800', color: sub.color }}>{effect}%</Text>
+                    <Text style={{ fontSize: 10, color: C.textDim }}>{getRemainingTime(intake, now)}</Text>
+                  </View>
+                </TouchableOpacity>
+              </AnimatedCard>
+            );
+          })}
 
-              {/* Abgelaufen letzte 24h — ausgegraut + Retake-Button */}
-              {quickRetakes.map((intake, idx) => {
-                const sub = getSubstance(intake.substanceId);
-                if (!sub) return null;
-                return (
-                  <AnimatedCard key={`retake-${intake.id}`} delay={(activeIntakes.length + idx) * 70}>
-                    <View style={[s.activeCard, s.retakeCard, { backgroundColor: C.surfaceHigh, borderColor: C.border }]}>
-                      <View style={{ opacity: 0.45 }}>
-                        <SubIcon substance={sub} size={30} />
-                        <Text style={{ fontSize: 12, fontWeight: '700', color: C.text, marginTop: 5, textAlign: 'center' }} numberOfLines={1}>
-                          {sub.name}
-                        </Text>
-                        <Text style={{ fontSize: 10, color: C.textDim, marginTop: 1, textAlign: 'center' }}>{intake.doseLabel}</Text>
-                        <Text style={{ fontSize: 9, color: C.textDim, marginTop: 3, textAlign: 'center' }}>abgelaufen</Text>
-                      </View>
+          {/* Quick-Retake — abgelaufen letzte 24h */}
+          {quickRetakes.length > 0 && (
+            <>
+              <View style={[s.divider, { backgroundColor: C.border, marginVertical: 6 }]} />
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={{ flexDirection: 'row', gap: 8, paddingBottom: 2 }}>
+                  {quickRetakes.map(intake => {
+                    const sub = getSubstance(intake.substanceId);
+                    if (!sub) return null;
+                    return (
                       <TouchableOpacity
+                        key={`retake-${intake.id}`}
                         onPress={() => {
                           const d = new Date();
-                          const h = d.getHours() + d.getMinutes() / 60;
-                          addIntake({ substanceId: sub.id, timeH: h, doseLabel: intake.doseLabel, takenAt: d.toISOString() });
+                          addIntake({ substanceId: sub.id, timeH: d.getHours() + d.getMinutes() / 60, doseLabel: intake.doseLabel, takenAt: d.toISOString() });
                         }}
-                        style={[s.retakeBtn, { backgroundColor: `${sub.color}20`, borderColor: `${sub.color}50` }]}
+                        style={[s.retakeChip, { backgroundColor: `${sub.color}12`, borderColor: `${sub.color}35` }]}
                         activeOpacity={0.7}
                       >
-                        <Text style={{ fontSize: 11, fontWeight: '700', color: sub.color }}>＋ nochmal</Text>
+                        <Text style={{ fontSize: 11, color: sub.color, opacity: 0.7 }}>{sub.icon ?? '●'}</Text>
+                        <Text style={{ fontSize: 11, fontWeight: '600', color: sub.color }}>{sub.name}</Text>
+                        <Text style={{ fontSize: 11, color: sub.color, fontWeight: '700' }}>＋</Text>
                       </TouchableOpacity>
-                    </View>
-                  </AnimatedCard>
-                );
-              })}
+                    );
+                  })}
+                </View>
+              </ScrollView>
+            </>
+          )}
+
+          {/* Leer-State */}
+          {activeIntakes.length === 0 && quickRetakes.length === 0 && (
+            <View style={s.emptyInline}>
+              <Text style={{ fontSize: 12, color: C.textDim }}>{t.homeNoActive}</Text>
             </View>
           )}
         </View>
@@ -788,12 +759,16 @@ const s = StyleSheet.create({
   pillRow:    { flexDirection: 'row', gap: 8 },
   intakePill: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1 },
 
-  activeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  activeCard: { flex: 1, minWidth: 110, borderRadius: 16, padding: 14, alignItems: 'center', borderWidth: 1 },
-  stateRow:     { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 12, padding: 12, marginBottom: 12, borderWidth: 1 },
   mascotCard:   { flexDirection: 'row', alignItems: 'center' },
   mascotImgWrapper: { width: 150, height: 78, borderRadius: 14, backgroundColor: 'white', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   mascotImg:    { width: 160, height: 88 },
+
+  divider:      { height: 1, marginVertical: 10 },
+  compactRow:   { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 6, marginVertical: 2 },
+  barTrack:     { height: 4, borderRadius: 2, marginTop: 5, overflow: 'hidden' },
+  barFill:      { height: 4, borderRadius: 2, opacity: 0.8 },
+  retakeChip:   { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7, borderWidth: 1 },
+
   emptyInline:{ paddingVertical: 16, alignItems: 'center' },
 
   detailHeader: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 12, marginBottom: 14 },
@@ -813,11 +788,6 @@ const s = StyleSheet.create({
   insightRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginTop: 12 },
   insightDot: { width: 8, height: 8, borderRadius: 4, marginTop: 6 },
 
-  retakeCard: { opacity: 1, alignItems: 'center' },
-  retakeBtn: {
-    marginTop: 10, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7,
-    borderWidth: 1, alignItems: 'center',
-  },
 
   emptyState:   { flex: 1 },
   emptyContent: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, paddingTop: 8 },
