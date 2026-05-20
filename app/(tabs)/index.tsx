@@ -149,7 +149,7 @@ function AnimatedCard({ children, delay = 0, style }: { children: React.ReactNod
 }
 
 export default function TageskurveScreen() {
-  const { intakes, selectedId, setSelectedId, hydrate, hydrated, removeIntake, addIntake } = useIntakeStore();
+  const { intakes, selectedId, setSelectedId, hydrate, hydrated, removeIntake, addIntake, togglePin } = useIntakeStore();
   const { colors: C } = useThemeStore();
   const { prefs } = useOnboardingStore();
   const t = useT();
@@ -184,13 +184,21 @@ export default function TageskurveScreen() {
 
   useEffect(() => { hydrate(); }, []);
 
-  function handleDeleteIntake(id: string, name: string) {
+  function handleLongPressIntake(id: string, name: string, pinned?: boolean) {
     Alert.alert(
-      t.intakeDeleteTitle,
-      t.intakeDeleteMsg(name),
+      name,
+      pinned ? '📌 Angeheftet – wird nicht automatisch gelöscht' : 'Was möchtest du tun?',
       [
+        {
+          text: pinned ? '📌 Loslösen' : '📌 Anheften',
+          onPress: () => togglePin(id),
+        },
+        {
+          text: '🗑️ Löschen',
+          style: 'destructive',
+          onPress: () => removeIntake(id),
+        },
         { text: t.cancel, style: 'cancel' },
-        { text: t.delete, style: 'destructive', onPress: () => removeIntake(id) },
       ],
     );
   }
@@ -303,16 +311,24 @@ export default function TageskurveScreen() {
     [intakes],
   );
 
-  const peakMarks = useMemo(() =>
-    intakes.map(i => {
-      const sub = getSubstance(i.substanceId);
-      if (!sub) return null;
-      const peakH     = i.timeH + sub.pk.tmaxHours;
-      const peakIndex = Math.min(Math.round(peakH * 2), 48);
-      return { substanceId: i.substanceId, peakIndex, color: sub.color, label: fmtHour(peakH) };
-    }).filter(Boolean) as any[],
-    [intakes],
-  );
+  const peakMarks = useMemo(() => {
+    const seen = new Set<string>();
+    return intakes
+      .map(i => {
+        const sub = getSubstance(i.substanceId);
+        if (!sub) return null;
+        if (seen.has(i.substanceId)) return null; // deduplicate by substance
+        seen.add(i.substanceId);
+        const intakeH   = i.takenAt
+          ? (new Date(i.takenAt).getTime() - new Date().setHours(0,0,0,0)) / 3_600_000
+          : i.timeH;
+        const peakH     = intakeH + sub.pk.tmaxHours;
+        const maxIdx    = chartData.length > 0 ? chartData.length - 1 : 48;
+        const peakIndex = Math.min(Math.round(peakH * 2), maxIdx);
+        return { substanceId: i.substanceId, peakIndex, color: sub.color, label: fmtHour(peakH) };
+      })
+      .filter(Boolean) as any[];
+  }, [intakes, chartData]);
 
 
   // ── Schlaf-Warnung: Stimulanzien noch aktiv bei Schlafbeginn? ──
@@ -467,7 +483,7 @@ export default function TageskurveScreen() {
                       style={[s.intakePill, { backgroundColor: C.surfaceHigh, borderColor: C.border },
                         sel && { borderColor: `${sub.color}60`, backgroundColor: `${sub.color}12` }]}
                       onPress={() => setSelectedId(intake.substanceId)}
-                      onLongPress={() => handleDeleteIntake(intake.id, sub.name)}
+                      onLongPress={() => handleLongPressIntake(intake.id, sub.name, intake.pinned)}
                       activeOpacity={0.75}
                     >
                       <View style={[s.legendDot, { backgroundColor: sub.color }]} />
@@ -514,7 +530,7 @@ export default function TageskurveScreen() {
                 </View>
                 <View style={{ flex: 1, paddingLeft: 14 }}>
                   <Text style={{ fontSize: 16, fontWeight: '800', color: cardColor, letterSpacing: -0.3 }}>
-                    {state?.label ?? 'Alles ruhig'}
+                    {activeIntakes.length === 0 ? 'Alles ruhig 😴' : (state?.label ?? 'Aktiv')}
                   </Text>
                   <Text style={{ fontSize: 12, color: C.textDim, marginTop: 3 }}>
                     {activeIntakes.length === 0 ? 'Keine aktiven Substanzen' : `${state?.strength ?? ''} · ${activeIntakes.length} aktiv`}
@@ -546,11 +562,14 @@ export default function TageskurveScreen() {
                   <AnimatedCard key={intake.id} delay={idx * 70}>
                     <TouchableOpacity
                       onPress={() => setSelectedId(intake.substanceId)}
-                      onLongPress={() => handleDeleteIntake(intake.id, sub.name)}
+                      onLongPress={() => handleLongPressIntake(intake.id, sub.name, intake.pinned)}
                       style={[s.activeCard, { backgroundColor: C.surfaceHigh, borderColor: C.border },
                         sel && { borderColor: `${sub.color}40`, backgroundColor: `${sub.color}08` }]}
                       activeOpacity={0.8}
                     >
+                      {intake.pinned && (
+                        <Text style={{ fontSize: 10, position: 'absolute', top: 6, right: 8 }}>📌</Text>
+                      )}
                       <SubIcon substance={sub} size={36} />
                       <Text style={{ fontSize: 13, fontWeight: '700', color: C.text, marginTop: 6 }} numberOfLines={1}>
                         {sub.name}

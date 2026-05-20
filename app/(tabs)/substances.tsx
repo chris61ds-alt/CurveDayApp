@@ -223,24 +223,31 @@ export default function SubstancesScreen() {
       {/* Category chips */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.chips} contentContainerStyle={s.chipsContent}>
         <TouchableOpacity
+          activeOpacity={0.7}
           style={[s.chip, { backgroundColor: C.bg2, borderColor: C.border2 },
             !catFilter && { backgroundColor: C.accentBg, borderColor: C.accent }]}
           onPress={() => setCat(null)}
         >
-          <Text style={[s.chipText, { color: C.textSub }, !catFilter && { color: C.accent, fontWeight: '700' }]}>
+          <Text style={[s.chipText, { color: !catFilter ? C.accent : C.textSub }, !catFilter && { fontWeight: '700' }]}>
             Alle
           </Text>
         </TouchableOpacity>
-        {(CATEGORIES as any[]).map(cat => (
-          <TouchableOpacity
-            key={cat.id}
-            style={[s.chip, { backgroundColor: C.bg2, borderColor: C.border2 },
-              catFilter === cat.id && { backgroundColor: C.accentBg, borderColor: cat.color }]}
-            onPress={() => setCat(catFilter === cat.id ? null : cat.id)}
-          >
-            <Text style={[s.chipText, { color: C.textSub }]}>{cat.icon} {cat.label}</Text>
-          </TouchableOpacity>
-        ))}
+        {(CATEGORIES as any[]).map(cat => {
+          const active = catFilter === cat.id;
+          return (
+            <TouchableOpacity
+              key={cat.id}
+              activeOpacity={0.7}
+              style={[s.chip, { backgroundColor: C.bg2, borderColor: C.border2 },
+                active && { backgroundColor: `${cat.color}18`, borderColor: cat.color }]}
+              onPress={() => setCat(active ? null : cat.id)}
+            >
+              <Text style={[s.chipText, { color: active ? cat.color : C.textSub }, active && { fontWeight: '700' }]}>
+                {cat.icon} {cat.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
 
       {/* List */}
@@ -278,10 +285,10 @@ const s = StyleSheet.create({
   searchIcon: { fontSize: 16, marginRight: 8 },
   search:     { flex: 1, fontSize: 15, paddingVertical: 11 },
 
-  chips:        { height: 52 },
-  chipsContent: { paddingHorizontal: 16, paddingVertical: 6, gap: 8 },
-  chip:         { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
-  chipText:     { fontSize: 12 },
+  chips:        { height: 60, flexGrow: 0 },
+  chipsContent: { paddingHorizontal: 16, paddingVertical: 8, gap: 8, alignItems: 'center' },
+  chip:         { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5 },
+  chipText:     { fontSize: 13, fontWeight: '500' },
 
   list: { padding: 16, paddingBottom: 32 },
   row:  {

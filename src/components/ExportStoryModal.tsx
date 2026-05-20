@@ -386,12 +386,18 @@ export function ExportStoryModal({ visible, onClose }: Props) {
   // ── Actions ─────────────────────────────────────────────────
 
   async function capture(): Promise<string | null> {
-    if (!cardRef.current) return null;
+    if (!cardRef.current) {
+      Alert.alert('Fehler', 'Karte nicht bereit – bitte kurz warten.');
+      return null;
+    }
+    // Small delay ensures SVG/layout is fully rendered before capture
+    await new Promise(res => setTimeout(res, 120));
     try {
       const uri = await captureRef(cardRef, {
         format: 'jpg',
-        quality: 0.98,
+        quality: 0.95,
         result: 'tmpfile',
+        snapshotContentContainer: false,
       });
       return uri;
     } catch (e) {
@@ -490,22 +496,21 @@ export function ExportStoryModal({ visible, onClose }: Props) {
             }
           </Text>
 
-          {/* ── Story card preview ────────────────────── */}
-          <View style={m.previewWrapper}>
-            {/* Shadow ring */}
-            <View style={m.cardShadow}>
-              <View ref={cardRef} collapsable={false}>
-                <StoryCard period={period} intakes={filtered} />
-              </View>
-            </View>
-          </View>
-
           {/* ── Format hint ───────────────────────────── */}
           <Text style={[m.formatHint, { color: C.textDim }]}>
             📐 Instagram Story Format (9:16) · JPEG
           </Text>
 
         </ScrollView>
+
+        {/* ── Story card preview (outside ScrollView for reliable capture) ── */}
+        <View style={m.previewWrapper}>
+          <View style={m.cardShadow}>
+            <View ref={cardRef} collapsable={false}>
+              <StoryCard period={period} intakes={filtered} />
+            </View>
+          </View>
+        </View>
 
         {/* ── Action buttons ────────────────────────── */}
         <View style={[m.actions, { borderTopColor: C.border, backgroundColor: C.bg }]}>

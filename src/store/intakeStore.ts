@@ -26,6 +26,7 @@ interface IntakeStore {
   setSelectedId: (id: string) => void;
   addIntake: (intake: Omit<Intake, 'id'>) => Promise<void>;
   removeIntake: (id: string) => Promise<void>;
+  togglePin: (id: string) => Promise<void>;
   hydrate: () => Promise<void>;
   syncFromCloud: () => Promise<void>;
   uploadToCloud: () => Promise<void>;
@@ -109,6 +110,14 @@ export const useIntakeStore = create<IntakeStore>((set, get) => ({
     pushIntake(newIntake).catch(() => {});
   },
 
+  togglePin: async (id) => {
+    const updated = get().intakes.map(i =>
+      i.id === id ? { ...i, pinned: !i.pinned } : i
+    );
+    set({ intakes: updated });
+    await persist(updated);
+  },
+
   removeIntake: async (id) => {
     // Cancel any scheduled notifications for this intake
     const target = get().intakes.find(i => i.id === id);
@@ -125,10 +134,28 @@ export const useIntakeStore = create<IntakeStore>((set, get) => ({
     try {
       const raw   = await AsyncStorage.getItem(STORAGE_KEY);
       const saved = raw ? (JSON.parse(raw) as Intake[]) : null;
-      set({
-        intakes:  saved && saved.length > 0 ? saved : DEMO_INTAKES,
-        hydrated: true,
-      });
+
+      if (saved && saved.length > 0) {
+        // Auto-clean: remove intakes older than 48h that are no longer pharmacologically active
+        const nowH    = (Date.now() - new Date().setHours(0, 0, 0, 0)) / 3_600_000;
+        const cutoff  = Date.now() - 48 * 60 * 60 * 1000;
+        const cleaned = saved.filter(i => {
+          if (i.pinned) return true;                   // pinned → always keep
+          const takenMs = i.takenAt ? new Date(i.takenAt).getTime() : null;
+          if (!takenMs) return true;                   // no timestamp → keep
+          if (takenMs >= cutoff) return true;          // within 48h → keep
+          return isActive(i, nowH);                    // still active → keep regardless of age
+        });
+
+        // Persist cleaned list if anything was removed
+        if (cleaned.length < saved.length) {
+          await persist(cleaned);
+        }
+
+        set({ intakes: cleaned.length > 0 ? cleaned : DEMO_INTAKES, hydrated: true });
+      } else {
+        set({ intakes: DEMO_INTAKES, hydrated: true });
+      }
     } catch {
       set({ intakes: DEMO_INTAKES, hydrated: true });
     }
