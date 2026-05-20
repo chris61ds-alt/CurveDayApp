@@ -287,7 +287,7 @@ export function AddIntakeModal({ visible, onClose, initialSubstance }: Props) {
                         onPress={() => selectSubstance(item)}
                         activeOpacity={0.7}
                       >
-                        <SubIcon icon={item.icon} color={item.color} size={26} />
+                        <SubIcon substance={item} size={26} />
                         <Text style={s.favChipName} numberOfLines={1}>{getSubstanceName(item, region)}</Text>
                       </TouchableOpacity>
                     ))}
@@ -302,7 +302,7 @@ export function AddIntakeModal({ visible, onClose, initialSubstance }: Props) {
                 keyboardShouldPersistTaps="handled"
                 renderItem={({ item }) => (
                   <TouchableOpacity style={s.resultRow} onPress={() => selectSubstance(item)} activeOpacity={0.7}>
-                    <SubIcon icon={item.icon} color={item.color} size={36} />
+                    <SubIcon substance={item} size={36} />
                     <View style={{ flex: 1, marginLeft: 12 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                         <Text style={s.resultName}>{getSubstanceName(item, region)}</Text>
@@ -339,7 +339,7 @@ export function AddIntakeModal({ visible, onClose, initialSubstance }: Props) {
               {/* Substanz-Info */}
               <View style={s.configCard}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                  <SubIcon icon={selected.icon} color={selected.color} size={44} />
+                  <SubIcon substance={selected} size={44} />
                   <View style={{ flex: 1 }}>
                     <Text style={s.configName}>{getSubstanceName(selected, region)}</Text>
                     <Text style={s.configMeta}>{selected.effectLabel}</Text>
