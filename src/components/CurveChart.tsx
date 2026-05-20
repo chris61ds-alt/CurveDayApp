@@ -101,9 +101,16 @@ export function CurveChart({
   // data.length-1 = maximaler Index (z.B. 48 für 24h, 96 für 48h)
   const MAX_IDX = data.length - 1;
 
-  // ── Zoom/Pan state ───────────────────────────────────────────
-  const [zoomRange, setZoomRangeState] = useState<[number, number]>([0, MAX_IDX]);
-  const zoomRef  = useRef<[number, number]>([0, MAX_IDX]);
+  // ── Zoom/Pan state — default: 4h window centred on now ───────
+  const getDefaultZoom = (): [number, number] => {
+    const maxIdx = data.length > 0 ? data.length - 1 : 48;
+    const nowIdx = Math.round(nowHour * 2);
+    const s = Math.max(0, nowIdx - 4);           // −2 h
+    const e = Math.min(maxIdx, nowIdx + 4);      // +2 h
+    return [s, e];
+  };
+  const [zoomRange, setZoomRangeState] = useState<[number, number]>(getDefaultZoom);
+  const zoomRef  = useRef<[number, number]>(getDefaultZoom());
   const plotWRef = useRef(plotW);
 
   // ── Radar-ping at NOW line ────────────────────────────────────
@@ -139,11 +146,14 @@ export function CurveChart({
   }, []);
   plotWRef.current = plotW;
 
-  // Zoom zurücksetzen wenn sich das Datenfenster ändert (z.B. neue Einnahme die morgen endet)
+  // Wenn sich das Datenfenster ändert → 4h-Fenster um NOW beibehalten
   const prevMaxIdx = useRef(MAX_IDX);
   if (prevMaxIdx.current !== MAX_IDX) {
     prevMaxIdx.current = MAX_IDX;
-    zoomRef.current    = [0, MAX_IDX];
+    const nowIdx = Math.round(nowHour * 2);
+    const s = Math.max(0, nowIdx - 4);
+    const e = Math.min(MAX_IDX, nowIdx + 4);
+    zoomRef.current = [s, e];
   }
 
   function setZoomRange(r: [number, number]) {
@@ -500,13 +510,14 @@ export function CurveChart({
 
       {/* ── Zoom buttons ── */}
       <View style={cs.zoomRow}>
+        {/* + zoom in */}
         <TouchableOpacity
           style={[cs.zoomBtn, { borderColor: accentColor + '40', backgroundColor: accentColor + '15' }]}
           onPress={() => {
             const [s, e] = zoomRef.current;
             const span   = e - s;
             const center = Math.round((s + e) / 2);
-            const half   = Math.max(6, Math.round(span / 4)); // half the current span
+            const half   = Math.max(3, Math.round(span / 4));
             const nS     = Math.max(0, center - half);
             const nE     = Math.min(MAX_IDX, center + half);
             if (nE - nS >= 4) setZoomRange([nS, nE]);
@@ -515,21 +526,35 @@ export function CurveChart({
         >
           <Text style={[cs.zoomIcon, { color: accentColor }]}>+</Text>
         </TouchableOpacity>
+        {/* − zoom out */}
         <TouchableOpacity
           style={[cs.zoomBtn, { borderColor: accentColor + '40', backgroundColor: accentColor + '15' }]}
           onPress={() => {
             const [s, e] = zoomRef.current;
             const span   = e - s;
             const center = Math.round((s + e) / 2);
-            const half   = Math.min(MAX_IDX, Math.round(span)); // double the current span
+            const half   = Math.min(MAX_IDX, Math.round(span));
             const nS     = Math.max(0, center - half);
             const nE     = Math.min(MAX_IDX, center + half);
-            if (nE - nS >= 4) setZoomRange([nS, nE]);
-            else setZoomRange([0, MAX_IDX]); // full reset
+            if (nE - nS < MAX_IDX - 2) setZoomRange([nS, nE]);
+            else setZoomRange([0, MAX_IDX]);
           }}
           activeOpacity={0.7}
         >
           <Text style={[cs.zoomIcon, { color: accentColor }]}>−</Text>
+        </TouchableOpacity>
+        {/* ⊙ reset to 4h around now */}
+        <TouchableOpacity
+          style={[cs.zoomBtn, { borderColor: accentColor + '40', backgroundColor: accentColor + '15' }]}
+          onPress={() => {
+            const nowIdx = Math.round(nowHour * 2);
+            const s = Math.max(0, nowIdx - 4);
+            const e = Math.min(MAX_IDX, nowIdx + 4);
+            setZoomRange([s, e]);
+          }}
+          activeOpacity={0.7}
+        >
+          <Text style={[cs.zoomIcon, { color: accentColor, fontSize: 14 }]}>⊙</Text>
         </TouchableOpacity>
       </View>
 

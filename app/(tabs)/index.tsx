@@ -534,31 +534,41 @@ export default function TageskurveScreen() {
             const barW   = `${effect}%` as any;
             return (
               <AnimatedCard key={intake.id} delay={idx * 50}>
-                <TouchableOpacity
-                  onPress={() => setSelectedId(intake.substanceId)}
-                  onLongPress={() => handleLongPressIntake(intake.id, sub.name, intake.pinned)}
-                  style={[s.compactRow, sel && { backgroundColor: `${sub.color}08`, borderRadius: 12 }]}
-                  activeOpacity={0.75}
-                >
-                  <SubIcon substance={sub} size={32} />
-                  <View style={{ flex: 1, marginLeft: 12 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Text style={{ fontSize: 14, fontWeight: '700', color: sel ? sub.color : C.text }} numberOfLines={1}>
-                        {sub.name}
-                      </Text>
-                      {intake.pinned && <Text style={{ fontSize: 11 }}>📌</Text>}
-                      {atPeak && <Text style={{ fontSize: 12 }}>⚡</Text>}
+                <View style={[s.compactRow, sel && { backgroundColor: `${sub.color}08`, borderRadius: 12 }]}>
+                  <TouchableOpacity
+                    onPress={() => setSelectedId(intake.substanceId)}
+                    style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}
+                    activeOpacity={0.75}
+                  >
+                    <SubIcon substance={sub} size={32} />
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={{ fontSize: 14, fontWeight: '700', color: sel ? sub.color : C.text }} numberOfLines={1}>
+                          {sub.name}
+                        </Text>
+                        {intake.pinned && <Text style={{ fontSize: 11 }}>📌</Text>}
+                        {atPeak && <Text style={{ fontSize: 12 }}>⚡</Text>}
+                      </View>
+                      {/* Progress bar */}
+                      <View style={[s.barTrack, { backgroundColor: C.surfaceHigh }]}>
+                        <View style={[s.barFill, { width: barW, backgroundColor: sub.color }]} />
+                      </View>
                     </View>
-                    {/* Progress bar */}
-                    <View style={[s.barTrack, { backgroundColor: C.surfaceHigh }]}>
-                      <View style={[s.barFill, { width: barW, backgroundColor: sub.color }]} />
+                    <View style={{ alignItems: 'flex-end', marginLeft: 12 }}>
+                      <Text style={{ fontSize: 16, fontWeight: '800', color: sub.color }}>{effect}%</Text>
+                      <Text style={{ fontSize: 12, color: C.textDim, marginTop: 2 }}>{getRemainingTime(intake, now)}</Text>
                     </View>
-                  </View>
-                  <View style={{ alignItems: 'flex-end', marginLeft: 12 }}>
-                    <Text style={{ fontSize: 16, fontWeight: '800', color: sub.color }}>{effect}%</Text>
-                    <Text style={{ fontSize: 12, color: C.textDim, marginTop: 2 }}>{getRemainingTime(intake, now)}</Text>
-                  </View>
-                </TouchableOpacity>
+                  </TouchableOpacity>
+                  {/* ⋯ actions button */}
+                  <TouchableOpacity
+                    onPress={() => handleLongPressIntake(intake.id, sub.name, intake.pinned)}
+                    style={[s.rowMenu, { borderColor: C.border }]}
+                    hitSlop={{ top: 8, bottom: 8, left: 4, right: 8 }}
+                    activeOpacity={0.6}
+                  >
+                    <Text style={{ fontSize: 15, color: C.textDim, lineHeight: 18 }}>⋯</Text>
+                  </TouchableOpacity>
+                </View>
               </AnimatedCard>
             );
           })}
@@ -778,7 +788,8 @@ const s = StyleSheet.create({
   divider:      { height: 1, marginVertical: 10 },
   dividerRow:   { flexDirection: 'row', alignItems: 'center', marginVertical: 12 },
   dividerLine:  { flex: 1, height: 1 },
-  compactRow:   { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 10, marginVertical: 2 },
+  compactRow:   { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 10, marginVertical: 2, gap: 6 },
+  rowMenu:      { width: 28, height: 28, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginLeft: 2 },
   barTrack:     { height: 6, borderRadius: 3, marginTop: 6, overflow: 'hidden' },
   barFill:      { height: 6, borderRadius: 3, opacity: 0.85 },
   retakeChip:   { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1 },
