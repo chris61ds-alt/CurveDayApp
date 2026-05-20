@@ -425,6 +425,36 @@ export default function TageskurveScreen() {
         scrollEventThrottle={16}
       >
 
+        {/* ── STATUS / MASCOT ────────────────── */}
+        {(() => {
+          const state     = activeIntakes.length > 0 ? computeCurrentState(activeIntakes, chartData, now, t) : null;
+          const mascotKey = getMascotKey(state, activeIntakes.length, interactions, activeIntakes.map(i => i.substanceId));
+          const mascotImg = MASCOT_IMAGES[mascotKey];
+          const cardColor = state?.color ?? C.textDim;
+          return (
+            <View style={[s.card, s.mascotCard, { backgroundColor: `${cardColor}10`, borderColor: `${cardColor}25` }]}>
+              <View style={s.mascotImgWrapper}>
+                <Image source={mascotImg} style={s.mascotImg} resizeMode="contain" />
+              </View>
+              <View style={{ flex: 1, paddingLeft: 14 }}>
+                <Text style={{ fontSize: 20, fontWeight: '800', color: cardColor, letterSpacing: -0.5 }}>
+                  {activeIntakes.length === 0 ? 'Alles ruhig 😴' : (state?.label ?? 'Aktiv')}
+                </Text>
+                <Text style={{ fontSize: 12, color: C.textDim, marginTop: 3 }}>
+                  {activeIntakes.length === 0
+                    ? 'Keine aktiven Substanzen'
+                    : `${state?.strength ?? ''} · ${activeIntakes.length} aktiv`}
+                </Text>
+                {activeIntakes.length > 0 && (
+                  <Text style={{ fontSize: 11, color: C.textMuted ?? C.textDim, marginTop: 5 }} numberOfLines={1}>
+                    {activeIntakes.map(i => getSubstance(i.substanceId)?.name).filter(Boolean).join(' · ')}
+                  </Text>
+                )}
+              </View>
+            </View>
+          );
+        })()}
+
         {/* ── CHART ──────────────────────────── */}
         <View style={[s.card, { backgroundColor: C.surface, borderColor: C.border }]}>
           {/* Chart + left→right reveal wipe */}
@@ -433,7 +463,7 @@ export default function TageskurveScreen() {
             data={chartData} entries={chartEntries} selectedId={selectedId}
             nowHour={now} peakMarks={peakMarks}
             sleepWindow={sleepWindow}
-            height={280}
+            height={260}
             labelNow={t.chartNow}
             labelTomorrow={t.chartTomorrow}
             labelSteadyState={t.chartSteadyState}
@@ -513,37 +543,6 @@ export default function TageskurveScreen() {
               </Text>
             </View>
           </View>
-
-          {/* Mascot card */}
-          {(() => {
-            const state      = activeIntakes.length > 0 ? computeCurrentState(activeIntakes, chartData, now, t) : null;
-            const mascotKey  = getMascotKey(state, activeIntakes.length, interactions, activeIntakes.map(i => i.substanceId));
-            const mascotImg  = MASCOT_IMAGES[mascotKey];
-            const cardColor  = state?.color ?? C.textDim;
-            const phrase     = activeIntakes.length === 0
-              ? 'Nichts aktiv – alles ruhig 😴'
-              : state ? `${state.label} · ${state.strength}` : 'Aktiv';
-            return (
-              <View style={[s.mascotCard, { backgroundColor: `${cardColor}10`, borderColor: `${cardColor}25` }]}>
-                <View style={s.mascotImgWrapper}>
-                  <Image source={mascotImg} style={s.mascotImg} resizeMode="contain" />
-                </View>
-                <View style={{ flex: 1, paddingLeft: 14 }}>
-                  <Text style={{ fontSize: 16, fontWeight: '800', color: cardColor, letterSpacing: -0.3 }}>
-                    {activeIntakes.length === 0 ? 'Alles ruhig 😴' : (state?.label ?? 'Aktiv')}
-                  </Text>
-                  <Text style={{ fontSize: 12, color: C.textDim, marginTop: 3 }}>
-                    {activeIntakes.length === 0 ? 'Keine aktiven Substanzen' : `${state?.strength ?? ''} · ${activeIntakes.length} aktiv`}
-                  </Text>
-                  {activeIntakes.length > 0 && (
-                    <Text style={{ fontSize: 11, color: C.textMuted ?? C.textDim, marginTop: 5 }} numberOfLines={1}>
-                      {activeIntakes.map(i => getSubstance(i.substanceId)?.name).filter(Boolean).join(' · ')}
-                    </Text>
-                  )}
-                </View>
-              </View>
-            );
-          })()}
 
           {activeIntakes.length === 0 && quickRetakes.length === 0 ? (
             <View style={s.emptyInline}>
@@ -792,7 +791,7 @@ const s = StyleSheet.create({
   activeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   activeCard: { flex: 1, minWidth: 110, borderRadius: 16, padding: 14, alignItems: 'center', borderWidth: 1 },
   stateRow:     { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 12, padding: 12, marginBottom: 12, borderWidth: 1 },
-  mascotCard:   { flexDirection: 'row', alignItems: 'center', borderRadius: 16, padding: 14, marginBottom: 14, borderWidth: 1 },
+  mascotCard:   { flexDirection: 'row', alignItems: 'center' },
   mascotImgWrapper: { width: 150, height: 78, borderRadius: 14, backgroundColor: 'white', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   mascotImg:    { width: 160, height: 88 },
   emptyInline:{ paddingVertical: 16, alignItems: 'center' },
