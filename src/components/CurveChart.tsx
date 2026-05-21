@@ -9,7 +9,7 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle as any);
 const SF = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
 import { ChartRow } from '../utils/pkHelpers';
 
-const PAD = { left: 38, right: 12, top: 20, bottom: 28 };
+const PAD = { left: 38, right: 12, top: 10, bottom: 28 };
 
 interface ChartEntry { substanceId: string; color: string; isChronic?: boolean; }
 interface PeakMark  { substanceId: string; peakIndex: number; color: string; label: string; }
@@ -242,17 +242,20 @@ export function CurveChart({
     [entries, selectedId],
   );
 
-  // X-Achsen-Ticks: Alle 4 Indizes (2h) wenn gezoomt, sonst alle 12 (6h)
-  // Über Mitternacht werden Ticks bei idx=48 (00:00+1), 60 (06:00+1), etc. generiert
-  const allTickCandidates = visibleSpan <= 12
-    ? Array.from({ length: MAX_IDX / 4 + 1 }, (_, i) => i * 4)
-    : Array.from({ length: MAX_IDX / 12 + 1 }, (_, i) => i * 12);
+  // X-Achsen-Ticks: Schritt so wählen, dass Labels (~38px) nicht überlappen
+  const minLabelPx = 40; // Mindestbreite pro Label in Pixel
+  const maxTicks   = Math.max(2, Math.floor(plotW / minLabelPx));
+  const rawStep    = Math.ceil(visibleSpan / maxTicks);
+  // Auf sinnvolle Schritte runden: 1 (30min), 2 (1h), 4 (2h), 8 (4h), 12 (6h)
+  const tickStep   = rawStep <= 1 ? 1 : rawStep <= 2 ? 2 : rawStep <= 4 ? 4 : rawStep <= 8 ? 8 : 12;
+  const allTickCandidates = Array.from(
+    { length: Math.floor(MAX_IDX / tickStep) + 1 },
+    (_, i) => i * tickStep,
+  );
   const rawTicks = allTickCandidates.filter(t => t >= zS && t <= zE && t <= MAX_IDX);
 
   const nowIdx   = Math.min(nowHour * 2, MAX_IDX);
   const nowX     = nowIdx >= zS && nowIdx <= zE ? xOf(nowIdx) : null;
-  const nowM     = Math.round((nowHour % 1) * 60);
-  const nowLabel = `${String(Math.floor(nowHour) % 24).padStart(2, '0')}:${String(nowM).padStart(2, '0')}`;
   const baseline = yOf(0);
 
   // "Morgen"-Trennlinie bei idx=48 (Mitternacht), sichtbar wenn Chart >24h
@@ -493,18 +496,11 @@ export function CurveChart({
             <AnimatedCircle cx={nowX} cy={PAD.top + plotH / 2} r={ping2R} fill="none" stroke={accentColor} strokeWidth={1.2} opacity={ping2Op} />
             {/* Dashed line */}
             <Line x1={nowX} y1={PAD.top} x2={nowX} y2={height - PAD.bottom} stroke={accentColor} strokeWidth={1.5} strokeDasharray="4,3" opacity={0.75} />
-            {/* Labels */}
-            <SvgText x={nowX} y={PAD.top - 6} fontSize={11} fill={accentColor} textAnchor="middle" fontWeight="700" fontFamily={SF}>{labelNow}</SvgText>
-            <SvgText x={nowX + 4} y={PAD.top + 13} fontSize={10} fill={accentColor} opacity={0.75} fontFamily={SF}>{nowLabel}</SvgText>
+            {/* Kein Text-Label — Uhrzeit steht bereits auf der X-Achse */}
           </>
         )}
 
-        {/* Zoom/pan indicator */}
-        {isZoomed && (
-          <SvgText x={PAD.left + plotW / 2} y={PAD.top - 6} fontSize={11} fill={accentColor} textAnchor="middle" opacity={0.75} fontFamily={SF}>
-            {`◀  ${String(Math.floor((zS/2)%24)).padStart(2,'0')}:${zS%2?'30':'00'} – ${String(Math.floor((zE/2)%24)).padStart(2,'0')}:${zE%2?'30':'00'}  ▶`}
-          </SvgText>
-        )}
+        {/* Zoom-Bereich wird nicht mehr als Text angezeigt — X-Achse zeigt den Bereich */}
 
       </Svg>
 
