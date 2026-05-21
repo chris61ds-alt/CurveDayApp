@@ -563,9 +563,9 @@ function makeStyles(C: ThemeColors) { return StyleSheet.create({
   foodNote:      { marginTop: 10, backgroundColor: `${C.warning}12`, borderRadius: 9, padding: 10, borderWidth: 1, borderColor: `${C.warning}25` },
   foodNoteText:  { fontSize: 12, color: C.warning, lineHeight: 18 },
 
-  criticalBox:   { backgroundColor: '#ef444412', borderRadius: 10, padding: 14, borderWidth: 1, borderColor: '#ef444435' },
-  criticalTitle: { fontSize: 14, fontWeight: '700', color: '#f87171', marginBottom: 6 },
-  criticalText:  { fontSize: 13, color: '#fca5a5', lineHeight: 19 },
+  criticalBox:   { backgroundColor: C.isDark ? '#ef444412' : '#fff1f2', borderRadius: 10, padding: 14, borderWidth: 1, borderColor: C.isDark ? '#ef444435' : '#ef444460' },
+  criticalTitle: { fontSize: 14, fontWeight: '700', color: C.isDark ? '#f87171' : '#b91c1c', marginBottom: 6 },
+  criticalText:  { fontSize: 13, color: C.isDark ? '#fca5a5' : '#991b1b', lineHeight: 19 },
 
   configSection: { backgroundColor: C.surface, borderRadius: 12, padding: 16, borderWidth: 1, borderColor: C.border },
   configLabel:   { fontSize: 12, color: C.textDim, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: '600' },
@@ -594,19 +594,19 @@ function makeStyles(C: ThemeColors) { return StyleSheet.create({
   reminderSub:   { fontSize: 12, color: C.textDim, marginTop: 2 },
 
   btmWarning:    { backgroundColor: '#ef444412', borderRadius: 10, padding: 14, borderWidth: 1, borderColor: '#ef444435' },
-  rxWarning:     { backgroundColor: '#f59e0b10', borderRadius: 10, padding: 14, borderWidth: 1, borderColor: '#f59e0b30' },
-  rxWarningTitle:{ fontSize: 13, fontWeight: '700', color: '#fcd34d', marginBottom: 5 },
-  rxWarningText: { fontSize: 12, color: '#fde68a', lineHeight: 18 },
+  rxWarning:     { backgroundColor: C.isDark ? '#f59e0b10' : '#fffbeb', borderRadius: 10, padding: 14, borderWidth: 1, borderColor: C.isDark ? '#f59e0b30' : '#f59e0b50' },
+  rxWarningTitle:{ fontSize: 13, fontWeight: '700', color: C.isDark ? '#fcd34d' : '#92400e', marginBottom: 5 },
+  rxWarningText: { fontSize: 12, color: C.isDark ? '#fde68a' : '#78350f', lineHeight: 18 },
 
   doseWarnBox:   { marginTop: 8, borderRadius: 8, padding: 10, borderWidth: 1 },
   doseWarnText:  { fontSize: 12, lineHeight: 17 },
 
-  dailyWarnBox:  { backgroundColor: '#f59e0b10', borderRadius: 10, padding: 14, borderWidth: 1, borderColor: '#f59e0b35', marginBottom: 4 },
-  dailyWarnText: { fontSize: 13, color: '#fcd34d', lineHeight: 18 },
+  dailyWarnBox:  { backgroundColor: C.isDark ? '#f59e0b10' : '#fffbeb', borderRadius: 10, padding: 14, borderWidth: 1, borderColor: C.isDark ? '#f59e0b35' : '#f59e0b60', marginBottom: 4 },
+  dailyWarnText: { fontSize: 13, color: C.isDark ? '#fcd34d' : '#92400e', lineHeight: 18 },
 
-  warningsBox:   { backgroundColor: '#f59e0b10', borderRadius: 10, padding: 14, borderWidth: 1, borderColor: '#f59e0b25' },
-  warningsTitle: { fontSize: 12, fontWeight: '700', color: '#fcd34d', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
-  warningItem:   { fontSize: 12, color: '#fde68a', lineHeight: 19 },
+  warningsBox:   { backgroundColor: C.isDark ? '#f59e0b10' : '#fffbeb', borderRadius: 10, padding: 14, borderWidth: 1, borderColor: C.isDark ? '#f59e0b25' : '#f59e0b50' },
+  warningsTitle: { fontSize: 12, fontWeight: '700', color: C.isDark ? '#fcd34d' : '#92400e', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
+  warningItem:   { fontSize: 12, color: C.isDark ? '#fde68a' : '#78350f', lineHeight: 19 },
 
   confirmBtn:  { borderRadius: 14, padding: 16, alignItems: 'center' },
   confirmText: { fontSize: 16, fontWeight: '800', color: '#fff' },
