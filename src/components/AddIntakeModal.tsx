@@ -214,10 +214,13 @@ export function AddIntakeModal({ visible, onClose, initialSubstance }: Props) {
 
           {/* Header */}
           <View style={s.header}>
-            {step === 'configure' && (
+            {step === 'configure' ? (
               <TouchableOpacity onPress={() => setStep('search')} style={s.backBtn}>
                 <Text style={s.backText}>‹ {t.back}</Text>
               </TouchableOpacity>
+            ) : (
+              /* Invisible spacer — same width as closeBtn — keeps title centred */
+              <View style={s.closeBtn} pointerEvents="none" />
             )}
             <Text style={s.headerTitle}>
               {step === 'search' ? t.addTitle : getSubstanceName(selected, region)}
@@ -236,7 +239,7 @@ export function AddIntakeModal({ visible, onClose, initialSubstance }: Props) {
                 <TextInput
                   style={s.searchInput}
                   placeholder={t.addSearchPlaceholder}
-                  placeholderTextColor="#4a5a70"
+                  placeholderTextColor={C.textDim}
                   value={query}
                   onChangeText={setQuery}
                   autoFocus
@@ -404,7 +407,7 @@ export function AddIntakeModal({ visible, onClose, initialSubstance }: Props) {
                   value={dose}
                   onChangeText={setDose}
                   placeholder={`z.B. ${selected.defaultDose} ${selected.doseUnit}`}
-                  placeholderTextColor="#4a5a70"
+                  placeholderTextColor={C.textDim}
                   keyboardType="default"
                 />
 

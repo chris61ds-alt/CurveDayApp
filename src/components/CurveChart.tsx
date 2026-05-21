@@ -9,7 +9,7 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle as any);
 const SF = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
 import { ChartRow } from '../utils/pkHelpers';
 
-const PAD = { left: 32, right: 12, top: 20, bottom: 26 };
+const PAD = { left: 38, right: 12, top: 20, bottom: 28 };
 
 interface ChartEntry { substanceId: string; color: string; isChronic?: boolean; }
 interface PeakMark  { substanceId: string; peakIndex: number; color: string; label: string; }
@@ -290,7 +290,7 @@ export function CurveChart({
         {yTicks.map(v => (
           <G key={v}>
             <Line x1={PAD.left} y1={yOf(v)} x2={svgW - PAD.right} y2={yOf(v)} stroke={gridColor} strokeWidth={1} />
-            <SvgText x={PAD.left - 5} y={yOf(v) + 3.5} fontSize={9} fill={labelColor} textAnchor="end" fontFamily={SF}>{v}%</SvgText>
+            <SvgText x={PAD.left - 5} y={yOf(v) + 4} fontSize={11} fill={labelColor} textAnchor="end" fontFamily={SF}>{v}%</SvgText>
           </G>
         ))}
 
@@ -346,7 +346,7 @@ export function CurveChart({
               {showLabel && (
                 <SvgText
                   x={xOf(sIdx) + 5} y={PAD.top + plotH - 6}
-                  fontSize={8} fill={SLEEP_COLOR} opacity={0.55} fontFamily={SF}
+                  fontSize={10} fill={SLEEP_COLOR} opacity={0.6} fontFamily={SF}
                 >
                   {labelSleep}
                 </SvgText>
@@ -364,7 +364,7 @@ export function CurveChart({
             />
             <SvgText
               x={midnightX + 4} y={PAD.top + 10}
-              fontSize={8} fill={labelColor} opacity={0.7} fontFamily={SF}
+              fontSize={10} fill={labelColor} opacity={0.75} fontFamily={SF}
             >
               {labelTomorrow}
             </SvgText>
@@ -379,7 +379,7 @@ export function CurveChart({
           const hM     = Math.round((hWrap % 1) * 60);
           const label  = `${String(hH).padStart(2, '0')}:${String(hM).padStart(2, '0')}`;
           return (
-            <SvgText key={idx} x={xOf(idx)} y={height - 6} fontSize={9} fill={labelColor} textAnchor="middle" fontFamily={SF}>
+            <SvgText key={idx} x={xOf(idx)} y={height - 5} fontSize={11} fill={labelColor} textAnchor="middle" fontFamily={SF}>
               {label}
             </SvgText>
           );
@@ -429,7 +429,7 @@ export function CurveChart({
                 {isSel && (
                   <SvgText
                     x={x1 + 6} y={y - 5}
-                    fontSize={8} fill={e.color} opacity={0.8} fontFamily={SF}
+                    fontSize={10} fill={e.color} opacity={0.85} fontFamily={SF}
                   >
                     {labelSteadyState}
                   </SvgText>
@@ -477,7 +477,7 @@ export function CurveChart({
               <Circle cx={px} cy={py} r={isSel ? 9 : 5} fill={pm.color} opacity={0.15} />
               <Circle cx={px} cy={py} r={isSel ? 4.5 : 3} fill={pm.color} opacity={isSel ? 1 : 0.7} />
               {isSel && (
-                <SvgText x={px} y={py - 14} fontSize={10} fill={pm.color} textAnchor="middle" fontWeight="700" fontFamily={SF}>
+                <SvgText x={px} y={py - 14} fontSize={11} fill={pm.color} textAnchor="middle" fontWeight="700" fontFamily={SF}>
                   {pm.label}
                 </SvgText>
               )}
@@ -494,14 +494,14 @@ export function CurveChart({
             {/* Dashed line */}
             <Line x1={nowX} y1={PAD.top} x2={nowX} y2={height - PAD.bottom} stroke={accentColor} strokeWidth={1.5} strokeDasharray="4,3" opacity={0.75} />
             {/* Labels */}
-            <SvgText x={nowX} y={PAD.top - 6} fontSize={9} fill={accentColor} textAnchor="middle" fontWeight="700" fontFamily={SF}>{labelNow}</SvgText>
-            <SvgText x={nowX + 4} y={PAD.top + 13} fontSize={8} fill={accentColor} opacity={0.7} fontFamily={SF}>{nowLabel}</SvgText>
+            <SvgText x={nowX} y={PAD.top - 6} fontSize={11} fill={accentColor} textAnchor="middle" fontWeight="700" fontFamily={SF}>{labelNow}</SvgText>
+            <SvgText x={nowX + 4} y={PAD.top + 13} fontSize={10} fill={accentColor} opacity={0.75} fontFamily={SF}>{nowLabel}</SvgText>
           </>
         )}
 
         {/* Zoom/pan indicator */}
         {isZoomed && (
-          <SvgText x={PAD.left + plotW / 2} y={PAD.top - 6} fontSize={9} fill={accentColor} textAnchor="middle" opacity={0.7} fontFamily={SF}>
+          <SvgText x={PAD.left + plotW / 2} y={PAD.top - 6} fontSize={11} fill={accentColor} textAnchor="middle" opacity={0.75} fontFamily={SF}>
             {`◀  ${String(Math.floor((zS/2)%24)).padStart(2,'0')}:${zS%2?'30':'00'} – ${String(Math.floor((zE/2)%24)).padStart(2,'0')}:${zE%2?'30':'00'}  ▶`}
           </SvgText>
         )}

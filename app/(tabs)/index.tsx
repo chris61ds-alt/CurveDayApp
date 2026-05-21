@@ -1,7 +1,7 @@
 import React, { useMemo, useEffect, useRef, useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  Animated, Easing, Platform, Alert, useWindowDimensions, Image,
+  Animated, Easing, Platform, Modal, Pressable, useWindowDimensions, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useIntakeStore } from '../../src/store/intakeStore';
@@ -79,6 +79,8 @@ function computeCurrentState(
   for (const intake of activeIntakes) {
     const sub = getSubstance(intake.substanceId);
     if (!sub) continue;
+    // Chronische Substanzen (z.B. Vitamine, Supplemente) erzeugen kein spürbares Momentangefühl
+    if (sub.pk?.curveType === 'chronic') continue;
     const eff = getCurrentEffect(intake.substanceId, chartData, now) / 100;
     for (const [key, val] of Object.entries(sub.effects as Record<string, number>)) {
       if (typeof val === 'number' && val > 0) {
@@ -172,6 +174,7 @@ export default function TageskurveScreen() {
     return { start: 23, end: 7 }; // sensible default
   }, [prefs.profile?.sleepStart, prefs.profile?.sleepEnd]);
   const [modalVisible, setModalVisible] = useState(false);
+  const [actionSheet, setActionSheet] = useState<{ id: string; name: string; pinned?: boolean } | null>(null);
   const { width: screenWidth } = useWindowDimensions();
 
   // ── Page fade-in ─────────────────────────────────────────────
@@ -183,9 +186,6 @@ export default function TageskurveScreen() {
   // ── FAB glow pulse ───────────────────────────────────────────
   const fabPulse = useRef(new Animated.Value(0)).current;
 
-  // ── NOW dot heartbeat ────────────────────────────────────────
-  const dotPulse = useRef(new Animated.Value(1)).current;
-
   // ── XP floats (game-style "+Substance" popups) ───────────────
   type XpFloat = { id: string; text: string; color: string; anim: Animated.Value };
   const [xpFloats, setXpFloats] = useState<XpFloat[]>([]);
@@ -194,22 +194,7 @@ export default function TageskurveScreen() {
   useEffect(() => { hydrate(); }, []);
 
   function handleLongPressIntake(id: string, name: string, pinned?: boolean) {
-    Alert.alert(
-      name,
-      pinned ? '📌 Angeheftet – wird nicht automatisch gelöscht' : 'Was möchtest du tun?',
-      [
-        {
-          text: pinned ? '📌 Loslösen' : '📌 Anheften',
-          onPress: () => togglePin(id),
-        },
-        {
-          text: '🗑️ Löschen',
-          style: 'destructive',
-          onPress: () => removeIntake(id),
-        },
-        { text: t.cancel, style: 'cancel' },
-      ],
-    );
+    setActionSheet({ id, name, pinned });
   }
 
 
@@ -245,18 +230,6 @@ export default function TageskurveScreen() {
     return () => loop.stop();
   }, []);
 
-  // NOW dot heartbeat
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(dotPulse, { toValue: 0.2, duration: 500, useNativeDriver: true }),
-        Animated.timing(dotPulse, { toValue: 1, duration: 800, easing: Easing.out(Easing.quad), useNativeDriver: true }),
-        Animated.delay(600),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, []);
 
   // XP floats: trigger when a new intake is added
   useEffect(() => {
@@ -346,18 +319,24 @@ export default function TageskurveScreen() {
   const bedtimeWarnings = useMemo(() => {
     if (!chartData.length) return [];
     const bedtimeIdx = Math.min(Math.round(sleepWindow.start * 2), chartData.length - 1);
-    return intakes.filter(intake => {
-      const sub = getSubstance(intake.substanceId);
-      if (!sub) return false;
-      const hasStimEffect = STIMULANT_EFFECTS.some(k => (sub.effects as any)[k] > 0);
-      if (!hasStimEffect) return false;
-      const val = chartData[bedtimeIdx]?.[intake.substanceId];
-      return typeof val === 'number' && val > 18; // >18% = noch spürbar
-    }).map(i => {
-      const sub = getSubstance(i.substanceId);
-      const val = chartData[Math.min(Math.round(sleepWindow.start * 2), chartData.length - 1)]?.[i.substanceId] as number;
-      return { name: sub?.name ?? i.substanceId, color: sub?.color ?? '#fff', val: Math.round(val) };
-    });
+    const seen = new Set<string>();
+    return intakes
+      .filter(intake => {
+        if (seen.has(intake.substanceId)) return false; // deduplizieren
+        const sub = getSubstance(intake.substanceId);
+        if (!sub) return false;
+        const hasStimEffect = STIMULANT_EFFECTS.some(k => (sub.effects as any)[k] > 0);
+        if (!hasStimEffect) return false;
+        const val = chartData[bedtimeIdx]?.[intake.substanceId];
+        const active = typeof val === 'number' && val > 18; // >18% = noch spürbar
+        if (active) seen.add(intake.substanceId);
+        return active;
+      })
+      .map(i => {
+        const sub = getSubstance(i.substanceId);
+        const val = chartData[bedtimeIdx]?.[i.substanceId] as number;
+        return { name: sub?.name ?? i.substanceId, color: sub?.color ?? '#fff', val: Math.round(val) };
+      });
   }, [chartData, intakes, sleepWindow.start]);
 
   if (!hydrated) {
@@ -384,15 +363,9 @@ export default function TageskurveScreen() {
             <Text style={{ fontSize: 13, color: C.textDim, marginTop: 1 }}>{getGreeting(now)}</Text>
           </View>
         </View>
-        <View style={s.dateRow}>
-          <Text style={{ fontSize: 13, color: C.textDim }}>
-            {t.homeDate(new Date())}
-          </Text>
-        </View>
-        <View style={[s.nowPill, { backgroundColor: `${C.accent}12`, borderColor: `${C.accent}25` }]}>
-          <Animated.View style={[s.nowDot, { backgroundColor: C.accent, opacity: dotPulse }]} />
-          <Text style={{ fontSize: 13, color: C.accent }}>{fmtHour(now)}</Text>
-        </View>
+        <Text style={{ fontSize: 13, color: C.textDim }}>
+          {t.homeDate(new Date())}
+        </Text>
       </View>
 
       {/* ── EMPTY STATE ──────────────────────── */}
@@ -741,6 +714,45 @@ export default function TageskurveScreen() {
 
       <AddIntakeModal visible={modalVisible} onClose={() => setModalVisible(false)} />
 
+      {/* ── ACTION SHEET (pin / delete) ──────── */}
+      <Modal
+        visible={!!actionSheet}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setActionSheet(null)}
+      >
+        <Pressable style={s.sheetOverlay} onPress={() => setActionSheet(null)}>
+          <Pressable style={[s.sheetCard, { backgroundColor: C.surface, borderColor: C.border }]} onPress={() => {}}>
+            <Text style={[s.sheetTitle, { color: C.text }]} numberOfLines={1}>{actionSheet?.name}</Text>
+            <Text style={[s.sheetSubtitle, { color: C.textDim }]}>
+              {actionSheet?.pinned ? '📌 Angeheftet – wird nicht automatisch gelöscht' : 'Was möchtest du tun?'}
+            </Text>
+            <View style={[s.sheetDivider, { backgroundColor: C.border }]} />
+            <TouchableOpacity
+              style={s.sheetBtn}
+              onPress={() => { if (actionSheet) { togglePin(actionSheet.id); } setActionSheet(null); }}
+              activeOpacity={0.7}
+            >
+              <Text style={[s.sheetBtnText, { color: C.accent }]}>
+                {actionSheet?.pinned ? '📌 Loslösen' : '📌 Anheften'}
+              </Text>
+            </TouchableOpacity>
+            <View style={[s.sheetDivider, { backgroundColor: C.border }]} />
+            <TouchableOpacity
+              style={s.sheetBtn}
+              onPress={() => { if (actionSheet) { removeIntake(actionSheet.id); } setActionSheet(null); }}
+              activeOpacity={0.7}
+            >
+              <Text style={[s.sheetBtnText, { color: '#f87171' }]}>🗑️ Löschen</Text>
+            </TouchableOpacity>
+            <View style={[s.sheetDivider, { backgroundColor: C.border }]} />
+            <TouchableOpacity style={s.sheetBtn} onPress={() => setActionSheet(null)} activeOpacity={0.7}>
+              <Text style={[s.sheetBtnText, { color: C.textDim }]}>{t.cancel}</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       {/* ── XP floats ────────────────────────── */}
       {xpFloats.map(f => (
         <Animated.View
@@ -763,12 +775,9 @@ export default function TageskurveScreen() {
 }
 
 const s = StyleSheet.create({
-  header:     { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1 },
-  logoRow:    { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
+  header:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1 },
+  logoRow:    { flexDirection: 'row', alignItems: 'center', gap: 8 },
   logoIcon:   { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
-  dateRow:    { flex: 2, alignItems: 'center' },
-  nowPill:    { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1 },
-  nowDot:     { width: 6, height: 6, borderRadius: 3 },
 
   card:       { marginHorizontal: 14, marginTop: 14, borderRadius: 20, padding: 18, borderWidth: 1 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
@@ -845,5 +854,19 @@ const s = StyleSheet.create({
     borderRadius: 22, paddingHorizontal: 14, paddingVertical: 9,
     borderWidth: 1,
   },
+
+  sheetOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'flex-end', paddingBottom: Platform.OS === 'ios' ? 32 : 20,
+  },
+  sheetCard: {
+    marginHorizontal: 14, borderRadius: 20, borderWidth: 1,
+    overflow: 'hidden',
+  },
+  sheetTitle:    { fontSize: 16, fontWeight: '700', textAlign: 'center', paddingTop: 18, paddingHorizontal: 20 },
+  sheetSubtitle: { fontSize: 13, textAlign: 'center', paddingBottom: 14, paddingHorizontal: 20, marginTop: 4 },
+  sheetDivider:  { height: StyleSheet.hairlineWidth },
+  sheetBtn:      { paddingVertical: 16, alignItems: 'center' },
+  sheetBtnText:  { fontSize: 16, fontWeight: '600' },
 
 });
