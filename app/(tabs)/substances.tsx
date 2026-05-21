@@ -156,6 +156,13 @@ export default function SubstancesScreen() {
   const [selected, setSelected]   = useState<any>(null);
   const [addSub, setAddSub]       = useState<any>(null);
   const [addVisible, setAddVisible] = useState(false);
+  const listRef = React.useRef<any>(null);
+
+  function selectCat(id: string | null) {
+    setCat(id);
+    // Kurz warten bis State gesetzt, dann ans obere Ende scrollen
+    setTimeout(() => listRef.current?.scrollToOffset({ offset: 0, animated: false }), 0);
+  }
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase();
@@ -239,7 +246,7 @@ export default function SubstancesScreen() {
           activeOpacity={0.7}
           style={[s.chip, { backgroundColor: C.bg2, borderColor: C.border2 },
             !catFilter && { backgroundColor: C.accentBg, borderColor: C.accent }]}
-          onPress={() => setCat(null)}
+          onPress={() => selectCat(null)}
         >
           <Text style={[s.chipText, { color: !catFilter ? C.accent : C.textSub }, !catFilter && { fontWeight: '700' }]}>
             Alle
@@ -253,7 +260,7 @@ export default function SubstancesScreen() {
               activeOpacity={0.7}
               style={[s.chip, { backgroundColor: C.bg2, borderColor: C.border2 },
                 active && { backgroundColor: `${cat.color}18`, borderColor: cat.color }]}
-              onPress={() => setCat(active ? null : cat.id)}
+              onPress={() => selectCat(active ? null : cat.id)}
             >
               <Text style={[s.chipText, { color: active ? cat.color : C.textSub }, active && { fontWeight: '700' }]}>
                 {cat.icon} {cat.label}
@@ -265,6 +272,8 @@ export default function SubstancesScreen() {
 
       {/* List */}
       <FlatList
+        ref={listRef}
+        key={catFilter ?? '__all__'}
         data={filtered}
         keyExtractor={(item: any) => item.id}
         renderItem={renderItem}
