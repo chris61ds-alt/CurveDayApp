@@ -3,7 +3,7 @@
     "name": "CurveDay",
     "slug": "curveday",
     "scheme": "curveday",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -23,7 +23,7 @@
         "backgroundColor": "#ccfed8"
       },
       "package": "de.christuslukas.curveday",
-      "versionCode": 7,
+      "versionCode": 8,
       "edgeToEdgeEnabled": true,
       "permissions": [
         "android.permission.READ_MEDIA_IMAGES",
