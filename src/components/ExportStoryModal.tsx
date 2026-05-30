@@ -426,7 +426,8 @@ export function ExportStoryModal({ visible, onClose }: Props) {
     const uri = await capture();
     if (!uri) { setLoading(false); return; }
     try {
-      const { status } = await MediaLibrary.requestPermissionsAsync();
+      // writeOnly=true: nur Schreibzugriff, kein READ_MEDIA_IMAGES (Play Store Policy)
+      const { status } = await MediaLibrary.requestPermissionsAsync(true);
       if (status !== 'granted') {
         Alert.alert('Zugriff verweigert', 'Bitte Fotoalbum-Zugriff in den Einstellungen erlauben.');
         setLoading(false);
