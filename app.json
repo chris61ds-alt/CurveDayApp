@@ -23,7 +23,7 @@
         "backgroundColor": "#ccfed8"
       },
       "package": "de.christuslukas.curveday",
-      "versionCode": 9,
+      "versionCode": 10,
       "edgeToEdgeEnabled": true,
       "permissions": [
         "android.permission.WRITE_EXTERNAL_STORAGE",
@@ -49,7 +49,8 @@
         }
       ],
       "expo-web-browser",
-      "./plugins/removeVideoPermission"
+      "./plugins/removeVideoPermission",
+      "./plugins/removeImagePermission"
     ],
     "extra": {
       "router": {},
