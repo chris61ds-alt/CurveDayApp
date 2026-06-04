@@ -1,10 +1,13 @@
-import React, { useMemo, useEffect, useRef, useState, useCallback } from 'react';
+import React, { useMemo, useEffect, useRef, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   Animated, Easing, Platform, Modal, Pressable, useWindowDimensions, Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Reanimated, { FadeInDown, FadeIn, ZoomIn } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import { useIntakeStore } from '../../src/store/intakeStore';
 import { useThemeStore } from '../../src/store/themeStore';
 import { useOnboardingStore } from '../../src/store/onboardingStore';
@@ -139,24 +142,15 @@ function getGreeting(nowH: number): string {
   return 'Nacht-Eule 🦉';
 }
 
-// ── Animated card: spring-entrance on mount ───────────────────
+// ── Animated card: Reanimated spring entrance ────────────────
 function AnimatedCard({ children, delay = 0, style }: { children: React.ReactNode; delay?: number; style?: any }) {
-  const anim = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.spring(anim, {
-      toValue: 1, delay, friction: 7, tension: 120, useNativeDriver: true,
-    }).start();
-  }, []);
   return (
-    <Animated.View style={[style, {
-      opacity: anim,
-      transform: [
-        { scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1] }) },
-        { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) },
-      ],
-    }]}>
+    <Reanimated.View
+      entering={FadeInDown.delay(delay).springify().damping(16).stiffness(130)}
+      style={style}
+    >
       {children}
-    </Animated.View>
+    </Reanimated.View>
   );
 }
 
@@ -196,6 +190,7 @@ export default function TageskurveScreen() {
   useEffect(() => { hydrate(); }, []);
 
   function handleLongPressIntake(id: string, name: string, pinned?: boolean) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setActionSheet({ id, name, pinned });
   }
 
@@ -259,6 +254,13 @@ export default function TageskurveScreen() {
   const chartData     = useMemo(() => buildChartData(intakes), [intakes]);
   const interactions  = useMemo(() => getActiveInteractions(intakes.map(i => i.substanceId)), [intakes]);
   const activeIntakes = useMemo(() => intakes.filter(i => isActive(i, now)), [intakes, now]);
+
+  // Ambient color: drives gradient background + mascot glow
+  const ambientColor = useMemo(() => {
+    if (activeIntakes.length === 0) return C.accent;
+    const st = computeCurrentState(activeIntakes, chartData, now, t);
+    return st?.color ?? C.accent;
+  }, [activeIntakes, chartData, now, t]);
 
   // ── Quick-Retake: letzte 24h, nicht mehr aktiv, dedupliziert ──
   const quickRetakes = useMemo(() => {
@@ -355,6 +357,13 @@ export default function TageskurveScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
 
+      {/* ── AMBIENT GRADIENT ─────────────────── */}
+      <LinearGradient
+        colors={[`${ambientColor}22`, `${ambientColor}09`, 'transparent']}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 380, zIndex: 0 }}
+        pointerEvents="none"
+      />
+
       {/* ── HEADER ─────────────────────────────── */}
       <View style={[s.header, { borderBottomColor: C.border }]}>
         <View style={s.logoRow}>
@@ -417,7 +426,12 @@ export default function TageskurveScreen() {
           const mascotImg = MASCOT_IMAGES[mascotKey];
           const cardColor = state?.color ?? C.textDim;
           return (
-            <View style={[s.card, s.mascotCard, { backgroundColor: `${cardColor}10`, borderColor: `${cardColor}25` }]}>
+            <LinearGradient
+              colors={[`${cardColor}22`, `${cardColor}0a`]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[s.card, s.mascotCard, { borderColor: `${cardColor}35` }]}
+            >
               {(() => {
                 const imgW = Math.round(screenWidth * 0.36);
                 const imgH = Math.round(imgW * 0.52);
@@ -442,7 +456,7 @@ export default function TageskurveScreen() {
                   </Text>
                 )}
               </View>
-            </View>
+            </LinearGradient>
           );
         })()}
 
@@ -562,6 +576,7 @@ export default function TageskurveScreen() {
                       <TouchableOpacity
                         key={`retake-${intake.id}`}
                         onPress={() => {
+                          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                           const d = new Date();
                           addIntake({ substanceId: sub.id, timeH: d.getHours() + d.getMinutes() / 60, doseLabel: intake.doseLabel, takenAt: d.toISOString() });
                         }}
@@ -708,7 +723,7 @@ export default function TageskurveScreen() {
         }]} />
         <TouchableOpacity
           style={[s.fab, { backgroundColor: C.accent, shadowColor: C.accent }]}
-          onPress={() => setModalVisible(true)}
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setModalVisible(true); }}
           activeOpacity={0.85}
         >
           <Text style={s.fabIcon}>+</Text>
@@ -733,7 +748,7 @@ export default function TageskurveScreen() {
             <View style={[s.sheetDivider, { backgroundColor: C.border }]} />
             <TouchableOpacity
               style={s.sheetBtn}
-              onPress={() => { if (actionSheet) { togglePin(actionSheet.id); } setActionSheet(null); }}
+              onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); if (actionSheet) { togglePin(actionSheet.id); } setActionSheet(null); }}
               activeOpacity={0.7}
             >
               <Text style={[s.sheetBtnText, { color: C.accent }]}>
@@ -743,7 +758,7 @@ export default function TageskurveScreen() {
             <View style={[s.sheetDivider, { backgroundColor: C.border }]} />
             <TouchableOpacity
               style={s.sheetBtn}
-              onPress={() => { if (actionSheet) { removeIntake(actionSheet.id); } setActionSheet(null); }}
+              onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); if (actionSheet) { removeIntake(actionSheet.id); } setActionSheet(null); }}
               activeOpacity={0.7}
             >
               <Text style={[s.sheetBtnText, { color: '#f87171' }]}>🗑️ Löschen</Text>
