@@ -166,7 +166,8 @@ export function CurveChart({
 
   // ── PanResponder: 1 finger = pan, 2 fingers = pinch-zoom ────
   const panResponder = useRef(PanResponder.create({
-    onStartShouldSetPanResponder: (_, gs) => gs.numberActiveTouches >= 1,
+    // Taps sollen Buttons durchkommen → nur auf Move/Pinch aktivieren
+    onStartShouldSetPanResponder: () => false,
     onMoveShouldSetPanResponder:  (_, gs) => gs.numberActiveTouches >= 1,
 
     onPanResponderGrant: (evt) => {

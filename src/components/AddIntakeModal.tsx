@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
-  Modal, StyleSheet, SafeAreaView, KeyboardAvoidingView,
+  Modal, StyleSheet, KeyboardAvoidingView,
   Platform, ScrollView, Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { SUBSTANCES, CATEGORIES, getActiveInteractions } from '../data/substanceDB';
 import { useIntakeStore } from '../store/intakeStore';
 import { useOnboardingStore } from '../store/onboardingStore';
@@ -537,7 +538,7 @@ function makeStyles(C: ThemeColors) { return StyleSheet.create({
   catContent:      { paddingHorizontal: 12, paddingVertical: 8, gap: 7, flexDirection: 'row' },
   catChip:         { backgroundColor: C.surface, borderRadius: 20, paddingHorizontal: 13, paddingVertical: 7, borderWidth: 1, borderColor: C.border },
   catChipActive:   { backgroundColor: C.accentBg, borderColor: C.accent },
-  catChipText:     { fontSize: 13, color: C.textDim },
+  catChipText:     { fontSize: 13, color: C.textSub },
   catChipTextActive: { color: C.accent, fontWeight: '700' },
 
   // ── Favorites ────────────────────────────────────────────
