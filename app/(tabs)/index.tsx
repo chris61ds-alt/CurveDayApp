@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   Animated, Easing, Platform, Modal, Pressable, useWindowDimensions, Image,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useIntakeStore } from '../../src/store/intakeStore';
 import { useThemeStore } from '../../src/store/themeStore';
@@ -165,6 +166,7 @@ export default function TageskurveScreen() {
   const { prefs } = useOnboardingStore();
   const t = useT();
   const now = useNow();
+  const insets = useSafeAreaInsets();
 
   // Sleep window from profile (default: 23:00 → 07:00)
   const sleepWindow = useMemo(() => {
@@ -325,6 +327,7 @@ export default function TageskurveScreen() {
         if (seen.has(intake.substanceId)) return false; // deduplizieren
         const sub = getSubstance(intake.substanceId);
         if (!sub) return false;
+        if (sub.pk?.curveType === 'chronic') return false; // Supplemente ignorieren
         const hasStimEffect = STIMULANT_EFFECTS.some(k => (sub.effects as any)[k] > 0);
         if (!hasStimEffect) return false;
         const val = chartData[bedtimeIdx]?.[intake.substanceId];
@@ -697,7 +700,7 @@ export default function TageskurveScreen() {
       </Animated.ScrollView>
 
       {/* ── FAB + glow ring ─────────────────── */}
-      <View style={s.fabContainer}>
+      <View style={[s.fabContainer, Platform.OS === 'android' && { bottom: 20 + insets.bottom }]}>
         <Animated.View style={[s.fabGlow, {
           backgroundColor: C.accent,
           opacity: fabPulse.interpolate({ inputRange: [0, 1], outputRange: [0.08, 0.28] }),
@@ -834,7 +837,7 @@ const s = StyleSheet.create({
 
   fabContainer: {
     position: 'absolute', right: 20,
-    bottom: Platform.OS === 'ios' ? 24 : 16,
+    bottom: Platform.OS === 'ios' ? 24 : 20,
     width: 58, height: 58,
     alignItems: 'center', justifyContent: 'center',
   },

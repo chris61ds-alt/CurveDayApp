@@ -18,12 +18,15 @@ function TabIcon({ name, nameOutline, label, focused }: {
         size={23}
         color={focused ? C.accent : C.textDim}
       />
-      <Text style={{
-        fontSize: 10,
-        color: focused ? C.accent : C.textDim,
-        fontWeight: focused ? '700' : '400',
-        letterSpacing: 0.2,
-      }}>
+      <Text
+        numberOfLines={1}
+        style={{
+          fontSize: 9,
+          color: focused ? C.accent : C.textDim,
+          fontWeight: focused ? '700' : '400',
+          letterSpacing: 0,
+        }}
+      >
         {label}
       </Text>
     </View>

@@ -24,10 +24,10 @@ export const de: Strings = {
   timeUnit:     ' Uhr',
 
   // ── Tabs ─────────────────────────────────────────────────────
-  tabCurve:      'Tageskurve',
+  tabCurve:      'Kurve',
   tabIntakes:    'Einnahmen',
   tabSubstances: 'Substanzen',
-  tabSettings:   'Einstellungen',
+  tabSettings:   'Einst.',
 
   // ── Chart ────────────────────────────────────────────────────
   chartNow:         'JETZT',
