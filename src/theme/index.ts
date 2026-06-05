@@ -3,19 +3,19 @@
 export const DARK = {
   // Backgrounds
   bg:          '#060b13',
-  surface:     '#0a1520',
-  surfaceHigh: '#0d1a2a',
+  surface:     '#0c1828',
+  surfaceHigh: '#0f1f32',
   bg2:         '#0d1a2a',
   bg3:         '#132033',
   // Borders
-  border:      '#0f2035',
-  borderMid:   '#162840',
+  border:      '#122238',
+  borderMid:   '#1a2f48',
   border2:     '#132033',
   // Text
-  text:        '#e8f0f8',
+  text:        '#eaf2fa',
   textSub:     '#8ab0cc',
-  textDim:     '#6a8faa',
-  textMuted:   '#6a8faa',
+  textDim:     '#5a7d98',
+  textMuted:   '#5a7d98',
   // Accent
   accent:      '#38bdf8',
   accentBg:    '#38bdf820',
@@ -31,24 +31,28 @@ export const DARK = {
   gridLine:    '#182840',
   statusBar:   'light' as 'light' | 'dark',
   isDark:      true,
+  // Elevation
+  shadowColor:   '#000' as string,
+  shadowOpacity: 0.28,
+  cardElevation: 4,
 };
 
 export const LIGHT = {
   // Backgrounds
-  bg:          '#f0f5fa',
+  bg:          '#eef4fa',
   surface:     '#ffffff',
-  surfaceHigh: '#f8fafc',
+  surfaceHigh: '#f6f9fc',
   bg2:         '#ffffff',
-  bg3:         '#e8f0f8',
+  bg3:         '#e4edf6',
   // Borders
-  border:      '#dde6ef',
-  borderMid:   '#ccdae8',
-  border2:     '#dde6ef',
+  border:      '#d8e4ef',
+  borderMid:   '#c6d8e8',
+  border2:     '#d8e4ef',
   // Text
-  text:        '#0d1a2a',
-  textSub:     '#3a5570',
-  textDim:     '#7a9ab5',
-  textMuted:   '#7a9ab5',
+  text:        '#0a1622',
+  textSub:     '#32506a',
+  textDim:     '#7090a8',
+  textMuted:   '#7090a8',
   // Accent
   accent:      '#0ea5e9',
   accentBg:    '#0ea5e920',
@@ -61,9 +65,13 @@ export const LIGHT = {
   warning:     '#d97706',
   warningBg:   '#d9770615',
   // Special
-  gridLine:    '#dde6ef',
+  gridLine:    '#d8e4ef',
   statusBar:   'dark' as 'light' | 'dark',
   isDark:      false,
+  // Elevation
+  shadowColor:   '#1a3a5c' as string,
+  shadowOpacity: 0.09,
+  cardElevation: 3,
 };
 
 export type ThemeColors = typeof DARK;

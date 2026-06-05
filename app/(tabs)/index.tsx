@@ -507,9 +507,12 @@ export default function TageskurveScreen() {
           {(activeIntakes.length > 0 || quickRetakes.length > 0) && (
             <View style={s.dividerRow}>
               <View style={[s.dividerLine, { backgroundColor: C.border }]} />
-              <Text style={{ fontSize: 11, fontWeight: '600', color: C.textDim, letterSpacing: 0.8, textTransform: 'uppercase', marginHorizontal: 10 }}>
-                {t.homeActiveNow}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginHorizontal: 12 }}>
+                <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: C.accent }} />
+                <Text style={{ fontSize: 11, fontWeight: '700', color: C.textDim, letterSpacing: 1, textTransform: 'uppercase' }}>
+                  {t.homeActiveNow}
+                </Text>
+              </View>
               <View style={[s.dividerLine, { backgroundColor: C.border }]} />
             </View>
           )}
@@ -533,7 +536,7 @@ export default function TageskurveScreen() {
                     <SubIcon substance={sub} size={32} />
                     <View style={{ flex: 1, marginLeft: 12 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        <Text style={{ fontSize: 14, fontWeight: '700', color: sel ? sub.color : C.text }} numberOfLines={1}>
+                        <Text style={{ fontSize: 15, fontWeight: '700', color: sel ? sub.color : C.text, letterSpacing: -0.2 }} numberOfLines={1}>
                           {sub.name}
                         </Text>
                         {intake.pinned && <Text style={{ fontSize: 11 }}>📌</Text>}
@@ -544,9 +547,9 @@ export default function TageskurveScreen() {
                         <View style={[s.barFill, { width: barW, backgroundColor: sub.color }]} />
                       </View>
                     </View>
-                    <View style={{ alignItems: 'flex-end', marginLeft: 12 }}>
-                      <Text style={{ fontSize: 16, fontWeight: '800', color: sub.color }}>{effect}%</Text>
-                      <Text style={{ fontSize: 12, color: C.textDim, marginTop: 2 }}>{getRemainingTime(intake, now)}</Text>
+                    <View style={{ alignItems: 'flex-end', marginLeft: 12, minWidth: 52 }}>
+                      <Text style={{ fontSize: 21, fontWeight: '800', color: sub.color, letterSpacing: -0.5 }}>{effect}%</Text>
+                      <Text style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>{getRemainingTime(intake, now)}</Text>
                     </View>
                   </TouchableOpacity>
                   {/* ⋯ actions button */}
@@ -611,9 +614,12 @@ export default function TageskurveScreen() {
 
           return (
             <View style={[s.card, { backgroundColor: C.surface, borderColor: C.border }]}>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: C.textDim, textTransform: 'uppercase', letterSpacing: 0.8 }}>
-                {t.homeSectionDetail}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 2 }}>
+                <View style={{ width: 3, height: 14, borderRadius: 2, backgroundColor: selectedSub?.color ?? C.accent }} />
+                <Text style={{ fontSize: 11, fontWeight: '700', color: C.textDim, textTransform: 'uppercase', letterSpacing: 1 }}>
+                  {t.homeSectionDetail}
+                </Text>
+              </View>
               <View style={[s.detailHeader]}>
                 <SubIcon substance={selectedSub} size={44} />
                 <View style={{ marginLeft: 14, flex: 1 }}>
@@ -636,9 +642,9 @@ export default function TageskurveScreen() {
                   ['HWZ',          `${selectedSub.pk.halflifeHours} h`],
                   ['Bioverfügbar', `${selectedSub.pk.bioavailability}%`],
                 ].map(([k, v]) => (
-                  <View key={k} style={[s.pkCell, { backgroundColor: C.bg }]}>
-                    <Text style={{ fontSize: 12, color: C.textDim }}>{k}</Text>
-                    <Text style={{ fontSize: 15, fontWeight: '700', color: C.accent, marginTop: 3 }}>{v}</Text>
+                  <View key={k} style={[s.pkCell, { backgroundColor: C.bg, borderColor: C.border }]}>
+                    <Text style={{ fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: 0.6 }}>{k}</Text>
+                    <Text style={{ fontSize: 18, fontWeight: '800', color: C.accent, marginTop: 4, letterSpacing: -0.5 }}>{v}</Text>
                   </View>
                 ))}
               </View>
@@ -657,9 +663,15 @@ export default function TageskurveScreen() {
         {/* ── WECHSELWIRKUNGEN ───────────────── */}
         {interactions.length > 0 && (
           <View style={[s.card, { backgroundColor: C.surface, borderColor: C.border }]}>
-            <Text style={{ fontSize: 12, fontWeight: '600', color: C.textDim, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>
-              {t.homeSectionIx} · {interactions.length}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 4 }}>
+              <View style={{ width: 3, height: 14, borderRadius: 2, backgroundColor: '#f87171' }} />
+              <Text style={{ fontSize: 11, fontWeight: '700', color: C.textDim, textTransform: 'uppercase', letterSpacing: 1 }}>
+                {t.homeSectionIx}
+              </Text>
+              <View style={{ backgroundColor: '#f8717120', borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2 }}>
+                <Text style={{ fontSize: 11, fontWeight: '700', color: '#f87171' }}>{interactions.length}</Text>
+              </View>
+            </View>
             {interactions.map((ix: any, i: number) => {
               const subA   = getSubstance(ix.a);
               const subB   = getSubstance(ix.b);
@@ -692,9 +704,12 @@ export default function TageskurveScreen() {
 
         {/* ── INSIGHTS ───────────────────────── */}
         <View style={[s.card, { backgroundColor: C.surface, borderColor: `${C.accent}20` }]}>
-          <Text style={{ fontSize: 12, fontWeight: '600', color: C.textDim, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>
-            {t.homeInsightsTitle}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 4 }}>
+            <View style={{ width: 3, height: 14, borderRadius: 2, backgroundColor: C.accent }} />
+            <Text style={{ fontSize: 11, fontWeight: '700', color: C.textDim, textTransform: 'uppercase', letterSpacing: 1 }}>
+              {t.homeInsightsTitle}
+            </Text>
+          </View>
           {[
             {
               text: activeIntakes.length > 0 ? t.homeInsightActive(activeIntakes.length) : t.homeInsightNone,
@@ -793,11 +808,19 @@ export default function TageskurveScreen() {
 }
 
 const s = StyleSheet.create({
-  header:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1 },
-  logoRow:    { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  logoIcon:   { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  header:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth },
+  logoRow:    { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  logoIcon:   { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
 
-  card:       { marginHorizontal: 14, marginTop: 14, borderRadius: 20, padding: 18, borderWidth: 1 },
+  // ── Cards ────────────────────────────────────────────────────
+  card: {
+    marginHorizontal: 14, marginTop: 12, borderRadius: 22, padding: 18, borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
+  },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
   activeBadge:{ borderRadius: 12, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 1 },
 
@@ -809,82 +832,93 @@ const s = StyleSheet.create({
   intakePill: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1 },
 
   mascotCard:      { flexDirection: 'row', alignItems: 'center' },
-  mascotImgWrapper:{ borderRadius: 14, backgroundColor: 'white', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  mascotImgWrapper:{ borderRadius: 16, backgroundColor: 'white', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   mascotImg:       { resizeMode: 'contain' } as any,
 
-  divider:      { height: 1, marginVertical: 10 },
-  dividerRow:   { flexDirection: 'row', alignItems: 'center', marginVertical: 12 },
-  dividerLine:  { flex: 1, height: 1 },
-  compactRow:   { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 10, marginVertical: 2, gap: 6 },
-  rowMenu:      { width: 28, height: 28, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginLeft: 2 },
-  barTrack:     { height: 6, borderRadius: 3, marginTop: 6, overflow: 'hidden' },
-  barFill:      { height: 6, borderRadius: 3, opacity: 0.85 },
-  retakeChip:   { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1 },
+  // ── Substance rows ───────────────────────────────────────────
+  divider:      { height: StyleSheet.hairlineWidth, marginVertical: 8 },
+  dividerRow:   { flexDirection: 'row', alignItems: 'center', marginVertical: 14 },
+  dividerLine:  { flex: 1, height: StyleSheet.hairlineWidth },
+  compactRow:   { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 6, marginVertical: 1, gap: 8, borderRadius: 14 },
+  rowMenu:      { width: 30, height: 30, borderRadius: 9, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginLeft: 2 },
+  barTrack:     { height: 7, borderRadius: 4, marginTop: 7, overflow: 'hidden' },
+  barFill:      { height: 7, borderRadius: 4 },
+  retakeChip:   { flexDirection: 'row', alignItems: 'center', gap: 7, borderRadius: 22, paddingHorizontal: 14, paddingVertical: 9, borderWidth: 1 },
 
-  emptyInline:{ paddingVertical: 16, alignItems: 'center' },
+  emptyInline:{ paddingVertical: 20, alignItems: 'center' },
 
-  detailHeader: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 12, marginBottom: 14 },
-  effectChips:  { flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: 6 },
+  // ── Detail card ───────────────────────────────────────────────
+  detailHeader: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 12, marginBottom: 16 },
+  effectChips:  { flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: 7 },
   chip:         { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1 },
   pkGrid:       { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 14 },
-  pkCell:       { flex: 1, minWidth: 80, borderRadius: 12, padding: 12, alignItems: 'center' },
-  warnBox:      { borderRadius: 12, padding: 14, borderWidth: 1 },
+  pkCell:       { flex: 1, minWidth: 80, borderRadius: 14, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: 'transparent' },
+  warnBox:      { borderRadius: 14, padding: 14, borderWidth: 1 },
 
-  sleepWarnBox:   { marginTop: 10, borderRadius: 10, padding: 10, borderWidth: 1 },
-  sleepWarnTitle: { fontSize: 12, fontWeight: '600', marginBottom: 3 },
-  sleepWarnItem:  { fontSize: 11, lineHeight: 18 },
+  sleepWarnBox:   { marginTop: 12, borderRadius: 12, padding: 12, borderWidth: 1 },
+  sleepWarnTitle: { fontSize: 12, fontWeight: '600', marginBottom: 4 },
+  sleepWarnItem:  { fontSize: 12, lineHeight: 19 },
 
-  ixCard:    { borderRadius: 14, padding: 14, marginTop: 12, borderWidth: 1, borderLeftWidth: 3 },
+  // ── Interactions ─────────────────────────────────────────────
+  ixCard:    { borderRadius: 16, padding: 16, marginTop: 10, borderWidth: 1, borderLeftWidth: 4 },
   ixHeader:  { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
 
+  // ── Insights ─────────────────────────────────────────────────
   insightRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginTop: 12 },
   insightDot: { width: 8, height: 8, borderRadius: 4, marginTop: 6 },
 
-
+  // ── Empty state ───────────────────────────────────────────────
   emptyState:   { flex: 1 },
   emptyContent: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, paddingTop: 8 },
   emptyEmoji:   { fontSize: 52, marginBottom: 16 },
   emptyHints:   { alignSelf: 'stretch', marginBottom: 32, gap: 10 },
   emptyHintRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   emptyHintDot: { width: 6, height: 6, borderRadius: 3 },
-  emptyBtn:     { borderRadius: 16, paddingVertical: 15, paddingHorizontal: 28, alignSelf: 'stretch', alignItems: 'center' },
-  emptyBtnText: { fontSize: 15, fontWeight: '700', color: '#000' },
+  emptyBtn:     { borderRadius: 18, paddingVertical: 16, paddingHorizontal: 28, alignSelf: 'stretch', alignItems: 'center' },
+  emptyBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
 
+  // ── FAB ───────────────────────────────────────────────────────
   fabContainer: {
     position: 'absolute', right: 20,
     bottom: Platform.OS === 'ios' ? 24 : 20,
-    width: 58, height: 58,
+    width: 60, height: 60,
     alignItems: 'center', justifyContent: 'center',
   },
   fabGlow: {
     position: 'absolute',
-    width: 58, height: 58, borderRadius: 29,
+    width: 60, height: 60, borderRadius: 30,
   },
   fab: {
-    width: 58, height: 58, borderRadius: 29,
+    width: 60, height: 60, borderRadius: 30,
     alignItems: 'center', justifyContent: 'center',
-    shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.5, shadowRadius: 12, elevation: 8,
+    shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.45, shadowRadius: 14, elevation: 10,
   },
   fabIcon: { fontSize: 28, color: '#000', fontWeight: '300', marginTop: -2 },
 
+  // ── XP float ──────────────────────────────────────────────────
   xpBubble: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    borderRadius: 22, paddingHorizontal: 14, paddingVertical: 9,
+    borderRadius: 24, paddingHorizontal: 16, paddingVertical: 10,
     borderWidth: 1,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15, shadowRadius: 6, elevation: 4,
   },
 
+  // ── Action sheet ──────────────────────────────────────────────
   sheetOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.55)',
-    justifyContent: 'flex-end', paddingBottom: Platform.OS === 'ios' ? 32 : 20,
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'flex-end', paddingBottom: Platform.OS === 'ios' ? 34 : 20,
   },
   sheetCard: {
-    marginHorizontal: 14, borderRadius: 20, borderWidth: 1,
+    marginHorizontal: 12, borderRadius: 24, borderWidth: 1,
     overflow: 'hidden',
+    shadowColor: '#000', shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.12, shadowRadius: 16, elevation: 12,
   },
-  sheetTitle:    { fontSize: 16, fontWeight: '700', textAlign: 'center', paddingTop: 18, paddingHorizontal: 20 },
-  sheetSubtitle: { fontSize: 13, textAlign: 'center', paddingBottom: 14, paddingHorizontal: 20, marginTop: 4 },
+  sheetTitle:    { fontSize: 17, fontWeight: '700', textAlign: 'center', paddingTop: 20, paddingHorizontal: 20 },
+  sheetSubtitle: { fontSize: 13, textAlign: 'center', paddingBottom: 16, paddingHorizontal: 20, marginTop: 4 },
   sheetDivider:  { height: StyleSheet.hairlineWidth },
-  sheetBtn:      { paddingVertical: 16, alignItems: 'center' },
+  sheetBtn:      { paddingVertical: 17, alignItems: 'center' },
   sheetBtnText:  { fontSize: 16, fontWeight: '600' },
 
 });
