@@ -254,6 +254,7 @@ export function AddIntakeModal({ visible, onClose, initialSubstance }: Props) {
               </View>
 
               {/* Category chips */}
+              <View style={s.catScrollWrap}>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -278,6 +279,7 @@ export function AddIntakeModal({ visible, onClose, initialSubstance }: Props) {
                   </TouchableOpacity>
                 ))}
               </ScrollView>
+              </View>
 
               {/* Favorites strip (only when no search query and no cat filter) */}
               {!query.trim() && !catFilter && favorites.length > 0 && (
@@ -535,9 +537,10 @@ function makeStyles(C: ThemeColors) { return StyleSheet.create({
   clearText:   { fontSize: 15, color: C.textDim, padding: 6 },
 
   // ── Category chips ───────────────────────────────────────
-  catScroll:       { flexGrow: 0, height: 54 },
-  catContent:      { paddingHorizontal: 12, paddingTop: 6, paddingBottom: 8, gap: 7, flexDirection: 'row', alignItems: 'center' },
-  catChip:         { backgroundColor: C.surface, borderRadius: 22, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: C.border },
+  catScrollWrap:   { height: 52, overflow: 'hidden' },
+  catScroll:       { flex: 1 },
+  catContent:      { paddingHorizontal: 12, paddingVertical: 6, gap: 7, flexDirection: 'row', alignItems: 'center' },
+  catChip:         { backgroundColor: C.surface, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: C.border },
   catChipActive:   { backgroundColor: C.accentBg, borderColor: C.accent },
   catChipText:     { fontSize: 13, color: C.textSub },
   catChipTextActive: { color: C.accent, fontWeight: '700' },
