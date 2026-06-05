@@ -133,8 +133,10 @@ function getMascotKey(
   if (hasAlcohol) return 'dizzy';
   if (hasSleep) return 'tired';
   if (hasPain && acuteIds.length === 1) return 'relaxed';
-  if (acuteIds.length >= 3 && interactions.length > 0) return 'confused';
-  if (!state) return acuteIds.length >= 3 ? 'confused' : 'happy';
+  // confused only when truly contradictory: many substances + high-severity interaction
+  const hasHighOrCritical = interactions.some((ix: any) => ix.severity === 'high' || ix.severity === 'critical');
+  if (acuteIds.length >= 4 && hasHighOrCritical) return 'confused';
+  if (!state) return 'happy';
 
   const isStrong = state.strength === 'stark' || state.strength === 'strong';
   switch (state.emoji) {
