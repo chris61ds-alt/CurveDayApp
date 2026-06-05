@@ -535,8 +535,8 @@ function makeStyles(C: ThemeColors) { return StyleSheet.create({
   clearText:   { fontSize: 15, color: C.textDim, padding: 6 },
 
   // ── Category chips ───────────────────────────────────────
-  catScroll:       { flexGrow: 0 },
-  catContent:      { paddingHorizontal: 12, paddingVertical: 8, gap: 7, flexDirection: 'row' },
+  catScroll:       { flexGrow: 0, height: 54 },
+  catContent:      { paddingHorizontal: 12, paddingTop: 6, paddingBottom: 8, gap: 7, flexDirection: 'row', alignItems: 'center' },
   catChip:         { backgroundColor: C.surface, borderRadius: 22, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: C.border },
   catChipActive:   { backgroundColor: C.accentBg, borderColor: C.accent },
   catChipText:     { fontSize: 13, color: C.textSub },
