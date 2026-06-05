@@ -183,6 +183,35 @@ function getGreeting(nowH: number): string {
   return 'Nacht-Eule 🦉';
 }
 
+// Wirkphase einer Substanz: aufsteigend / Peak / abklingend
+function getPhase(intake: any, now: number): 'rising' | 'peak' | 'falling' {
+  const sub = getSubstance(intake.substanceId);
+  if (!sub) return 'falling';
+  const takenH = intake.takenAt
+    ? (new Date(intake.takenAt).getTime() - new Date().setHours(0,0,0,0)) / 3_600_000
+    : intake.timeH;
+  const peakH = takenH + sub.pk.tmaxHours;
+  if (now < peakH - 0.08) return 'rising';
+  if (now < peakH + 0.5)  return 'peak';
+  return 'falling';
+}
+
+// "vor 2h 30min" etc.
+function timeAgo(takenAt: string): string {
+  const ms = Date.now() - new Date(takenAt).getTime();
+  const h  = Math.floor(ms / 3_600_000);
+  const m  = Math.floor((ms % 3_600_000) / 60_000);
+  if (h === 0) return `vor ${m} min`;
+  return `vor ${h}h${m > 0 ? ` ${m}m` : ''}`;
+}
+
+// Einnahme-Uhrzeit formatiert
+function intakeTimeLabel(intake: any): string {
+  const d = intake.takenAt ? new Date(intake.takenAt) : null;
+  if (!d) return fmtHour(intake.timeH);
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
 // ── Animated card: Reanimated spring entrance ────────────────
 function AnimatedCard({ children, delay = 0, style }: { children: React.ReactNode; delay?: number; style?: any }) {
   return (
@@ -213,6 +242,7 @@ export default function TageskurveScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [actionSheet, setActionSheet] = useState<{ id: string; name: string; pinned?: boolean } | null>(null);
   const [expandedIx, setExpandedIx] = useState<Set<number>>(new Set());
+  const [showTechDetails, setShowTechDetails] = useState(false);
   const { width: screenWidth } = useWindowDimensions();
 
   // ── Page fade-in ─────────────────────────────────────────────
@@ -336,6 +366,16 @@ export default function TageskurveScreen() {
     const todayMs = new Date().setHours(0,0,0,0);
     return intakes.filter(i => i.takenAt && new Date(i.takenAt).getTime() >= todayMs).length;
   }, [intakes]);
+
+  // Peak-Fenster: ≥2 aktive Substanzen gleichzeitig ≥70% Wirkung
+  const peakWindowActive = useMemo(() => {
+    if (activeIntakes.length < 2) return null;
+    const atPeak = activeIntakes.filter(i =>
+      getCurrentEffect(i.substanceId, chartData, now) >= 70
+    );
+    if (atPeak.length < 2) return null;
+    return atPeak.map(i => getSubstance(i.substanceId)?.name).filter(Boolean).join(' + ');
+  }, [activeIntakes, chartData, now]);
 
   // Ambient color: drives gradient background + mascot glow
   const ambientColor = useMemo(() => {
@@ -515,25 +555,25 @@ export default function TageskurveScreen() {
               style={[s.card, s.mascotCard, { borderColor: `${cardColor}35` }]}
             >
               {(() => {
-                const imgW = Math.round(screenWidth * 0.36);
-                const imgH = Math.round(imgW * 0.52);
+                const imgW = Math.round(screenWidth * 0.26);
+                const imgH = Math.round(imgW * 0.72);
                 return (
                   <View style={[s.mascotImgWrapper, { width: imgW, height: imgH }]}>
-                    <Image source={mascotImg} style={{ width: imgW + 10, height: imgH + 10 }} resizeMode="contain" />
+                    <Image source={mascotImg} style={{ width: imgW + 8, height: imgH + 8 }} resizeMode="contain" />
                   </View>
                 );
               })()}
               <View style={{ flex: 1, paddingLeft: 14 }}>
-                <Text style={{ fontSize: 22, fontWeight: '800', color: cardColor, letterSpacing: -0.5 }}>
-                  {activeIntakes.length === 0 ? 'Alles ruhig 😴' : (state?.label ?? 'Aktiv')}
+                <Text style={{ fontSize: 20, fontWeight: '800', color: cardColor, letterSpacing: -0.5 }}>
+                  {activeIntakes.length === 0 ? 'Alles ruhig' : (state?.label ?? 'Aktiv')}
                 </Text>
-                <Text style={{ fontSize: 13, color: C.textDim, marginTop: 4 }}>
+                <Text style={{ fontSize: 12, color: C.textDim, marginTop: 3 }}>
                   {activeIntakes.length === 0
                     ? 'Keine aktiven Substanzen'
                     : `${state?.strength ?? ''} · ${activeIntakes.length} aktiv`}
                 </Text>
                 {activeIntakes.length > 0 && (
-                  <Text style={{ fontSize: 12, color: C.textDim, marginTop: 6 }} numberOfLines={1}>
+                  <Text style={{ fontSize: 12, color: C.textDim, marginTop: 5, lineHeight: 17 }} numberOfLines={2}>
                     {activeIntakes.map(i => getSubstance(i.substanceId)?.name).filter(Boolean).join(' · ')}
                   </Text>
                 )}
@@ -571,6 +611,14 @@ export default function TageskurveScreen() {
             />
           </View>
 
+          {/* Peak-Fenster Banner */}
+          {peakWindowActive && (
+            <View style={[s.peakBanner, { backgroundColor: `${C.accent}12`, borderColor: `${C.accent}30` }]}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: C.accent }}>⚡ Optimales Wirkfenster</Text>
+              <Text style={{ fontSize: 12, color: C.textSub, marginTop: 2 }}>{peakWindowActive} gleichzeitig auf Peak</Text>
+            </View>
+          )}
+
           {/* Schlaf-Warnung */}
           {bedtimeWarnings.length > 0 && (
             <View style={[s.sleepWarnBox, { backgroundColor: '#818cf808', borderColor: '#818cf830' }]}>
@@ -605,8 +653,10 @@ export default function TageskurveScreen() {
             if (!sub) return null;
             const sel    = selectedId === intake.substanceId;
             const effect = getCurrentEffect(intake.substanceId, chartData, now);
-            const atPeak = effect >= 85;
             const barW   = `${effect}%` as any;
+            const phase  = getPhase(intake, now);
+            const phaseIcon  = phase === 'rising' ? '▲' : phase === 'peak' ? '◉' : '▼';
+            const phaseColor = phase === 'rising' ? '#f59e0b' : phase === 'peak' ? sub.color : C.textDim;
             return (
               <AnimatedCard key={intake.id} delay={idx * 50}>
                 <View style={[s.compactRow, sel && { backgroundColor: `${sub.color}08`, borderRadius: 12 }]}>
@@ -622,16 +672,23 @@ export default function TageskurveScreen() {
                           {sub.name}
                         </Text>
                         {intake.pinned && <Text style={{ fontSize: 11 }}>📌</Text>}
-                        {atPeak && <Text style={{ fontSize: 12 }}>⚡</Text>}
                       </View>
+                      <Text style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>
+                        {intakeTimeLabel(intake)} · {getRemainingTime(intake, now)}
+                      </Text>
                       {/* Progress bar */}
-                      <View style={[s.barTrack, { backgroundColor: C.surfaceHigh }]}>
+                      <View style={[s.barTrack, { backgroundColor: C.surfaceHigh, marginTop: 5 }]}>
                         <View style={[s.barFill, { width: barW, backgroundColor: sub.color }]} />
                       </View>
                     </View>
-                    <View style={{ alignItems: 'flex-end', marginLeft: 12, minWidth: 52 }}>
+                    <View style={{ alignItems: 'flex-end', marginLeft: 12, minWidth: 56 }}>
                       <Text style={{ fontSize: 21, fontWeight: '800', color: sub.color, letterSpacing: -0.5 }}>{effect}%</Text>
-                      <Text style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>{getRemainingTime(intake, now)}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 }}>
+                        <Text style={{ fontSize: 10, color: phaseColor, fontWeight: '700' }}>{phaseIcon}</Text>
+                        <Text style={{ fontSize: 10, color: phaseColor }}>
+                          {phase === 'rising' ? 'steigt' : phase === 'peak' ? 'Peak' : 'sinkt'}
+                        </Text>
+                      </View>
                     </View>
                   </TouchableOpacity>
                   {/* ⋯ actions button */}
@@ -669,7 +726,12 @@ export default function TageskurveScreen() {
                         activeOpacity={0.7}
                       >
                         <Text style={{ fontSize: 12, color: sub.color, opacity: 0.75 }}>{sub.icon ?? '●'}</Text>
-                        <Text style={{ fontSize: 12, fontWeight: '600', color: sub.color }}>{sub.name}</Text>
+                        <View>
+                          <Text style={{ fontSize: 12, fontWeight: '600', color: sub.color }}>{sub.name}</Text>
+                          {intake.takenAt && (
+                            <Text style={{ fontSize: 10, color: sub.color, opacity: 0.6 }}>{timeAgo(intake.takenAt)}</Text>
+                          )}
+                        </View>
                         <Text style={{ fontSize: 13, color: sub.color, fontWeight: '700' }}>＋</Text>
                       </TouchableOpacity>
                     );
@@ -717,19 +779,42 @@ export default function TageskurveScreen() {
                 </View>
               </View>
 
+              {/* Einfache Karten — verständliche Sprache */}
               <View style={s.pkGrid}>
-                {[
-                  ['Peak',         getPeakLabel(selectedIntake.timeH, selectedId)],
-                  ['Wirkdauer',    `${selectedSub.pk.durationHours} h`],
-                  ['HWZ',          `${selectedSub.pk.halflifeHours} h`],
-                  ['Bioverfügbar', `${selectedSub.pk.bioavailability}%`],
-                ].map(([k, v]) => (
-                  <View key={k} style={[s.pkCell, { backgroundColor: C.bg, borderColor: C.border }]}>
-                    <Text style={{ fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: 0.6 }}>{k}</Text>
-                    <Text style={{ fontSize: 18, fontWeight: '800', color: C.accent, marginTop: 4, letterSpacing: -0.5 }}>{v}</Text>
-                  </View>
-                ))}
+                <View style={[s.pkCell, { backgroundColor: C.bg, borderColor: C.border }]}>
+                  <Text style={{ fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: 0.6 }}>Peak um</Text>
+                  <Text style={{ fontSize: 18, fontWeight: '800', color: C.accent, marginTop: 4, letterSpacing: -0.5 }}>{getPeakLabel(selectedIntake.timeH, selectedId)}</Text>
+                </View>
+                <View style={[s.pkCell, { backgroundColor: C.bg, borderColor: C.border }]}>
+                  <Text style={{ fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: 0.6 }}>Wirkt</Text>
+                  <Text style={{ fontSize: 18, fontWeight: '800', color: C.accent, marginTop: 4, letterSpacing: -0.5 }}>{selectedSub.pk.durationHours} h</Text>
+                </View>
               </View>
+
+              {/* Technische Details — aufklappbar */}
+              <TouchableOpacity
+                onPress={() => setShowTechDetails(v => !v)}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8 }}
+                activeOpacity={0.7}
+              >
+                <Text style={{ fontSize: 12, color: C.textDim }}>
+                  {showTechDetails ? '▲' : '▼'} Technische Details
+                </Text>
+              </TouchableOpacity>
+              {showTechDetails && (
+                <View style={[s.pkGrid, { marginTop: 0 }]}>
+                  {[
+                    ['Halbwertszeit', `${selectedSub.pk.halflifeHours} h`, 'In dieser Zeit sinkt die Wirkung auf 50%'],
+                    ['Bioverfügbar',  `${selectedSub.pk.bioavailability}%`, 'Anteil der wirksam wird'],
+                  ].map(([k, v, hint]) => (
+                    <View key={k} style={[s.pkCell, { backgroundColor: C.bg, borderColor: C.border }]}>
+                      <Text style={{ fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: 0.6 }}>{k}</Text>
+                      <Text style={{ fontSize: 16, fontWeight: '800', color: C.textSub, marginTop: 4, letterSpacing: -0.5 }}>{v}</Text>
+                      <Text style={{ fontSize: 10, color: C.textDim, marginTop: 2, lineHeight: 14 }}>{hint}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
 
               {selectedSub.warnings?.[0] && (
                 <View style={[s.warnBox, { backgroundColor: C.isDark ? '#1a0a0a' : '#fff4f0', borderColor: '#f8717130' }]}>
@@ -1004,7 +1089,8 @@ const s = StyleSheet.create({
   pkCell:       { flex: 1, minWidth: 80, borderRadius: 14, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: 'transparent' },
   warnBox:      { borderRadius: 14, padding: 14, borderWidth: 1 },
 
-  sleepWarnBox:   { marginTop: 12, borderRadius: 12, padding: 12, borderWidth: 1 },
+  peakBanner:     { marginTop: 10, borderRadius: 12, padding: 12, borderWidth: 1 },
+  sleepWarnBox:   { marginTop: 10, borderRadius: 12, padding: 12, borderWidth: 1 },
   sleepWarnTitle: { fontSize: 12, fontWeight: '600', marginBottom: 4 },
   sleepWarnItem:  { fontSize: 12, lineHeight: 19 },
 
