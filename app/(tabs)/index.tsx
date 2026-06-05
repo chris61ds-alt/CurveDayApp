@@ -12,6 +12,7 @@ import * as Haptics from 'expo-haptics';
 import { useIntakeStore } from '../../src/store/intakeStore';
 import { useThemeStore } from '../../src/store/themeStore';
 import { useOnboardingStore } from '../../src/store/onboardingStore';
+import { useReminderStore } from '../../src/store/reminderStore';
 import { useT } from '../../src/i18n';
 import { getSubstance, getActiveInteractions } from '../../src/data/substanceDB';
 import {
@@ -229,6 +230,7 @@ export default function TageskurveScreen() {
   const { intakes, selectedId, setSelectedId, hydrate, hydrated, removeIntake, addIntake, togglePin } = useIntakeStore();
   const { colors: C } = useThemeStore();
   const { prefs } = useOnboardingStore();
+  const { reminders, hydrate: hydrateReminders } = useReminderStore();
   const t = useT();
   const now = useNow();
   const insets = useSafeAreaInsets();
@@ -244,6 +246,7 @@ export default function TageskurveScreen() {
   const [actionSheet, setActionSheet] = useState<{ id: string; name: string; pinned?: boolean } | null>(null);
   const [expandedIx, setExpandedIx] = useState<Set<number>>(new Set());
   const [showTechDetails, setShowTechDetails] = useState(false);
+  const [reminderSubstance, setReminderSubstance] = useState<any>(null);
   const { width: screenWidth } = useWindowDimensions();
 
   // ── Page fade-in ─────────────────────────────────────────────
@@ -260,7 +263,7 @@ export default function TageskurveScreen() {
   const [xpFloats, setXpFloats] = useState<XpFloat[]>([]);
   const prevIntakeCount = useRef(0);
 
-  useEffect(() => { hydrate(); }, []);
+  useEffect(() => { hydrate(); hydrateReminders(); }, []);
 
   function handleLongPressIntake(id: string, name: string, pinned?: boolean) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -367,6 +370,19 @@ export default function TageskurveScreen() {
     const todayMs = new Date().setHours(0,0,0,0);
     return intakes.filter(i => i.takenAt && new Date(i.takenAt).getTime() >= todayMs).length;
   }, [intakes]);
+
+  // Ausstehende Erinnerungen: Reminder für Substanzen die heute noch nicht eingenommen wurden
+  const pendingReminders = useMemo(() => {
+    const todayMs  = new Date().setHours(0, 0, 0, 0);
+    const takenTodayIds = new Set(
+      intakes
+        .filter(i => i.takenAt && new Date(i.takenAt).getTime() >= todayMs)
+        .map(i => i.substanceId),
+    );
+    return reminders
+      .filter(r => !takenTodayIds.has(r.substanceId))
+      .sort((a, b) => a.hour * 60 + a.minute - (b.hour * 60 + b.minute));
+  }, [reminders, intakes]);
 
   // Alle heutigen Einnahmen chronologisch für Tages-Zusammenfassung
   const todayIntakes = useMemo(() => {
@@ -762,6 +778,52 @@ export default function TageskurveScreen() {
               <Text style={{ fontSize: 12, color: C.textDim }}>{t.homeNoActive}</Text>
             </View>
           )}
+
+          {/* ── NOCH AUSSTEHEND ── */}
+          {pendingReminders.length > 0 && (
+            <>
+              <View style={[s.dividerRow, { marginTop: 10 }]}>
+                <View style={[s.dividerLine, { backgroundColor: C.border }]} />
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginHorizontal: 12 }}>
+                  <Text style={{ fontSize: 11 }}>🕐</Text>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: C.textDim, letterSpacing: 1, textTransform: 'uppercase' }}>
+                    Geplant heute
+                  </Text>
+                </View>
+                <View style={[s.dividerLine, { backgroundColor: C.border }]} />
+              </View>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+                {pendingReminders.map(r => {
+                  const sub = getSubstance(r.substanceId);
+                  if (!sub) return null;
+                  const timeStr = `${String(r.hour).padStart(2,'0')}:${String(r.minute).padStart(2,'0')}`;
+                  const isPast  = now * 60 > r.hour * 60 + r.minute;
+                  return (
+                    <TouchableOpacity
+                      key={r.substanceId}
+                      onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setReminderSubstance(sub); setModalVisible(true); }}
+                      style={[s.pendingChip, {
+                        backgroundColor: isPast ? `${sub.color}18` : C.surfaceHigh,
+                        borderColor: isPast ? `${sub.color}50` : C.border,
+                      }]}
+                      activeOpacity={0.75}
+                    >
+                      <SubIcon substance={sub} size={22} />
+                      <View style={{ marginLeft: 6 }}>
+                        <Text style={{ fontSize: 12, fontWeight: '700', color: isPast ? sub.color : C.text }}>
+                          {sub.name}
+                        </Text>
+                        <Text style={{ fontSize: 10, color: isPast ? sub.color : C.textDim, opacity: 0.85 }}>
+                          {isPast ? 'fällig' : timeStr}
+                        </Text>
+                      </View>
+                      <Text style={{ fontSize: 13, color: isPast ? sub.color : C.textDim, marginLeft: 4, fontWeight: '700' }}>+</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </>
+          )}
         </BlurView>
 
         {/* ── SUBSTANZ-DETAILS ───────────────── */}
@@ -1056,7 +1118,11 @@ export default function TageskurveScreen() {
         </TouchableOpacity>
       </View>
 
-      <AddIntakeModal visible={modalVisible} onClose={() => setModalVisible(false)} />
+      <AddIntakeModal
+        visible={modalVisible}
+        onClose={() => { setModalVisible(false); setReminderSubstance(null); }}
+        initialSubstance={reminderSubstance}
+      />
 
       {/* ── ACTION SHEET (pin / delete) ──────── */}
       <Modal
@@ -1156,6 +1222,7 @@ const s = StyleSheet.create({
   barTrack:     { height: 7, borderRadius: 4, marginTop: 7, overflow: 'hidden' },
   barFill:      { height: 7, borderRadius: 4 },
   retakeChip:   { flexDirection: 'row', alignItems: 'center', gap: 7, borderRadius: 22, paddingHorizontal: 14, paddingVertical: 9, borderWidth: 1 },
+  pendingChip:  { flexDirection: 'row', alignItems: 'center', borderRadius: 14, paddingHorizontal: 10, paddingVertical: 8, borderWidth: 1 },
 
   emptyInline:{ paddingVertical: 20, alignItems: 'center' },
 

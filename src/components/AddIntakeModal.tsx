@@ -15,6 +15,7 @@ import { getSubstanceName } from '../utils/regionUtils';
 import type { Region } from '../utils/regionUtils';
 import { useT } from '../i18n';
 import { useThemeStore } from '../store/themeStore';
+import { useReminderStore } from '../store/reminderStore';
 import type { ThemeColors } from '../theme';
 
 interface Props {
@@ -29,6 +30,7 @@ export function AddIntakeModal({ visible, onClose, initialSubstance }: Props) {
   const { intakes, addIntake } = useIntakeStore();
   const { prefs } = useOnboardingStore();
   const { colors: C } = useThemeStore();
+  const { setReminder, removeReminder } = useReminderStore();
   const region: Region = (prefs.profile?.region ?? 'DE') as Region;
   const t = useT();
   const s = useMemo(() => makeStyles(C), [C]);
@@ -185,6 +187,9 @@ export function AddIntakeModal({ visible, onClose, initialSubstance }: Props) {
 
     if (withReminder) {
       await scheduleDailyReminder(selected.id, selected.name, hour, minute).catch(() => {});
+      await setReminder(selected.id, hour, minute);
+    } else {
+      await removeReminder(selected.id);
     }
 
     handleClose();
