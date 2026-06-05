@@ -367,6 +367,14 @@ export default function TageskurveScreen() {
     return intakes.filter(i => i.takenAt && new Date(i.takenAt).getTime() >= todayMs).length;
   }, [intakes]);
 
+  // Alle heutigen Einnahmen chronologisch für Tages-Zusammenfassung
+  const todayIntakes = useMemo(() => {
+    const todayMs = new Date().setHours(0,0,0,0);
+    return intakes
+      .filter(i => i.takenAt && new Date(i.takenAt).getTime() >= todayMs)
+      .sort((a, b) => new Date(a.takenAt!).getTime() - new Date(b.takenAt!).getTime());
+  }, [intakes]);
+
   // Peak-Fenster: ≥2 aktive Substanzen gleichzeitig ≥70% Wirkung
   const peakWindowActive = useMemo(() => {
     if (activeIntakes.length < 2) return null;
@@ -960,6 +968,68 @@ export default function TageskurveScreen() {
             </View>
           );
         })()}
+
+        {/* ── TAGES-ZUSAMMENFASSUNG ──────────── */}
+        {todayIntakes.length > 0 && (
+          <View style={[s.card, { backgroundColor: C.surface, borderColor: C.border, marginBottom: 8 }]}>
+            {/* Header */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                <View style={{ width: 3, height: 14, borderRadius: 2, backgroundColor: C.success }} />
+                <Text style={{ fontSize: 11, fontWeight: '700', color: C.textDim, textTransform: 'uppercase', letterSpacing: 1 }}>
+                  Heute
+                </Text>
+              </View>
+              <View style={{ backgroundColor: `${C.success}18`, borderRadius: 10, paddingHorizontal: 9, paddingVertical: 3, borderWidth: 1, borderColor: `${C.success}30` }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: C.success }}>
+                  {todayIntakes.length} {todayIntakes.length === 1 ? 'Einnahme' : 'Einnahmen'}
+                </Text>
+              </View>
+            </View>
+
+            {/* Timeline */}
+            {todayIntakes.map((intake, idx) => {
+              const sub = getSubstance(intake.substanceId);
+              if (!sub) return null;
+              const timeLabel = intakeTimeLabel(intake);
+              const isLast = idx === todayIntakes.length - 1;
+              const stillActive = isActive(intake, now);
+              return (
+                <View key={intake.id} style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                  {/* Timeline line + dot */}
+                  <View style={{ width: 36, alignItems: 'center' }}>
+                    <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: sub.color, marginTop: 13, opacity: stillActive ? 1 : 0.45 }} />
+                    {!isLast && (
+                      <View style={{ width: 1.5, flex: 1, minHeight: 18, backgroundColor: C.border, marginTop: 3 }} />
+                    )}
+                  </View>
+                  {/* Content */}
+                  <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', paddingBottom: isLast ? 0 : 14, gap: 10 }}>
+                    <SubIcon substance={sub} size={28} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: stillActive ? C.text : C.textDim }}>
+                        {sub.name}
+                      </Text>
+                      <Text style={{ fontSize: 12, color: C.textDim, marginTop: 1 }}>
+                        {intake.doseLabel}
+                      </Text>
+                    </View>
+                    <View style={{ alignItems: 'flex-end', gap: 3 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: stillActive ? sub.color : C.textDim }}>
+                        {timeLabel}
+                      </Text>
+                      {stillActive && (
+                        <View style={{ backgroundColor: `${sub.color}18`, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
+                          <Text style={{ fontSize: 10, fontWeight: '700', color: sub.color }}>aktiv</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
 
       </Animated.ScrollView>
 
