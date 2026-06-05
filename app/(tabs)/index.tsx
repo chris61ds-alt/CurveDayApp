@@ -73,6 +73,13 @@ function getStateMap(t: Strings): Record<string, { label: string; emoji: string;
   };
 }
 
+// Effekte die man nicht aktiv "fühlt" — passive Symptomreduktion, keine Stimmungs-/Energiewirkung
+const BACKGROUND_EFFECTS = new Set([
+  'pain', 'fever', 'inflammation', 'acidSuppression',
+  'bloodPressure', 'cardiovascular', 'antihistamine',
+  'immunity', 'antioxidant', 'strength',
+]);
+
 function computeCurrentState(
   activeIntakes: any[],
   chartData: any[],
@@ -83,11 +90,16 @@ function computeCurrentState(
   for (const intake of activeIntakes) {
     const sub = getSubstance(intake.substanceId);
     if (!sub) continue;
-    // Chronische Substanzen (z.B. Vitamine, Supplemente) erzeugen kein spürbares Momentangefühl
+    // Chronische Substanzen (z.B. Vitamine, Supplemente) → kein Momentangefühl
     if (sub.pk?.curveType === 'chronic') continue;
+    // Substanzen bei denen ALLE Effekte nur passiv/medizinisch sind (z.B. Ibuprofen, Paracetamol)
+    // → man merkt die Schmerzreduktion, aber kein psychoaktives Erlebnis
+    const feltEffects = Object.entries(sub.effects as Record<string, number>)
+      .filter(([k, v]) => (v as number) > 0 && !BACKGROUND_EFFECTS.has(k));
+    if (feltEffects.length === 0) continue;
     const eff = getCurrentEffect(intake.substanceId, chartData, now) / 100;
     for (const [key, val] of Object.entries(sub.effects as Record<string, number>)) {
-      if (typeof val === 'number' && val > 0) {
+      if (typeof val === 'number' && val > 0 && !BACKGROUND_EFFECTS.has(key)) {
         totals[key] = (totals[key] ?? 0) + val * eff;
       }
     }
@@ -110,10 +122,14 @@ function getMascotKey(
   substanceIds: string[],
   intakes: any[],
 ): string {
-  // Nur chronische Substanzen aktiv (Vitamine, Supplemente) → entspannter Normalzustand
+  // Nur psychoaktiv spürbare, akute Substanzen zählen für den Mascot-Zustand.
+  // Chronische (Vitamine) und rein medizinische (Schmerzmittel, Antihistaminika …) raus.
   const acuteIds = substanceIds.filter(id => {
     const sub = getSubstance(id);
-    return sub && sub.pk?.curveType !== 'chronic';
+    if (!sub || sub.pk?.curveType === 'chronic') return false;
+    const feltEffects = Object.entries(sub.effects as Record<string, number>)
+      .filter(([k, v]) => (v as number) > 0 && !BACKGROUND_EFFECTS.has(k));
+    return feltEffects.length > 0; // mindestens ein spürbarer Effekt
   });
   if (acuteIds.length === 0) return activeCount === 0 ? 'happy' : 'relaxed';
 
