@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Reanimated, { FadeInDown, FadeIn, ZoomIn } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { useIntakeStore } from '../../src/store/intakeStore';
 import { useThemeStore } from '../../src/store/themeStore';
@@ -484,6 +485,12 @@ export default function TageskurveScreen() {
     );
   }
 
+  // ── Mascot/state computed values (used in both chart area and combined card) ──
+  const currentState   = activeIntakes.length > 0 ? computeCurrentState(activeIntakes, chartData, now, t) : null;
+  const mascotKey      = getMascotKey(currentState, activeIntakes.length, interactions, activeIntakes.map(i => i.substanceId), activeIntakes);
+  const mascotImg      = MASCOT_IMAGES[mascotKey];
+  const cardColor      = currentState?.color ?? C.textDim;
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
 
@@ -542,106 +549,109 @@ export default function TageskurveScreen() {
         </Animated.View>
       )}
 
+      {/* ── FIXIERTE CHART-KARTE (außerhalb ScrollView) ── */}
+      {intakes.length > 0 && (
+        <Animated.View style={{ opacity: fadeAnim }}>
+          <View style={[s.card, { backgroundColor: C.surface, borderColor: C.border, marginBottom: 0 }]}>
+            <View style={{ position: 'relative', overflow: 'hidden' }}>
+              <CurveChart
+                data={chartData} entries={chartEntries} selectedId={selectedId}
+                nowHour={now} peakMarks={peakMarks}
+                sleepWindow={sleepWindow}
+                height={240}
+                labelNow={t.chartNow}
+                labelTomorrow={t.chartTomorrow}
+                labelSteadyState={t.chartSteadyState}
+                labelSleep={t.chartSleep}
+                labelNoIntakes={t.chartNoIntakes}
+                gridColor={C.gridLine} labelColor={C.textMuted}
+                accentColor={C.accent} isDark={C.isDark}
+                onSelectSubstance={setSelectedId}
+              />
+              <Animated.View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute', top: 0, bottom: 0, right: 0,
+                  left: chartReveal.interpolate({ inputRange: [0, 1], outputRange: [30, screenWidth + 60] }),
+                  backgroundColor: C.surface,
+                }}
+              />
+            </View>
+            {peakWindowActive && (
+              <View style={[s.peakBanner, { backgroundColor: `${C.accent}12`, borderColor: `${C.accent}30` }]}>
+                <Text style={{ fontSize: 13, fontWeight: '700', color: C.accent }}>⚡ Optimales Wirkfenster</Text>
+                <Text style={{ fontSize: 12, color: C.textSub, marginTop: 2 }}>{peakWindowActive} gleichzeitig auf Peak</Text>
+              </View>
+            )}
+            {bedtimeWarnings.length > 0 && (
+              <View style={[s.sleepWarnBox, { backgroundColor: '#818cf808', borderColor: '#818cf830' }]}>
+                <Text style={[s.sleepWarnTitle, { color: '#818cf8' }]}>
+                  🌙 {t.homeBedtimeWarn(fmtHour(sleepWindow.start))}
+                </Text>
+                {bedtimeWarnings.map((w, i) => (
+                  <Text key={i} style={[s.sleepWarnItem, { color: w.color }]}>
+                    {'  ·  '}{w.name} ({w.val}%)
+                  </Text>
+                ))}
+              </View>
+            )}
+          </View>
+        </Animated.View>
+      )}
+
+      {/* ── SCROLLBARER INHALT (bewegt sich über die Chart-Karte) ── */}
       <Animated.ScrollView
-        style={[{ flex: 1, opacity: fadeAnim }, intakes.length === 0 && { display: 'none' }]}
+        style={[
+          { flex: 1, opacity: fadeAnim },
+          intakes.length === 0 && { display: 'none' },
+          intakes.length > 0  && { marginTop: -28, zIndex: 5 },
+        ]}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}
         scrollEventThrottle={16}
       >
 
-        {/* ── STATUS / MASCOT ────────────────── */}
-        {(() => {
-          const state     = activeIntakes.length > 0 ? computeCurrentState(activeIntakes, chartData, now, t) : null;
-          const mascotKey = getMascotKey(state, activeIntakes.length, interactions, activeIntakes.map(i => i.substanceId), activeIntakes);
-          const mascotImg = MASCOT_IMAGES[mascotKey];
-          const cardColor = state?.color ?? C.textDim;
-          return (
-            <LinearGradient
-              colors={[`${cardColor}22`, `${cardColor}0a`]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={[s.card, s.mascotCard, { borderColor: `${cardColor}35` }]}
-            >
-              {(() => {
-                const imgW = Math.round(screenWidth * 0.26);
-                const imgH = Math.round(imgW * 0.72);
-                return (
-                  <View style={[s.mascotImgWrapper, { width: imgW, height: imgH }]}>
-                    <Image source={mascotImg} style={{ width: imgW + 8, height: imgH + 8 }} resizeMode="contain" />
-                  </View>
-                );
-              })()}
-              <View style={{ flex: 1, paddingLeft: 14 }}>
-                <Text style={{ fontSize: 20, fontWeight: '800', color: cardColor, letterSpacing: -0.5 }}>
-                  {activeIntakes.length === 0 ? 'Alles ruhig' : (state?.label ?? 'Aktiv')}
-                </Text>
-                <Text style={{ fontSize: 12, color: C.textDim, marginTop: 3 }}>
-                  {activeIntakes.length === 0
-                    ? 'Keine aktiven Substanzen'
-                    : `${state?.strength ?? ''} · ${activeIntakes.length} aktiv`}
-                </Text>
-                {activeIntakes.length > 0 && (
-                  <Text style={{ fontSize: 12, color: C.textDim, marginTop: 5, lineHeight: 17 }} numberOfLines={2}>
-                    {activeIntakes.map(i => getSubstance(i.substanceId)?.name).filter(Boolean).join(' · ')}
-                  </Text>
-                )}
-              </View>
-            </LinearGradient>
-          );
-        })()}
+        {/* ── KOMBINIERTE KARTE: Mascot + Substanzliste ── */}
+        <BlurView
+          intensity={35}
+          tint={C.isDark ? 'dark' : 'light'}
+          style={[s.card, s.combinedCard, { borderColor: `${cardColor}30`, overflow: 'hidden' }]}
+        >
+          {/* Solid overlay über dem Blur */}
+          <View style={[StyleSheet.absoluteFillObject, {
+            backgroundColor: C.isDark ? 'rgba(12,24,40,0.82)' : 'rgba(255,255,255,0.82)',
+            borderRadius: 22,
+          }]} />
 
-        {/* ── CHART + SUBSTANZEN (eine Karte) ── */}
-        <View style={[s.card, { backgroundColor: C.surface, borderColor: C.border }]}>
-
-          {/* Chart */}
-          <View style={{ position: 'relative', overflow: 'hidden' }}>
-            <CurveChart
-              data={chartData} entries={chartEntries} selectedId={selectedId}
-              nowHour={now} peakMarks={peakMarks}
-              sleepWindow={sleepWindow}
-              height={240}
-              labelNow={t.chartNow}
-              labelTomorrow={t.chartTomorrow}
-              labelSteadyState={t.chartSteadyState}
-              labelSleep={t.chartSleep}
-              labelNoIntakes={t.chartNoIntakes}
-              gridColor={C.gridLine} labelColor={C.textMuted}
-              accentColor={C.accent} isDark={C.isDark}
-              onSelectSubstance={setSelectedId}
-            />
-            <Animated.View
-              pointerEvents="none"
-              style={{
-                position: 'absolute', top: 0, bottom: 0, right: 0,
-                left: chartReveal.interpolate({ inputRange: [0, 1], outputRange: [30, screenWidth + 60] }),
-                backgroundColor: C.surface,
-              }}
-            />
+          {/* Drag-Handle */}
+          <View style={{ alignItems: 'center', paddingBottom: 12 }}>
+            <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: C.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }} />
           </View>
 
-          {/* Peak-Fenster Banner */}
-          {peakWindowActive && (
-            <View style={[s.peakBanner, { backgroundColor: `${C.accent}12`, borderColor: `${C.accent}30` }]}>
-              <Text style={{ fontSize: 13, fontWeight: '700', color: C.accent }}>⚡ Optimales Wirkfenster</Text>
-              <Text style={{ fontSize: 12, color: C.textSub, marginTop: 2 }}>{peakWindowActive} gleichzeitig auf Peak</Text>
-            </View>
-          )}
-
-          {/* Schlaf-Warnung */}
-          {bedtimeWarnings.length > 0 && (
-            <View style={[s.sleepWarnBox, { backgroundColor: '#818cf808', borderColor: '#818cf830' }]}>
-              <Text style={[s.sleepWarnTitle, { color: '#818cf8' }]}>
-                🌙 {t.homeBedtimeWarn(fmtHour(sleepWindow.start))}
+          {/* Mascot row */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
+            {(() => {
+              const imgW = Math.round(screenWidth * 0.22);
+              const imgH = Math.round(imgW * 0.72);
+              return (
+                <View style={[s.mascotImgWrapper, { width: imgW, height: imgH }]}>
+                  <Image source={mascotImg} style={{ width: imgW + 8, height: imgH + 8 }} resizeMode="contain" />
+                </View>
+              );
+            })()}
+            <View style={{ flex: 1, paddingLeft: 14 }}>
+              <Text style={{ fontSize: 19, fontWeight: '800', color: cardColor, letterSpacing: -0.5 }}>
+                {activeIntakes.length === 0 ? 'Alles ruhig' : (currentState?.label ?? 'Aktiv')}
               </Text>
-              {bedtimeWarnings.map((w, i) => (
-                <Text key={i} style={[s.sleepWarnItem, { color: w.color }]}>
-                  {'  ·  '}{w.name} ({w.val}%)
-                </Text>
-              ))}
+              <Text style={{ fontSize: 12, color: C.textDim, marginTop: 3 }}>
+                {activeIntakes.length === 0
+                  ? 'Keine aktiven Substanzen'
+                  : `${currentState?.strength ?? ''} · ${activeIntakes.length} aktiv`}
+              </Text>
             </View>
-          )}
+          </View>
 
-          {/* ── Trennlinie mit Label ── */}
+          {/* Trennlinie + Substanz-Label */}
           {(activeIntakes.length > 0 || quickRetakes.length > 0) && (
             <View style={s.dividerRow}>
               <View style={[s.dividerLine, { backgroundColor: C.border }]} />
@@ -655,7 +665,7 @@ export default function TageskurveScreen() {
             </View>
           )}
 
-          {/* Aktive Substanzen — kompakte Zeilen */}
+          {/* Aktive Substanzen */}
           {activeIntakes.map((intake, idx) => {
             const sub    = getSubstance(intake.substanceId);
             if (!sub) return null;
@@ -684,7 +694,6 @@ export default function TageskurveScreen() {
                       <Text style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>
                         {intakeTimeLabel(intake)} · {getRemainingTime(intake, now)}
                       </Text>
-                      {/* Progress bar */}
                       <View style={[s.barTrack, { backgroundColor: C.surfaceHigh, marginTop: 5 }]}>
                         <View style={[s.barFill, { width: barW, backgroundColor: sub.color }]} />
                       </View>
@@ -699,7 +708,6 @@ export default function TageskurveScreen() {
                       </View>
                     </View>
                   </TouchableOpacity>
-                  {/* ⋯ actions button */}
                   <TouchableOpacity
                     onPress={() => handleLongPressIntake(intake.id, sub.name, intake.pinned)}
                     style={[s.rowMenu, { borderColor: C.border }]}
@@ -713,7 +721,7 @@ export default function TageskurveScreen() {
             );
           })}
 
-          {/* Quick-Retake — abgelaufen letzte 24h */}
+          {/* Quick-Retake */}
           {quickRetakes.length > 0 && (
             <>
               <View style={[s.divider, { backgroundColor: C.border, marginVertical: 6 }]} />
@@ -749,13 +757,12 @@ export default function TageskurveScreen() {
             </>
           )}
 
-          {/* Leer-State */}
           {activeIntakes.length === 0 && quickRetakes.length === 0 && (
             <View style={s.emptyInline}>
               <Text style={{ fontSize: 12, color: C.textDim }}>{t.homeNoActive}</Text>
             </View>
           )}
-        </View>
+        </BlurView>
 
         {/* ── SUBSTANZ-DETAILS ───────────────── */}
         {selectedSub && selectedIntake && (() => {
@@ -1136,6 +1143,7 @@ const s = StyleSheet.create({
   intakePill: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1 },
 
   mascotCard:      { flexDirection: 'row', alignItems: 'center' },
+  combinedCard:    { marginTop: 0, borderTopLeftRadius: 22, borderTopRightRadius: 22 },
   mascotImgWrapper:{ borderRadius: 16, backgroundColor: 'white', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   mascotImg:       { resizeMode: 'contain' } as any,
 
