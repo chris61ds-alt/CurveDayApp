@@ -108,29 +108,52 @@ function getMascotKey(
   activeCount: number,
   interactions: any[],
   substanceIds: string[],
+  intakes: any[],
 ): string {
-  if (activeCount === 0) return 'tired';
+  // Nur chronische Substanzen aktiv (Vitamine, Supplemente) → entspannter Normalzustand
+  const acuteIds = substanceIds.filter(id => {
+    const sub = getSubstance(id);
+    return sub && sub.pk?.curveType !== 'chronic';
+  });
+  if (acuteIds.length === 0) return activeCount === 0 ? 'happy' : 'relaxed';
+
   const hasCritical = interactions.some((ix: any) => ix.severity === 'critical');
   if (hasCritical) return 'anxious';
-  const hasHigh = interactions.some((ix: any) => ix.severity === 'high');
-  if (hasHigh && activeCount >= 2) return 'nervous';
-  const hasADHD     = substanceIds.some(id => ['mph_ir','mph_la','lisdex','adderall'].includes(id));
-  const hasCaffeine = substanceIds.some(id => ['koffein','espresso','energy_drink','filter_coffee','kaffee_filter','cold_brew'].includes(id));
-  const hasAlcohol  = substanceIds.some(id => ['alkohol','bier_klein','bier_gross','wein_rot','wein_weiss','cocktail','shot','sekt'].includes(id));
+
+  const hasHigh    = interactions.some((ix: any) => ix.severity === 'high');
+  const hasAlcohol = acuteIds.some(id => ['alkohol','bier_klein','bier_gross','wein_rot','wein_weiss','cocktail','shot','sekt'].includes(id));
+  const hasADHD    = acuteIds.some(id => ['mph_ir','mph_la','lisdex','adderall'].includes(id));
+  const hasCaffeine= acuteIds.some(id => ['koffein','espresso','energy_drink','filter_coffee','kaffee_filter','cold_brew'].includes(id));
+  const hasSleep   = acuteIds.some(id => ['melatonin','zolpidem','diazepam','lorazepam'].includes(id));
+  const hasPain    = acuteIds.some(id => ['ibuprofen','paracetamol','aspirin','naproxen','diclofenac'].includes(id));
+
+  if (hasHigh && acuteIds.length >= 2) return 'nervous';
   if (hasADHD && hasCaffeine) return 'energeticFocused';
-  if (!state) return activeCount >= 3 ? 'confused' : 'happy';
-  if (activeCount >= 3 && interactions.length > 0) return 'confused';
-  if (hasAlcohol && activeCount >= 2) return 'euphoricMuted';
+  if (hasAlcohol && acuteIds.length >= 2) return 'euphoricMuted';
+  if (hasAlcohol) return 'dizzy';
+  if (hasSleep) return 'tired';
+  if (hasPain && acuteIds.length === 1) return 'relaxed';
+  if (acuteIds.length >= 3 && interactions.length > 0) return 'confused';
+  if (!state) return acuteIds.length >= 3 ? 'confused' : 'happy';
+
+  const isStrong = state.strength === 'stark' || state.strength === 'strong';
   switch (state.emoji) {
-    case '🎯': return 'focused';
-    case '⚡': return state.strength === 'stark' || state.strength === 'strong' ? 'energetic' : 'nervous';
+    case '🎯': return hasADHD ? 'energeticFocused' : 'focused';
+    case '⚡': return isStrong ? 'energetic' : 'energetic';
+    case '✨': return 'focused';
+    case '🧠': return 'focused';
+    case '💪': return 'energetic';
     case '😴': return 'tired';
     case '😌': return 'relaxed';
+    case '🧘': return 'peacefull';
     case '🌿': return 'peacefull';
     case '😊': return 'happy';
-    case '🧠': return 'focused';
     case '💆': return 'relaxed';
-    case '☺️': return hasAlcohol ? 'dizzy' : 'happy';
+    case '🛡️': return 'relaxed';
+    case '☺️': return 'happy';
+    case '❤️': return 'happy';
+    case '💗': return 'happy';
+    case '🌸': return 'happy';
     default:   return 'happy';
   }
 }
@@ -171,6 +194,7 @@ export default function TageskurveScreen() {
   }, [prefs.profile?.sleepStart, prefs.profile?.sleepEnd]);
   const [modalVisible, setModalVisible] = useState(false);
   const [actionSheet, setActionSheet] = useState<{ id: string; name: string; pinned?: boolean } | null>(null);
+  const [expandedIx, setExpandedIx] = useState<Set<number>>(new Set());
   const { width: screenWidth } = useWindowDimensions();
 
   // ── Page fade-in ─────────────────────────────────────────────
@@ -254,6 +278,46 @@ export default function TageskurveScreen() {
   const chartData     = useMemo(() => buildChartData(intakes), [intakes]);
   const interactions  = useMemo(() => getActiveInteractions(intakes.map(i => i.substanceId)), [intakes]);
   const activeIntakes = useMemo(() => intakes.filter(i => isActive(i, now)), [intakes, now]);
+
+  // ── Smart Insights ─────────────────────────────────────────────
+  // Wann sind alle akuten Substanzen abgebaut?
+  const clearanceHour = useMemo(() => {
+    let maxH = 0;
+    for (const intake of activeIntakes) {
+      const sub = getSubstance(intake.substanceId);
+      if (!sub || sub.pk?.curveType === 'chronic') continue;
+      const takenH = intake.takenAt
+        ? (new Date(intake.takenAt).getTime() - new Date().setHours(0,0,0,0)) / 3_600_000
+        : intake.timeH;
+      const clearH = takenH + sub.pk.durationHours;
+      if (clearH > maxH) maxH = clearH;
+    }
+    return maxH > 0 ? maxH : null;
+  }, [activeIntakes]);
+
+  // Welche Substanz erreicht als nächste ihren Peak? (in den nächsten 3h)
+  const nextPeak = useMemo(() => {
+    let best: { name: string; minutesAway: number } | null = null;
+    for (const intake of activeIntakes) {
+      const sub = getSubstance(intake.substanceId);
+      if (!sub) continue;
+      const takenH = intake.takenAt
+        ? (new Date(intake.takenAt).getTime() - new Date().setHours(0,0,0,0)) / 3_600_000
+        : intake.timeH;
+      const peakH = takenH + sub.pk.tmaxHours;
+      const minsAway = Math.round((peakH - now) * 60);
+      if (minsAway > 0 && minsAway <= 180 && (!best || minsAway < best.minutesAway)) {
+        best = { name: sub.name, minutesAway: minsAway };
+      }
+    }
+    return best;
+  }, [activeIntakes, now]);
+
+  // Wie viele Einnahmen heute?
+  const todayCount = useMemo(() => {
+    const todayMs = new Date().setHours(0,0,0,0);
+    return intakes.filter(i => i.takenAt && new Date(i.takenAt).getTime() >= todayMs).length;
+  }, [intakes]);
 
   // Ambient color: drives gradient background + mascot glow
   const ambientColor = useMemo(() => {
@@ -422,7 +486,7 @@ export default function TageskurveScreen() {
         {/* ── STATUS / MASCOT ────────────────── */}
         {(() => {
           const state     = activeIntakes.length > 0 ? computeCurrentState(activeIntakes, chartData, now, t) : null;
-          const mascotKey = getMascotKey(state, activeIntakes.length, interactions, activeIntakes.map(i => i.substanceId));
+          const mascotKey = getMascotKey(state, activeIntakes.length, interactions, activeIntakes.map(i => i.substanceId), activeIntakes);
           const mascotImg = MASCOT_IMAGES[mascotKey];
           const cardColor = state?.color ?? C.textDim;
           return (
@@ -663,7 +727,7 @@ export default function TageskurveScreen() {
         {/* ── WECHSELWIRKUNGEN ───────────────── */}
         {interactions.length > 0 && (
           <View style={[s.card, { backgroundColor: C.surface, borderColor: C.border }]}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 4 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 10 }}>
               <View style={{ width: 3, height: 14, borderRadius: 2, backgroundColor: '#f87171' }} />
               <Text style={{ fontSize: 11, fontWeight: '700', color: C.textDim, textTransform: 'uppercase', letterSpacing: 1 }}>
                 {t.homeSectionIx}
@@ -673,59 +737,126 @@ export default function TageskurveScreen() {
               </View>
             </View>
             {interactions.map((ix: any, i: number) => {
-              const subA   = getSubstance(ix.a);
-              const subB   = getSubstance(ix.b);
-              const ixMeta = IX_TYPE[ix.type] ?? IX_TYPE.mixed;
+              const subA     = getSubstance(ix.a);
+              const subB     = getSubstance(ix.b);
+              const ixMeta   = IX_TYPE[ix.type] ?? IX_TYPE.mixed;
               const sevColor = ix.type === 'synergy' ? '#4ade80' : IX_SEVERITY_COLOR[ix.severity] ?? '#94a3b8';
+              const isOpen   = expandedIx.has(i);
               return (
-                <View key={i} style={[s.ixCard, { backgroundColor: C.surfaceHigh, borderColor: C.borderMid, borderLeftColor: sevColor }]}>
-                  <View style={s.ixHeader}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+                <TouchableOpacity
+                  key={i}
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    setExpandedIx(prev => {
+                      const next = new Set(prev);
+                      isOpen ? next.delete(i) : next.add(i);
+                      return next;
+                    });
+                  }}
+                  style={[s.ixRow, { backgroundColor: C.surfaceHigh, borderColor: `${sevColor}40`, borderLeftColor: sevColor }]}
+                >
+                  {/* Compact header — always visible */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <View style={{ flexDirection: 'row', gap: 4 }}>
                       {[subA, subB].filter(Boolean).map((sub: any) => (
-                        <SubIcon key={sub.id} substance={sub} size={22} />
+                        <SubIcon key={sub.id} substance={sub} size={20} />
                       ))}
-                      <Text style={{ fontSize: 13, fontWeight: '700', color: C.text, flex: 1 }} numberOfLines={1}>
-                        {subA?.name} + {subB?.name}
-                      </Text>
                     </View>
-                    <View style={[s.chip, { backgroundColor: `${sevColor}20`, borderColor: `${sevColor}40` }]}>
-                      <Text style={{ fontSize: 12, color: sevColor, fontWeight: '700' }}>{ixMeta.tag}</Text>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: C.text, flex: 1 }} numberOfLines={1}>
+                      {subA?.name} + {subB?.name}
+                    </Text>
+                    <View style={[s.ixBadge, { backgroundColor: `${sevColor}20`, borderColor: `${sevColor}40` }]}>
+                      <Text style={{ fontSize: 11, fontWeight: '700', color: sevColor }}>{ixMeta.tag}</Text>
                     </View>
+                    <Text style={{ fontSize: 14, color: C.textDim, marginLeft: 2 }}>{isOpen ? '▲' : '▼'}</Text>
                   </View>
-                  <Text style={{ fontSize: 14, color: C.textSub, lineHeight: 20 }} numberOfLines={3}>{ix.note}</Text>
-                  <Text style={{ fontSize: 13, color: C.textDim, marginTop: 4 }}>
-                    Stärke: <Text style={{ color: sevColor }}>{IX_SEVERITY_LABEL[ix.severity]}</Text>
-                  </Text>
-                </View>
+                  {/* Expanded detail */}
+                  {isOpen && (
+                    <View style={{ marginTop: 10, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.border }}>
+                      <Text style={{ fontSize: 13, color: C.textSub, lineHeight: 20 }}>{ix.note}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}>
+                        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: sevColor }} />
+                        <Text style={{ fontSize: 12, color: C.textDim }}>
+                          {IX_SEVERITY_LABEL[ix.severity]}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+                </TouchableOpacity>
               );
             })}
           </View>
         )}
 
         {/* ── INSIGHTS ───────────────────────── */}
-        <View style={[s.card, { backgroundColor: C.surface, borderColor: `${C.accent}20` }]}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 4 }}>
-            <View style={{ width: 3, height: 14, borderRadius: 2, backgroundColor: C.accent }} />
-            <Text style={{ fontSize: 11, fontWeight: '700', color: C.textDim, textTransform: 'uppercase', letterSpacing: 1 }}>
-              {t.homeInsightsTitle}
-            </Text>
-          </View>
-          {[
-            {
-              text: activeIntakes.length > 0 ? t.homeInsightActive(activeIntakes.length) : t.homeInsightNone,
+        {(() => {
+          const insights: { icon: string; text: string; sub?: string; color: string }[] = [];
+
+          // Clearance time
+          if (clearanceHour !== null) {
+            const totalMins = Math.round(clearanceHour * 60);
+            const h = Math.floor(totalMins / 60) % 24;
+            const m = totalMins % 60;
+            const timeStr = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+            const isNextDay = clearanceHour >= 24;
+            insights.push({
+              icon: '⏱',
+              text: isNextDay ? `Abgebaut morgen gegen ${timeStr} Uhr` : `Alle Substanzen abgebaut gegen ${timeStr} Uhr`,
               color: C.accent,
-            },
-            {
-              text: interactions.length > 0 ? t.homeInsightIx(interactions.length) : t.homeInsightNoIx,
+            });
+          }
+
+          // Next peak
+          if (nextPeak) {
+            const mins = nextPeak.minutesAway;
+            const peakStr = mins < 60 ? `in ${mins} min` : `in ${Math.round(mins/60*10)/10} h`;
+            insights.push({
+              icon: '📈',
+              text: `${nextPeak.name} erreicht Peak ${peakStr}`,
+              color: '#f59e0b',
+            });
+          }
+
+          // Today count
+          if (todayCount > 0) {
+            insights.push({
+              icon: '📋',
+              text: `Heute ${todayCount} ${todayCount === 1 ? 'Einnahme' : 'Einnahmen'} erfasst`,
               color: C.success,
-            },
-          ].map((insight, i) => (
-            <View key={i} style={s.insightRow}>
-              <View style={[s.insightDot, { backgroundColor: insight.color }]} />
-              <Text style={{ fontSize: 14, color: C.textSub, lineHeight: 20, flex: 1 }}>{insight.text}</Text>
+            });
+          }
+
+          // Interactions summary
+          if (interactions.length > 0) {
+            const critical = interactions.filter((ix: any) => ix.severity === 'critical').length;
+            insights.push({
+              icon: critical > 0 ? '⛔' : '⚠️',
+              text: critical > 0
+                ? `${critical} kritische Wechselwirkung${critical > 1 ? 'en' : ''} aktiv`
+                : `${interactions.length} Wechselwirkung${interactions.length > 1 ? 'en' : ''} beachten`,
+              color: critical > 0 ? '#f87171' : '#f59e0b',
+            });
+          }
+
+          if (insights.length === 0) return null;
+
+          return (
+            <View style={[s.card, { backgroundColor: C.surface, borderColor: C.border }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 10 }}>
+                <View style={{ width: 3, height: 14, borderRadius: 2, backgroundColor: C.accent }} />
+                <Text style={{ fontSize: 11, fontWeight: '700', color: C.textDim, textTransform: 'uppercase', letterSpacing: 1 }}>
+                  {t.homeInsightsTitle}
+                </Text>
+              </View>
+              {insights.map((ins, i) => (
+                <View key={i} style={[s.insightRow, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.border, paddingTop: 10, marginTop: 2 }]}>
+                  <Text style={{ fontSize: 16, width: 24 }}>{ins.icon}</Text>
+                  <Text style={{ fontSize: 13, color: C.textSub, lineHeight: 19, flex: 1 }}>{ins.text}</Text>
+                </View>
+              ))}
             </View>
-          ))}
-        </View>
+          );
+        })()}
 
       </Animated.ScrollView>
 
@@ -862,10 +993,12 @@ const s = StyleSheet.create({
   // ── Interactions ─────────────────────────────────────────────
   ixCard:    { borderRadius: 16, padding: 16, marginTop: 10, borderWidth: 1, borderLeftWidth: 4 },
   ixHeader:  { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  ixRow:     { borderRadius: 14, padding: 14, marginTop: 8, borderWidth: 1, borderLeftWidth: 3 },
+  ixBadge:   { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1 },
 
   // ── Insights ─────────────────────────────────────────────────
-  insightRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginTop: 12 },
-  insightDot: { width: 8, height: 8, borderRadius: 4, marginTop: 6 },
+  insightRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  insightDot: { width: 8, height: 8, borderRadius: 4 },
 
   // ── Empty state ───────────────────────────────────────────────
   emptyState:   { flex: 1 },
