@@ -7,7 +7,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Reanimated, { FadeInDown, FadeIn, ZoomIn } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { useIntakeStore } from '../../src/store/intakeStore';
 import { useThemeStore } from '../../src/store/themeStore';
@@ -628,16 +627,12 @@ export default function TageskurveScreen() {
       >
 
         {/* ── KOMBINIERTE KARTE: Mascot + Substanzliste ── */}
-        <BlurView
-          intensity={35}
-          tint={C.isDark ? 'dark' : 'light'}
-          style={[s.card, s.combinedCard, { borderColor: `${cardColor}30`, overflow: 'hidden' }]}
+        <View
+          style={[s.card, s.combinedCard, {
+            borderColor: `${cardColor}30`,
+            backgroundColor: C.isDark ? 'rgba(12,24,40,0.96)' : 'rgba(255,255,255,0.96)',
+          }]}
         >
-          {/* Solid overlay über dem Blur */}
-          <View style={[StyleSheet.absoluteFillObject, {
-            backgroundColor: C.isDark ? 'rgba(12,24,40,0.82)' : 'rgba(255,255,255,0.82)',
-            borderRadius: 22,
-          }]} />
 
           {/* Drag-Handle */}
           <View style={{ alignItems: 'center', paddingBottom: 12 }}>
@@ -824,7 +819,7 @@ export default function TageskurveScreen() {
               </View>
             </>
           )}
-        </BlurView>
+        </View>
 
         {/* ── SUBSTANZ-DETAILS ───────────────── */}
         {selectedSub && selectedIntake && (() => {
