@@ -530,6 +530,9 @@ export default function TageskurveScreen() {
         <Text style={{ fontSize: 13, color: C.textDim }}>
           {t.homeDate(new Date())}
         </Text>
+        <View style={{ backgroundColor: C.accent, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
+          <Text style={{ fontSize: 10, fontWeight: '700', color: '#000' }}>v78</Text>
+        </View>
       </View>
 
       {/* ── EMPTY STATE ──────────────────────── */}
