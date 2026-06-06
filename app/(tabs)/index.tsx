@@ -567,8 +567,8 @@ export default function TageskurveScreen() {
 
       {/* ── FIXIERTE CHART-KARTE (außerhalb ScrollView) ── */}
       {intakes.length > 0 && (
-        <Animated.View style={{ opacity: fadeAnim, zIndex: 1 }}>
-          <View style={[s.card, { backgroundColor: C.surface, borderColor: C.border, marginBottom: 0 }]}>
+        <Animated.View style={{ opacity: fadeAnim, zIndex: 1, elevation: 0 }}>
+          <View style={[s.card, { backgroundColor: C.surface, borderColor: C.border, marginBottom: 0, elevation: 0, shadowOpacity: 0 }]}>
             <View style={{ position: 'relative', overflow: 'hidden' }}>
               <CurveChart
                 data={chartData} entries={chartEntries} selectedId={selectedId}
