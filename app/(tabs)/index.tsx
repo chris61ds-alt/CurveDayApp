@@ -564,9 +564,9 @@ export default function TageskurveScreen() {
         </Animated.View>
       )}
 
-      {/* ── FIXIERTE CHART-KARTE (außerhalb ScrollView) ── */}
+      {/* ── FIXIERTE CHART-KARTE (außerhalb ScrollView, scrollt nicht mit) ── */}
       {intakes.length > 0 && (
-        <Animated.View style={{ opacity: fadeAnim, zIndex: 1, elevation: 0 }}>
+        <Animated.View style={{ opacity: fadeAnim }}>
           <View style={[s.card, { backgroundColor: C.surface, borderColor: C.border, marginBottom: 0, elevation: 0, shadowOpacity: 0 }]}>
             <View style={{ position: 'relative', overflow: 'hidden' }}>
               <CurveChart
@@ -614,12 +614,11 @@ export default function TageskurveScreen() {
         </Animated.View>
       )}
 
-      {/* ── SCROLLBARER INHALT (bewegt sich über die Chart-Karte) ── */}
+      {/* ── SCROLLBARER INHALT (startet direkt unter Chart-Karte) ── */}
       <Animated.ScrollView
         style={[
           { flex: 1, opacity: fadeAnim },
           intakes.length === 0 && { display: 'none' },
-          intakes.length > 0 && Platform.OS !== 'web' && { marginTop: -28, zIndex: 5 },
         ]}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: (Platform.OS === 'ios' ? 100 : 80 + insets.bottom) }}
@@ -1204,7 +1203,7 @@ const s = StyleSheet.create({
   intakePill: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1 },
 
   mascotCard:      { flexDirection: 'row', alignItems: 'center' },
-  combinedCard:    { marginTop: 12, borderTopLeftRadius: 22, borderTopRightRadius: 22 },
+  combinedCard:    { marginTop: 8 },
   mascotImgWrapper:{ borderRadius: 16, backgroundColor: 'white', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   mascotImg:       { resizeMode: 'contain' } as any,
 
