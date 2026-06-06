@@ -54,6 +54,9 @@ export default function TabLayout() {
           height: tabBarHeight,
           paddingBottom: tabBarPadBottom,
           paddingTop: 4,
+          // Ensure tab bar stays above all screen content (zIndex: 5 ScrollView etc.)
+          zIndex: 50,
+          elevation: 20,
         },
         tabBarShowLabel: false,
       }}

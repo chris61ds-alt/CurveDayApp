@@ -567,7 +567,7 @@ export default function TageskurveScreen() {
 
       {/* ── FIXIERTE CHART-KARTE (außerhalb ScrollView) ── */}
       {intakes.length > 0 && (
-        <Animated.View style={{ opacity: fadeAnim }}>
+        <Animated.View style={{ opacity: fadeAnim, zIndex: 1 }}>
           <View style={[s.card, { backgroundColor: C.surface, borderColor: C.border, marginBottom: 0 }]}>
             <View style={{ position: 'relative', overflow: 'hidden' }}>
               <CurveChart
@@ -623,7 +623,7 @@ export default function TageskurveScreen() {
           intakes.length > 0 && Platform.OS !== 'web' && { marginTop: -28, zIndex: 5 },
         ]}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: (Platform.OS === 'ios' ? 100 : 80 + insets.bottom) }}
         scrollEventThrottle={16}
       >
 
@@ -1265,6 +1265,8 @@ const s = StyleSheet.create({
     bottom: Platform.OS === 'ios' ? 24 : 20,
     width: 60, height: 60,
     alignItems: 'center', justifyContent: 'center',
+    zIndex: 30,
+    elevation: 30,
   },
   fabGlow: {
     position: 'absolute',
