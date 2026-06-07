@@ -43,13 +43,21 @@ const SLEEP_COLOR = '#818cf8';
 function smoothLinePath(pts: { x: number; y: number }[]): string {
   if (pts.length === 0) return '';
   if (pts.length === 1) return `M${pts[0].x},${pts[0].y}`;
+  if (pts.length === 2) return `M${pts[0].x},${pts[0].y} L${pts[1].x},${pts[1].y}`;
+  // Catmull-Rom → cubic bezier (C1-continuous → smooth joins at every knot)
+  const T = 0.35;
   let d = `M${pts[0].x},${pts[0].y}`;
   for (let i = 0; i < pts.length - 1; i++) {
-    const mx = (pts[i].x + pts[i + 1].x) / 2;
-    const my = (pts[i].y + pts[i + 1].y) / 2;
-    d += ` Q${pts[i].x},${pts[i].y} ${mx},${my}`;
+    const p0 = pts[Math.max(0, i - 1)];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[Math.min(pts.length - 1, i + 2)];
+    const cp1x = p1.x + (p2.x - p0.x) * T;
+    const cp1y = p1.y + (p2.y - p0.y) * T;
+    const cp2x = p2.x - (p3.x - p1.x) * T;
+    const cp2y = p2.y - (p3.y - p1.y) * T;
+    d += ` C${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
   }
-  d += ` L${pts[pts.length - 1].x},${pts[pts.length - 1].y}`;
   return d;
 }
 
@@ -290,11 +298,14 @@ export function CurveChart({
           ))}
         </Defs>
 
+        {/* Baseline at 0% */}
+        <Line x1={PAD.left} y1={yOf(0)} x2={svgW - PAD.right} y2={yOf(0)} stroke={gridColor} strokeWidth={1.5} opacity={0.6} />
+
         {/* Grid lines + Y-labels overlay (inside chart) */}
         {yTicks.map(v => (
           <G key={v}>
-            <Line x1={PAD.left} y1={yOf(v)} x2={svgW - PAD.right} y2={yOf(v)} stroke={gridColor} strokeWidth={1} />
-            <SvgText x={PAD.left + 5} y={yOf(v) - 3} fontSize={10} fill={labelColor} textAnchor="start" opacity={0.65} fontFamily={SF}>{v}%</SvgText>
+            <Line x1={PAD.left} y1={yOf(v)} x2={svgW - PAD.right} y2={yOf(v)} stroke={gridColor} strokeWidth={0.75} opacity={0.8} />
+            <SvgText x={PAD.left + 5} y={yOf(v) - 3} fontSize={9.5} fill={labelColor} textAnchor="start" opacity={0.55} fontFamily={SF}>{v}%</SvgText>
           </G>
         ))}
 
@@ -561,12 +572,12 @@ export function CurveChart({
 
 const cs = StyleSheet.create({
   zoomRow: {
-    position: 'absolute', bottom: 28, right: 10,
-    flexDirection: 'row', gap: 6,
+    position: 'absolute', bottom: 30, right: 12,
+    flexDirection: 'row', gap: 7,
   },
   zoomBtn: {
-    width: 30, height: 30, borderRadius: 10, borderWidth: 1,
+    width: 28, height: 28, borderRadius: 14, borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
   },
-  zoomIcon: { fontSize: 18, fontWeight: '700', lineHeight: 22 },
+  zoomIcon: { fontSize: 17, fontWeight: '600', lineHeight: 20 },
 });

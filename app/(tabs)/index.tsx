@@ -581,7 +581,7 @@ export default function TageskurveScreen() {
                 data={chartData} entries={chartEntries} selectedId={selectedId}
                 nowHour={now} peakMarks={peakMarks}
                 sleepWindow={sleepWindow}
-                height={290}
+                height={310}
                 labelNow={t.chartNow}
                 labelTomorrow={t.chartTomorrow}
                 labelSteadyState={t.chartSteadyState}
