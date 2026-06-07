@@ -9,7 +9,7 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle as any);
 const SF = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
 import { ChartRow } from '../utils/pkHelpers';
 
-const PAD = { left: 4, right: 4, top: 10, bottom: 28 };
+const PAD = { left: 8, right: 8, top: 22, bottom: 32 };
 
 interface ChartEntry { substanceId: string; color: string; isChronic?: boolean; }
 interface PeakMark  { substanceId: string; peakIndex: number; color: string; label: string; }
