@@ -573,9 +573,9 @@ export default function TageskurveScreen() {
         scrollEventThrottle={16}
       >
 
-        {/* ── CHART-KARTE ── */}
+        {/* ── CHART-KARTE (randlos) ── */}
         {intakes.length > 0 && (
-          <View style={[s.card, { backgroundColor: C.surface, borderColor: C.border, marginBottom: 0 }]}>
+          <View style={{ backgroundColor: C.surface, marginBottom: 0, paddingTop: 8, paddingBottom: 4 }}>
             <View style={{ position: 'relative', overflow: 'hidden' }}>
               <CurveChart
                 data={chartData} entries={chartEntries} selectedId={selectedId}
@@ -587,7 +587,7 @@ export default function TageskurveScreen() {
                 labelSteadyState={t.chartSteadyState}
                 labelSleep={t.chartSleep}
                 labelNoIntakes={t.chartNoIntakes}
-                gridColor={C.gridLine} labelColor={C.textMuted}
+                gridColor={C.gridLine} labelColor="transparent"
                 accentColor={C.accent} isDark={C.isDark}
                 onSelectSubstance={setSelectedId}
               />
@@ -601,13 +601,13 @@ export default function TageskurveScreen() {
               />
             </View>
             {peakWindowActive && (
-              <View style={[s.peakBanner, { backgroundColor: `${C.accent}12`, borderColor: `${C.accent}30` }]}>
+              <View style={[s.peakBanner, { backgroundColor: `${C.accent}12`, borderColor: `${C.accent}30`, marginHorizontal: 14 }]}>
                 <Text style={{ fontSize: 13, fontWeight: '700', color: C.accent }}>⚡ Optimales Wirkfenster</Text>
                 <Text style={{ fontSize: 12, color: C.textSub, marginTop: 2 }}>{peakWindowActive} gleichzeitig auf Peak</Text>
               </View>
             )}
             {bedtimeWarnings.length > 0 && (
-              <View style={[s.sleepWarnBox, { backgroundColor: '#818cf808', borderColor: '#818cf830' }]}>
+              <View style={[s.sleepWarnBox, { backgroundColor: '#818cf808', borderColor: '#818cf830', marginHorizontal: 14 }]}>
                 <Text style={[s.sleepWarnTitle, { color: '#818cf8' }]}>
                   🌙 {t.homeBedtimeWarn(fmtHour(sleepWindow.start))}
                 </Text>
