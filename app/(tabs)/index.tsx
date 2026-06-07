@@ -575,13 +575,13 @@ export default function TageskurveScreen() {
 
         {/* ── CHART-KARTE (randlos) ── */}
         {intakes.length > 0 && (
-          <View style={{ backgroundColor: C.surface, marginBottom: 0, paddingTop: 8, paddingBottom: 4 }}>
+          <View style={{ backgroundColor: C.surface, marginBottom: 0 }}>
             <View style={{ position: 'relative', overflow: 'hidden' }}>
               <CurveChart
                 data={chartData} entries={chartEntries} selectedId={selectedId}
                 nowHour={now} peakMarks={peakMarks}
                 sleepWindow={sleepWindow}
-                height={240}
+                height={290}
                 labelNow={t.chartNow}
                 labelTomorrow={t.chartTomorrow}
                 labelSteadyState={t.chartSteadyState}

@@ -9,7 +9,7 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle as any);
 const SF = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
 import { ChartRow } from '../utils/pkHelpers';
 
-const PAD = { left: 38, right: 12, top: 10, bottom: 28 };
+const PAD = { left: 4, right: 4, top: 10, bottom: 28 };
 
 interface ChartEntry { substanceId: string; color: string; isChronic?: boolean; }
 interface PeakMark  { substanceId: string; peakIndex: number; color: string; label: string; }
@@ -290,11 +290,11 @@ export function CurveChart({
           ))}
         </Defs>
 
-        {/* Grid lines */}
+        {/* Grid lines + Y-labels overlay (inside chart) */}
         {yTicks.map(v => (
           <G key={v}>
             <Line x1={PAD.left} y1={yOf(v)} x2={svgW - PAD.right} y2={yOf(v)} stroke={gridColor} strokeWidth={1} />
-            <SvgText x={PAD.left - 5} y={yOf(v) + 4} fontSize={11} fill={labelColor} textAnchor="end" fontFamily={SF}>{v}%</SvgText>
+            <SvgText x={PAD.left + 5} y={yOf(v) - 3} fontSize={10} fill={labelColor} textAnchor="start" opacity={0.65} fontFamily={SF}>{v}%</SvgText>
           </G>
         ))}
 
