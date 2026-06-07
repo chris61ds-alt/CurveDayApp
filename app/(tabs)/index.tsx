@@ -241,7 +241,6 @@ export default function TageskurveScreen() {
     if (s !== undefined && e !== undefined) return { start: s, end: e };
     return { start: 23, end: 7 }; // sensible default
   }, [prefs.profile?.sleepStart, prefs.profile?.sleepEnd]);
-  const [chartHeight, setChartHeight] = useState(280);
   const [modalVisible, setModalVisible] = useState(false);
   const [actionSheet, setActionSheet] = useState<{ id: string; name: string; pinned?: boolean } | null>(null);
   const [expandedIx, setExpandedIx] = useState<Set<number>>(new Set());
@@ -568,69 +567,69 @@ export default function TageskurveScreen() {
         </Animated.View>
       )}
 
-      {/* ── CHART + SCROLL CONTAINER ── */}
+      {/* ── FIXIERTE CHART-KARTE ── */}
       {intakes.length > 0 && (
-        <View style={{ flex: 1, position: 'relative' }}>
-
-          {/* Chart-Karte: absolut positioniert im Hintergrund (zIndex 0) */}
-          <Animated.View
-            style={{ opacity: fadeAnim, position: 'absolute', top: 0, left: 0, right: 0, zIndex: 0 }}
-            onLayout={e => setChartHeight(e.nativeEvent.layout.height)}
-          >
-            <View style={[s.card, { backgroundColor: C.surface, borderColor: C.border, marginBottom: 0, elevation: 0, shadowOpacity: 0 }]}>
-              <View style={{ position: 'relative', overflow: 'hidden' }}>
-                <CurveChart
-                  data={chartData} entries={chartEntries} selectedId={selectedId}
-                  nowHour={now} peakMarks={peakMarks}
-                  sleepWindow={sleepWindow}
-                  height={240}
-                  labelNow={t.chartNow}
-                  labelTomorrow={t.chartTomorrow}
-                  labelSteadyState={t.chartSteadyState}
-                  labelSleep={t.chartSleep}
-                  labelNoIntakes={t.chartNoIntakes}
-                  gridColor={C.gridLine} labelColor={C.textMuted}
-                  accentColor={C.accent} isDark={C.isDark}
-                  onSelectSubstance={setSelectedId}
-                />
-                <Animated.View
-                  pointerEvents="none"
-                  style={{
-                    position: 'absolute', top: 0, bottom: 0, right: 0,
-                    left: chartReveal.interpolate({ inputRange: [0, 1], outputRange: [30, screenWidth + 60] }),
-                    backgroundColor: C.surface,
-                  }}
-                />
-              </View>
-              {peakWindowActive && (
-                <View style={[s.peakBanner, { backgroundColor: `${C.accent}12`, borderColor: `${C.accent}30` }]}>
-                  <Text style={{ fontSize: 13, fontWeight: '700', color: C.accent }}>⚡ Optimales Wirkfenster</Text>
-                  <Text style={{ fontSize: 12, color: C.textSub, marginTop: 2 }}>{peakWindowActive} gleichzeitig auf Peak</Text>
-                </View>
-              )}
-              {bedtimeWarnings.length > 0 && (
-                <View style={[s.sleepWarnBox, { backgroundColor: '#818cf808', borderColor: '#818cf830' }]}>
-                  <Text style={[s.sleepWarnTitle, { color: '#818cf8' }]}>
-                    🌙 {t.homeBedtimeWarn(fmtHour(sleepWindow.start))}
-                  </Text>
-                  {bedtimeWarnings.map((w, i) => (
-                    <Text key={i} style={[s.sleepWarnItem, { color: w.color }]}>
-                      {'  ·  '}{w.name} ({w.val}%)
-                    </Text>
-                  ))}
-                </View>
-              )}
+        <Animated.View style={{ opacity: fadeAnim, zIndex: 1 }}>
+          <View style={[s.card, { backgroundColor: C.surface, borderColor: C.border, marginBottom: 0, elevation: 0, shadowOpacity: 0 }]}>
+            <View style={{ position: 'relative', overflow: 'hidden' }}>
+              <CurveChart
+                data={chartData} entries={chartEntries} selectedId={selectedId}
+                nowHour={now} peakMarks={peakMarks}
+                sleepWindow={sleepWindow}
+                height={240}
+                labelNow={t.chartNow}
+                labelTomorrow={t.chartTomorrow}
+                labelSteadyState={t.chartSteadyState}
+                labelSleep={t.chartSleep}
+                labelNoIntakes={t.chartNoIntakes}
+                gridColor={C.gridLine} labelColor={C.textMuted}
+                accentColor={C.accent} isDark={C.isDark}
+                onSelectSubstance={setSelectedId}
+              />
+              <Animated.View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute', top: 0, bottom: 0, right: 0,
+                  left: chartReveal.interpolate({ inputRange: [0, 1], outputRange: [30, screenWidth + 60] }),
+                  backgroundColor: C.surface,
+                }}
+              />
             </View>
-          </Animated.View>
+            {peakWindowActive && (
+              <View style={[s.peakBanner, { backgroundColor: `${C.accent}12`, borderColor: `${C.accent}30` }]}>
+                <Text style={{ fontSize: 13, fontWeight: '700', color: C.accent }}>⚡ Optimales Wirkfenster</Text>
+                <Text style={{ fontSize: 12, color: C.textSub, marginTop: 2 }}>{peakWindowActive} gleichzeitig auf Peak</Text>
+              </View>
+            )}
+            {bedtimeWarnings.length > 0 && (
+              <View style={[s.sleepWarnBox, { backgroundColor: '#818cf808', borderColor: '#818cf830' }]}>
+                <Text style={[s.sleepWarnTitle, { color: '#818cf8' }]}>
+                  🌙 {t.homeBedtimeWarn(fmtHour(sleepWindow.start))}
+                </Text>
+                {bedtimeWarnings.map((w, i) => (
+                  <Text key={i} style={[s.sleepWarnItem, { color: w.color }]}>
+                    {'  ·  '}{w.name} ({w.val}%)
+                  </Text>
+                ))}
+              </View>
+            )}
+          </View>
+        </Animated.View>
+      )}
 
-          {/* ScrollView: absolut, deckt den ganzen Container ab, liegt ÜBER Chart (zIndex 2) */}
-          {/* paddingTop = Höhe der Chart-Karte → Inhalt startet direkt unter Chart */}
-          <Animated.ScrollView
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: fadeAnim, zIndex: 2 }}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingTop: chartHeight, paddingBottom: (Platform.OS === 'ios' ? 100 : 80 + insets.bottom) }}
-            scrollEventThrottle={16}
-          >
+      {/* ── SCROLLBARER INHALT ── */}
+      {/* marginTop: -28 auf native: Karten überlappen Chart leicht und scrollen darüber */}
+      {/* elevation: 0 auf Chart-Karte sorgt dafür dass Android die zIndex-Reihenfolge respektiert */}
+      <Animated.ScrollView
+        style={[
+          { flex: 1, opacity: fadeAnim, zIndex: 5 },
+          intakes.length === 0 && { display: 'none' },
+          Platform.OS !== 'web' && intakes.length > 0 && { marginTop: -28 },
+        ]}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: (Platform.OS === 'ios' ? 100 : 80 + insets.bottom) }}
+        scrollEventThrottle={16}
+      >
 
         {/* ── KOMBINIERTE KARTE: Mascot + Substanzliste ── */}
         <View
@@ -1101,10 +1100,7 @@ export default function TageskurveScreen() {
           </View>
         )}
 
-          </Animated.ScrollView>
-
-        </View>
-      )}
+      </Animated.ScrollView>
 
       {/* ── FAB + glow ring ─────────────────── */}
       <View style={[s.fabContainer, Platform.OS === 'android' && { bottom: 20 + insets.bottom }]}>
@@ -1213,7 +1209,7 @@ const s = StyleSheet.create({
   intakePill: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1 },
 
   mascotCard:      { flexDirection: 'row', alignItems: 'center' },
-  combinedCard:    { marginTop: 8 },
+  combinedCard:    { marginTop: 12 },
   mascotImgWrapper:{ borderRadius: 16, backgroundColor: 'white', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   mascotImg:       { resizeMode: 'contain' } as any,
 
