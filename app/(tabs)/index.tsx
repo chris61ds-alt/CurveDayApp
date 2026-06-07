@@ -567,10 +567,20 @@ export default function TageskurveScreen() {
         </Animated.View>
       )}
 
-      {/* ── FIXIERTE CHART-KARTE ── */}
-      {intakes.length > 0 && (
-        <Animated.View style={{ opacity: fadeAnim, zIndex: 1 }}>
-          <View style={[s.card, { backgroundColor: C.surface, borderColor: C.border, marginBottom: 0, elevation: 0, shadowOpacity: 0 }]}>
+      {/* ── SCROLLBARER INHALT (Chart + alle Karten scrollen zusammen) ── */}
+      <Animated.ScrollView
+        style={[
+          { flex: 1, opacity: fadeAnim },
+          intakes.length === 0 && { display: 'none' },
+        ]}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: (Platform.OS === 'ios' ? 100 : 80 + insets.bottom) }}
+        scrollEventThrottle={16}
+      >
+
+        {/* ── CHART-KARTE ── */}
+        {intakes.length > 0 && (
+          <View style={[s.card, { backgroundColor: C.surface, borderColor: C.border, marginBottom: 0 }]}>
             <View style={{ position: 'relative', overflow: 'hidden' }}>
               <CurveChart
                 data={chartData} entries={chartEntries} selectedId={selectedId}
@@ -614,22 +624,7 @@ export default function TageskurveScreen() {
               </View>
             )}
           </View>
-        </Animated.View>
-      )}
-
-      {/* ── SCROLLBARER INHALT ── */}
-      {/* marginTop: -28 auf native: Karten überlappen Chart leicht und scrollen darüber */}
-      {/* elevation: 0 auf Chart-Karte sorgt dafür dass Android die zIndex-Reihenfolge respektiert */}
-      <Animated.ScrollView
-        style={[
-          { flex: 1, opacity: fadeAnim, zIndex: 5 },
-          intakes.length === 0 && { display: 'none' },
-          Platform.OS !== 'web' && intakes.length > 0 && { marginTop: -28 },
-        ]}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: (Platform.OS === 'ios' ? 100 : 80 + insets.bottom) }}
-        scrollEventThrottle={16}
-      >
+        )}
 
         {/* ── KOMBINIERTE KARTE: Mascot + Substanzliste ── */}
         <View
@@ -1209,7 +1204,7 @@ const s = StyleSheet.create({
   intakePill: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1 },
 
   mascotCard:      { flexDirection: 'row', alignItems: 'center' },
-  combinedCard:    { marginTop: 12 },
+  combinedCard:    { marginTop: 8 },
   mascotImgWrapper:{ borderRadius: 16, backgroundColor: 'white', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   mascotImg:       { resizeMode: 'contain' } as any,
 
