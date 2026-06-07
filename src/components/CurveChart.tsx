@@ -93,7 +93,7 @@ export function CurveChart({
   onSelectSubstance,
 }: Props) {
   const { width } = useWindowDimensions();
-  const svgW  = width - 28;
+  const svgW  = width;
   const plotW = svgW - PAD.left - PAD.right;
   const plotH = height - PAD.top - PAD.bottom;
 

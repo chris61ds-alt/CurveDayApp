@@ -587,7 +587,7 @@ export default function TageskurveScreen() {
                 labelSteadyState={t.chartSteadyState}
                 labelSleep={t.chartSleep}
                 labelNoIntakes={t.chartNoIntakes}
-                gridColor={C.gridLine} labelColor="transparent"
+                gridColor={C.gridLine} labelColor={C.textMuted}
                 accentColor={C.accent} isDark={C.isDark}
                 onSelectSubstance={setSelectedId}
               />
