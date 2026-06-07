@@ -530,9 +530,6 @@ export default function TageskurveScreen() {
         <Text style={{ fontSize: 13, color: C.textDim }}>
           {t.homeDate(new Date())}
         </Text>
-        <View style={{ backgroundColor: C.accent, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
-          <Text style={{ fontSize: 10, fontWeight: '700', color: '#000' }}>v78</Text>
-        </View>
       </View>
 
       {/* ── EMPTY STATE ──────────────────────── */}
@@ -569,7 +566,7 @@ export default function TageskurveScreen() {
 
       {/* ── FIXIERTE CHART-KARTE (außerhalb ScrollView, scrollt nicht mit) ── */}
       {intakes.length > 0 && (
-        <Animated.View style={{ opacity: fadeAnim }}>
+        <Animated.View style={{ opacity: fadeAnim, zIndex: 1 }}>
           <View style={[s.card, { backgroundColor: C.surface, borderColor: C.border, marginBottom: 0, elevation: 0, shadowOpacity: 0 }]}>
             <View style={{ position: 'relative', overflow: 'hidden' }}>
               <CurveChart
@@ -620,7 +617,7 @@ export default function TageskurveScreen() {
       {/* ── SCROLLBARER INHALT (startet direkt unter Chart-Karte) ── */}
       <Animated.ScrollView
         style={[
-          { flex: 1, opacity: fadeAnim },
+          { flex: 1, opacity: fadeAnim, zIndex: 2 },
           intakes.length === 0 && { display: 'none' },
         ]}
         showsVerticalScrollIndicator={false}
