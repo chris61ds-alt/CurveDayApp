@@ -575,7 +575,7 @@ export default function TageskurveScreen() {
 
         {/* ── CHART-KARTE (randlos) ── */}
         {intakes.length > 0 && (
-          <View style={{ backgroundColor: C.surface, marginBottom: 0 }}>
+          <View style={{ backgroundColor: C.bg, marginBottom: 0 }}>
             <View style={{ position: 'relative', overflow: 'hidden' }}>
               <CurveChart
                 data={chartData} entries={chartEntries} selectedId={selectedId}
@@ -596,7 +596,7 @@ export default function TageskurveScreen() {
                 style={{
                   position: 'absolute', top: 0, bottom: 0, right: 0,
                   left: chartReveal.interpolate({ inputRange: [0, 1], outputRange: [30, screenWidth + 60] }),
-                  backgroundColor: C.surface,
+                  backgroundColor: C.bg,
                 }}
               />
             </View>
